@@ -275,6 +275,7 @@ body {
   content:''; position:absolute; inset:0; border-radius:14px;
   background:linear-gradient(135deg, rgba(79,195,247,0.06), transparent);
   opacity:0; transition:opacity 0.3s;
+  pointer-events:none;
 }
 .wcard:hover {
   transform:translateY(-4px);
@@ -291,7 +292,7 @@ body {
   display:inline-block; padding:6px 16px;
   border:1px solid rgba(79,195,247,0.3); border-radius:20px;
   font-size:12px; color:var(--cyan);
-  cursor:pointer;
+  cursor:pointer; position:relative; z-index:2; pointer-events:auto;
   transition:all 0.25s;
   user-select:none;
 }
@@ -1298,9 +1299,14 @@ const guidePlatforms = [
 ];
 
 function openGuidePlatform(destName) {
+  console.log('[Guide] Opening platform selector for:', destName);
   const overlay = document.getElementById('guidePlatformOverlay');
   const title = document.getElementById('guidePlatformTitle');
   const grid = document.getElementById('guidePlatformGrid');
+
+  if (!overlay) { console.error('[Guide] overlay not found!'); return; }
+  if (!title) { console.error('[Guide] title not found!'); return; }
+  if (!grid) { console.error('[Guide] grid not found!'); return; }
 
   title.textContent = '选择攻略平台 · ' + destName;
   grid.innerHTML = '';
@@ -1332,7 +1338,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ==================== BUILD WISH CARDS ====================
 function buildWishCards() {
+  console.log('[WishCards] Building wish cards, wishData length:', wishData.length);
   const grid = document.getElementById('wishGrid');
+  console.log('[WishCards] wishGrid element:', grid);
   grid.innerHTML = '';
 
   wishData.forEach((w, idx) => {
@@ -1354,6 +1362,7 @@ function buildWishCards() {
       const toggle = card.querySelector('.wcard-guide-toggle');
       if (toggle) {
         toggle.addEventListener('click', (ev) => {
+          console.log('[WishCards] CLICK FIRED for:', w.name);
           ev.stopPropagation();
           openGuidePlatform(w.name);
         });
@@ -1709,9 +1718,13 @@ function initMap() {
 })();
 
 // ==================== INIT ====================
+console.log('[Init] Starting buildVisitedCards...');
 buildVisitedCards();
+console.log('[Init] Starting buildWishCards...');
 buildWishCards();
+console.log('[Init] buildWishCards done, starting initMap...');
 initMap();
+console.log('[Init] All init complete');
 </script>
 </body>
 </html>
