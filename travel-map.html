@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的旅行足迹</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+:root {
+  --bg-deep: #0a0e27;
+  --bg-mid: #1a1040;
+  --bg-light: #0d1b3e;
+  --gold: #d4af37;
+  --gold-light: #f5d76e;
+  --cyan: #4fc3f7;
+  --card-bg: rgba(255,255,255,0.04);
+  --text: #e0e0e0;
+  --text-dim: #8892b0;
+  --border-dim: rgba(255,255,255,0.06);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: "PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
+  background: linear-gradient(170deg, #0a0e27 0%, #1a1040 40%, #0d1b3e 100%);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* ===== STAR PARTICLES ===== */
+.stars {
+  position: fixed; inset:0; pointer-events:none; z-index:0;
+}
+.star {
+  position: absolute;
+  width: 2px; height: 2px;
+  background: #fff;
+  border-radius: 50%;
+  animation: twinkle var(--dur) ease-in-out infinite;
+  animation-delay: var(--delay);
+  opacity: 0;
+}
+@keyframes twinkle {
+  0%,100% { opacity:0.1; transform:scale(1); }
+  50% { opacity:0.9; transform:scale(1.6); }
+}
+
+/* ===== HERO ===== */
+.hero {
+  position:relative; z-index:1;
+  min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center;
+  background: radial-gradient(ellipse at 50% 30%, rgba(26,36,86,0.5) 0%, transparent 70%);
+}
+.hero-content { position:relative; z-index:1; }
+.hero-badge {
+  display:inline-block; padding:6px 20px;
+  border:1px solid rgba(212,175,55,0.4); border-radius:20px;
+  font-size:13px; color:var(--gold);
+  letter-spacing:2px; margin-bottom:24px;
+  background:rgba(212,175,55,0.05);
+}
+.hero h1 {
+  font-size:clamp(2.5rem,7vw,5rem); font-weight:800;
+  background:linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold) 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text;
+  margin-bottom:16px; line-height:1.2;
+}
+.hero-sub { font-size:clamp(1rem,2.5vw,1.3rem); color:var(--text-dim); margin-bottom:48px; font-weight:300; }
+.stats { display:flex; gap:40px; justify-content:center; flex-wrap:wrap; }
+.stat-item { text-align:center; min-width:120px; }
+.stat-number { font-size:clamp(2rem,5vw,3.5rem); font-weight:800; color:var(--gold); line-height:1; }
+.stat-label { font-size:13px; color:var(--text-dim); margin-top:8px; letter-spacing:1px; }
+.scroll-hint {
+  position:absolute; bottom:32px; left:50%; transform:translateX(-50%);
+  color:var(--text-dim); font-size:13px; animation:bounce 2s infinite;
+}
+.scroll-hint::after {
+  content:''; display:block; width:20px; height:20px; margin:8px auto 0;
+  border-right:2px solid var(--gold); border-bottom:2px solid var(--gold);
+  transform:rotate(45deg); opacity:0.6;
+}
+@keyframes bounce {
+  0%,100% { transform:translateX(-50%) translateY(0); }
+  50% { transform:translateX(-50%) translateY(8px); }
+}
+
+/* ===== SECTION ===== */
+.section { position:relative; z-index:1; padding:80px 24px; max-width:1400px; margin:0 auto; }
+.section-title {
+  font-size:clamp(1.6rem,4vw,2.4rem); font-weight:700; text-align:center;
+  margin-bottom:12px; color:var(--text);
+}
+.section-title span {
+  background:linear-gradient(135deg, var(--gold), var(--gold-light));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+.section-sub { text-align:center; color:var(--text-dim); margin-bottom:48px; font-size:15px; }
+
+/* ===== MAP ===== */
+.map-section { background:linear-gradient(180deg, #0a0e27 0%, #0d1233 100%); }
+.map-wrapper {
+  border-radius:16px; overflow:hidden;
+  border:1px solid rgba(212,175,55,0.15);
+  background:rgba(13,18,51,0.6);
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+}
+#mapContainer { width:100%; height:600px; }
+.map-legend { display:flex; justify-content:center; gap:32px; padding:16px; background:rgba(0,0,0,0.3); border-top:1px solid rgba(255,255,255,0.05); }
+.legend-item { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-dim); }
+.legend-dot { width:12px; height:12px; border-radius:50%; }
+.legend-dot.visited { background:radial-gradient(circle, var(--gold-light), var(--gold)); box-shadow:0 0 8px rgba(212,175,55,0.6); }
+.legend-dot.wish { border:2px dashed var(--cyan); background:transparent; }
+
+/* ===== TAB BUTTONS ===== */
+.tab-nav {
+  display:flex; justify-content:center; gap:16px;
+  margin-bottom:48px;
+  flex-wrap:wrap;
+}
+.tab-btn {
+  padding:14px 36px; border-radius:40px;
+  font-size:16px; font-weight:600; cursor:pointer;
+  border:1px solid rgba(255,255,255,0.1);
+  background:rgba(255,255,255,0.04);
+  color:var(--text-dim);
+  transition:all 0.35s ease;
+  user-select:none;
+  letter-spacing:1px;
+}
+.tab-btn:hover {
+  border-color:rgba(212,175,55,0.3);
+  color:var(--gold);
+}
+.tab-btn.active {
+  background:linear-gradient(135deg, rgba(212,175,55,0.25) 0%, rgba(212,175,55,0.08) 100%);
+  border-color:var(--gold);
+  color:var(--gold);
+  box-shadow:0 0 20px rgba(212,175,55,0.15);
+}
+
+/* ===== TAB PANEL ===== */
+.tab-panel {
+  display:none;
+  opacity:0;
+  transition:opacity 0.4s ease;
+}
+.tab-panel.active {
+  display:block;
+  animation:fadeInUp 0.5s ease forwards;
+}
+@keyframes fadeInUp {
+  from { opacity:0; transform:translateY(24px); }
+  to { opacity:1; transform:translateY(0); }
+}
+
+/* ===== VISITED CARD GRID ===== */
+.visited-grid {
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:20px;
+}
+
+/* ===== VISITED CARD ===== */
+.vcard {
+  background:var(--card-bg);
+  border:1px solid var(--border-dim);
+  border-radius:14px;
+  padding:20px;
+  transition:all 0.35s ease;
+  position:relative;
+  overflow:hidden;
+}
+.vcard::before {
+  content:''; position:absolute; inset:0;
+  border-radius:14px;
+  background:linear-gradient(135deg, rgba(212,175,55,0.06), transparent);
+  opacity:0; transition:opacity 0.3s;
+}
+.vcard:hover {
+  transform:translateY(-4px);
+  border-color:rgba(212,175,55,0.3);
+  box-shadow:0 0 20px rgba(180,160,100,0.15);
+}
+.vcard:hover::before { opacity:1; }
+
+.vcard-name {
+  font-size:18px; font-weight:700; color:var(--text);
+  margin-bottom:6px;
+}
+.vcard-date {
+  font-size:12px; color:var(--text-dim);
+  margin-bottom:12px;
+}
+.vcard-desc {
+  font-size:13px; color:var(--text-dim);
+  line-height:1.6;
+  margin-bottom:16px;
+}
+
+/* ===== PHOTO UPLOAD AREA ===== */
+.vcard-photos {
+  display:flex; flex-wrap:wrap; gap:6px;
+  margin-bottom:8px;
+}
+.vcard-photo-thumb {
+  width:56px; height:56px; border-radius:6px;
+  object-fit:cover; cursor:pointer;
+  border:1px solid rgba(255,255,255,0.1);
+  transition:transform 0.2s;
+}
+.vcard-photo-thumb:hover { transform:scale(1.1); z-index:2; }
+
+.upload-trigger {
+  display:flex; align-items:center; justify-content:center;
+  width:64px; height:64px;
+  border:2px dashed rgba(255,255,255,0.15);
+  border-radius:8px;
+  cursor:pointer;
+  font-size:20px;
+  color:var(--text-dim);
+  transition:all 0.25s;
+  flex-shrink:0;
+}
+.upload-trigger:hover {
+  border-color:var(--gold);
+  color:var(--gold);
+  background:rgba(212,175,55,0.05);
+}
+.upload-trigger.full {
+  opacity:0.4; cursor:not-allowed;
+}
+.vcard-photo-count {
+  font-size:10px; color:var(--text-dim);
+  align-self:center;
+}
+
+/* ===== LIGHTBOX ===== */
+.lightbox-overlay {
+  display:none; position:fixed; inset:0; z-index:9999;
+  background:rgba(0,0,0,0.9);
+  align-items:center; justify-content:center;
+  cursor:pointer;
+}
+.lightbox-overlay.show { display:flex; }
+.lightbox-overlay img {
+  max-width:90vw; max-height:90vh;
+  border-radius:8px;
+  object-fit:contain;
+}
+
+/* ===== WISH CARD GRID ===== */
+.wish-grid {
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:20px;
+}
+
+/* ===== WISH CARD ===== */
+.wcard {
+  background:var(--card-bg);
+  border:1px solid rgba(79,195,247,0.12);
+  border-radius:14px;
+  padding:24px 18px;
+  text-align:center;
+  transition:all 0.35s ease;
+  position:relative;
+  overflow:hidden;
+}
+.wcard::before {
+  content:''; position:absolute; inset:0; border-radius:14px;
+  background:linear-gradient(135deg, rgba(79,195,247,0.06), transparent);
+  opacity:0; transition:opacity 0.3s;
+}
+.wcard:hover {
+  transform:translateY(-4px);
+  border-color:rgba(79,195,247,0.35);
+  box-shadow:0 0 24px rgba(79,195,247,0.12);
+}
+.wcard:hover::before { opacity:1; }
+
+.wcard-icon { font-size:32px; margin-bottom:10px; display:block; }
+.wcard-name { font-size:17px; font-weight:700; color:var(--text); margin-bottom:6px; }
+.wcard-desc { font-size:13px; color:var(--text-dim); font-style:italic; line-height:1.5; margin-bottom:14px; }
+
+.wcard-guide-toggle {
+  display:inline-block; padding:6px 16px;
+  border:1px solid rgba(79,195,247,0.3); border-radius:20px;
+  font-size:12px; color:var(--cyan);
+  cursor:pointer;
+  transition:all 0.25s;
+  user-select:none;
+}
+.wcard-guide-toggle:hover {
+  background:rgba(79,195,247,0.1);
+  border-color:rgba(79,195,247,0.5);
+}
+
+.wcard-guide {
+  max-height:0; overflow:hidden;
+  transition:max-height 0.4s ease, margin 0.4s ease, opacity 0.3s ease;
+  opacity:0;
+  text-align:left;
+  margin-top:0;
+}
+.wcard-guide.expanded {
+  max-height:2000px;
+  opacity:1;
+  margin-top:14px;
+}
+.wcard-guide-inner {
+  background:rgba(79,195,247,0.04);
+  border-radius:10px;
+  padding:14px;
+  font-size:12px; color:var(--text-dim);
+  line-height:1.7;
+  border:1px solid rgba(79,195,247,0.1);
+}
+
+/* ===== GUIDE PLATFORM MODAL ===== */
+.guide-platform-overlay {
+  position:fixed; inset:0; z-index:10000;
+  background:rgba(0,0,0,0.7);
+  backdrop-filter:blur(8px);
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; pointer-events:none;
+  transition:opacity 0.3s ease;
+}
+.guide-platform-overlay.active {
+  opacity:1; pointer-events:auto;
+}
+.guide-platform-modal {
+  background:linear-gradient(160deg, rgba(15,23,42,0.96) 0%, rgba(10,14,39,0.98) 100%);
+  border:1px solid rgba(79,195,247,0.2);
+  border-radius:16px;
+  width:min(480px, 90vw);
+  max-height:80vh;
+  overflow-y:auto;
+  box-shadow:0 0 60px rgba(0,0,0,0.5);
+  transform:translateY(20px);
+  transition:transform 0.3s ease;
+}
+.guide-platform-overlay.active .guide-platform-modal {
+  transform:translateY(0);
+}
+.guide-platform-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:20px 24px 14px;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.guide-platform-title {
+  font-size:16px; font-weight:700; color:var(--text);
+}
+.guide-platform-close {
+  background:none; border:none;
+  font-size:24px; color:var(--text-dim);
+  cursor:pointer; line-height:1;
+  transition:color 0.2s;
+}
+.guide-platform-close:hover { color:var(--text); }
+.guide-platform-grid {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:10px; padding:20px 24px 24px;
+}
+.guide-platform-btn {
+  display:flex; align-items:center; gap:10px;
+  padding:14px 16px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:12px;
+  cursor:pointer;
+  transition:all 0.25s;
+  color:var(--text);
+  font-size:14px;
+  text-decoration:none;
+  user-select:none;
+}
+.guide-platform-btn:hover {
+  background:rgba(79,195,247,0.12);
+  border-color:rgba(79,195,247,0.35);
+  transform:translateY(-1px);
+}
+.guide-platform-btn-icon {
+  font-size:22px; flex-shrink:0;
+}
+.guide-platform-btn-label {
+  font-weight:500;
+}
+
+/* ===== SCROLL ANIMATION ===== */
+.anim-card {
+  opacity:0; transform:translateY(30px);
+  transition:opacity 0.6s ease, transform 0.6s ease;
+}
+.anim-card.visible { opacity:1; transform:translateY(0); }
+
+/* ===== FOOTER ===== */
+.footer {
+  position:relative; z-index:1;
+  text-align:center; padding:40px 24px;
+  color:#4a5568; font-size:13px;
+  border-top:1px solid rgba(255,255,255,0.04);
+}
+.footer span { color:var(--gold); }
+
+/* ===== AI CHAT FAB ===== */
+.ai-chat-fab {
+  position:fixed; bottom:30px; right:30px; z-index:9998;
+  width:60px; height:60px;
+  border-radius:50%;
+  background:linear-gradient(135deg, #d4af37 0%, #f5d76e 50%, #b8941f 100%);
+  border:none;
+  cursor:pointer;
+  font-size:28px;
+  color:#0a0e27;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 4px 20px rgba(212,175,55,0.4);
+  transition:transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.ai-chat-fab:hover {
+  transform:scale(1.08);
+  box-shadow:0 6px 28px rgba(212,175,55,0.6);
+}
+.ai-chat-fab.hidden { opacity:0; pointer-events:none; transform:scale(0.6); }
+
+/* ===== AI CHAT PANEL ===== */
+.ai-chat-panel {
+  position:fixed; bottom:30px; right:30px; z-index:9997;
+  width:380px; height:520px;
+  border-radius:16px;
+  background:rgba(10,14,39,0.97);
+  border:1px solid rgba(212,175,55,0.2);
+  box-shadow:0 8px 40px rgba(0,0,0,0.6);
+  display:flex; flex-direction:column;
+  overflow:hidden;
+  transform:translateY(20px) scale(0.95);
+  opacity:0;
+  pointer-events:none;
+  transition:transform 0.35s cubic-bezier(0.16,1,0.3,1), opacity 0.3s ease;
+}
+.ai-chat-panel.open {
+  transform:translateY(0) scale(1);
+  opacity:1;
+  pointer-events:auto;
+}
+
+/* Chat Header */
+.ai-chat-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px;
+  border-bottom:1px solid rgba(212,175,55,0.15);
+  background:rgba(212,175,55,0.06);
+  flex-shrink:0;
+}
+.ai-chat-title {
+  font-size:15px; font-weight:700;
+  color:var(--gold);
+  letter-spacing:0.5px;
+}
+.ai-chat-actions {
+  display:flex; gap:8px; align-items:center;
+}
+.ai-chat-clear {
+  background:none; border:none;
+  color:var(--text-dim); font-size:12px;
+  cursor:pointer; padding:2px 6px;
+  transition:color 0.2s;
+}
+.ai-chat-clear:hover { color:#e74c3c; }
+.ai-chat-close {
+  background:none; border:none;
+  color:var(--text-dim); font-size:20px;
+  cursor:pointer; padding:0 2px;
+  line-height:1;
+  transition:color 0.2s;
+}
+.ai-chat-close:hover { color:var(--text); }
+
+/* Chat Messages */
+.ai-chat-messages {
+  flex:1; overflow-y:auto;
+  padding:16px;
+  display:flex; flex-direction:column; gap:10px;
+  scroll-behavior:smooth;
+}
+.ai-chat-messages::-webkit-scrollbar { width:4px; }
+.ai-chat-messages::-webkit-scrollbar-track { background:transparent; }
+.ai-chat-messages::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.08); border-radius:2px; }
+
+.chat-msg {
+  max-width:85%;
+  padding:10px 14px;
+  border-radius:14px;
+  font-size:13px; line-height:1.6;
+  word-break:break-word;
+  animation:msgIn 0.25s ease;
+}
+@keyframes msgIn {
+  from { opacity:0; transform:translateY(8px); }
+  to { opacity:1; transform:translateY(0); }
+}
+.chat-msg.user {
+  align-self:flex-end;
+  background:rgba(212,175,55,0.15);
+  color:var(--text);
+  border:1px solid rgba(212,175,55,0.2);
+}
+.chat-msg.ai {
+  align-self:flex-start;
+  background:rgba(255,255,255,0.06);
+  color:var(--text);
+  border:1px solid rgba(255,255,255,0.06);
+}
+.chat-msg.error {
+  align-self:flex-start;
+  background:rgba(231,76,60,0.1);
+  color:#e74c3c;
+  border:1px solid rgba(231,76,60,0.2);
+  font-size:12px;
+}
+
+/* Typing indicator */
+.chat-typing {
+  align-self:flex-start;
+  display:flex; gap:4px; padding:10px 14px;
+  background:rgba(255,255,255,0.06);
+  border-radius:14px;
+}
+.chat-typing span {
+  width:6px; height:6px;
+  background:var(--gold);
+  border-radius:50%;
+  animation:dotBounce 1.4s ease-in-out infinite;
+}
+.chat-typing span:nth-child(2) { animation-delay:0.2s; }
+.chat-typing span:nth-child(3) { animation-delay:0.4s; }
+@keyframes dotBounce {
+  0%,80%,100% { transform:translateY(0); opacity:0.3; }
+  40% { transform:translateY(-6px); opacity:1; }
+}
+
+/* Chat Input */
+.ai-chat-input-wrap {
+  display:flex; gap:8px; padding:12px 16px;
+  border-top:1px solid rgba(212,175,55,0.12);
+  background:rgba(0,0,0,0.3);
+  flex-shrink:0;
+}
+.ai-chat-input {
+  flex:1;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(212,175,55,0.2);
+  border-radius:10px;
+  padding:10px 12px;
+  color:var(--text);
+  font-size:13px;
+  font-family:inherit;
+  resize:none;
+  outline:none;
+  line-height:1.4;
+  max-height:80px;
+  transition:border-color 0.2s;
+}
+.ai-chat-input:focus {
+  border-color:rgba(212,175,55,0.5);
+}
+.ai-chat-input::placeholder { color:rgba(255,255,255,0.25); }
+.ai-chat-send {
+  width:40px; height:40px;
+  border-radius:10px;
+  border:none;
+  background:linear-gradient(135deg, #d4af37, #b8941f);
+  color:#0a0e27;
+  font-size:16px;
+  cursor:pointer;
+  flex-shrink:0;
+  transition:opacity 0.2s, transform 0.15s;
+  display:flex; align-items:center; justify-content:center;
+}
+.ai-chat-send:hover { opacity:0.85; }
+.ai-chat-send:active { transform:scale(0.95); }
+.ai-chat-send:disabled { opacity:0.4; cursor:not-allowed; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width:1200px) {
+  .visited-grid, .wish-grid { grid-template-columns:repeat(3, 1fr); }
+}
+@media (max-width:768px) {
+  .stats { gap:20px; }
+  .stat-item { min-width:80px; }
+  #mapContainer { height:400px; }
+  .section { padding:48px 16px; }
+  .visited-grid, .wish-grid { grid-template-columns:repeat(2, 1fr); gap:12px; }
+  .tab-btn { padding:10px 24px; font-size:14px; }
+  .ai-chat-fab { width:50px; height:50px; font-size:24px; bottom:20px; right:20px; }
+  .ai-chat-panel {
+    width:100vw; height:100vh;
+    bottom:0; right:0;
+    border-radius:0;
+  }
+}
+@media (max-width:480px) {
+  .visited-grid, .wish-grid { grid-template-columns:1fr; }
+}
+
+/* ===== SECTION DIVIDER ===== */
+.section-divider {
+  width:60px; height:2px;
+  background:linear-gradient(90deg, transparent, var(--gold), transparent);
+  margin:0 auto 16px;
+  opacity:0.5;
+}
+
+/* ===== CITY DETAIL OVERLAY ===== */
+.city-detail-overlay {
+  position: fixed; inset: 0; z-index: 9996;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(6px);
+  display: flex; align-items: stretch; justify-content: flex-end;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+.city-detail-overlay.active {
+  opacity: 1; pointer-events: auto;
+}
+
+.city-detail-panel {
+  width: min(680px, 95vw);
+  height: 100%;
+  background: linear-gradient(180deg, rgba(13,27,50,0.97) 0%, rgba(10,14,39,0.98) 100%);
+  border-left: 1px solid rgba(212,175,55,0.15);
+  box-shadow: -8px 0 40px rgba(0,0,0,0.5);
+  transform: translateX(100%);
+  transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
+  overflow-y: auto; overflow-x: hidden;
+  display: flex; flex-direction: column;
+  position: relative;
+}
+.city-detail-overlay.active .city-detail-panel {
+  transform: translateX(0);
+}
+.city-detail-panel::-webkit-scrollbar { width:4px; }
+.city-detail-panel::-webkit-scrollbar-track { background:transparent; }
+.city-detail-panel::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.08); border-radius:2px; }
+
+.city-detail-close {
+  position: absolute; top: 20px; right: 20px; z-index: 10;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(0,0,0,0.4);
+  color: var(--text-dim);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.25s;
+  backdrop-filter: blur(10px);
+}
+.city-detail-close:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(212,175,55,0.1);
+}
+
+.city-detail-header {
+  padding: 40px 32px 20px;
+  border-bottom: 1px solid rgba(212,175,55,0.08);
+}
+.city-detail-name {
+  font-size: 32px; font-weight: 800;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 6px;
+}
+.city-detail-date {
+  font-size: 14px; color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+.city-detail-body {
+  padding: 24px 32px 40px;
+  flex: 1;
+}
+
+.city-detail-section-title {
+  font-size: 15px; font-weight: 600;
+  color: var(--gold);
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+  display: flex; align-items: center; gap: 8px;
+}
+.city-detail-section-title::before {
+  content: '';
+  width: 3px; height: 16px;
+  background: var(--gold);
+  border-radius: 2px;
+}
+
+.city-detail-intro {
+  font-size: 14px; color: var(--text);
+  line-height: 1.9;
+  margin-bottom: 28px;
+}
+
+.city-detail-attractions {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-bottom: 28px;
+}
+.city-detail-tag {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--text);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* Photo gallery in detail panel */
+.city-detail-photos {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.city-detail-photo-thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: transform 0.2s, border-color 0.2s;
+}
+.city-detail-photo-thumb:hover {
+  transform: scale(1.06);
+  border-color: var(--gold);
+  z-index: 2;
+}
+
+.city-detail-upload {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 2px dashed rgba(255,255,255,0.12);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+  cursor: pointer;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 4px;
+  transition: all 0.25s;
+  font-size: 24px;
+  color: var(--text-dim);
+}
+.city-detail-upload:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(212,175,55,0.05);
+}
+.city-detail-upload.full {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.city-detail-upload span {
+  font-size: 10px;
+}
+
+.city-detail-photo-info {
+  font-size: 11px; color: var(--text-dim);
+  text-align: right;
+  margin-top: 4px;
+}
+
+/* Responsive for city detail */
+@media (max-width: 768px) {
+  .city-detail-panel { width: 100vw; }
+  .city-detail-header { padding: 32px 20px 16px; }
+  .city-detail-body { padding: 20px; }
+  .city-detail-photos { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .city-detail-name { font-size: 26px; }
+}
+@media (max-width: 480px) {
+  .city-detail-photos { grid-template-columns: repeat(3, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- STAR CANVAS -->
+<div class="stars" id="stars"></div>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-badge">TRAVEL FOOTPRINT</div>
+    <h1>我的旅行足迹</h1>
+    <p class="hero-sub">用脚步丈量世界，用心灵感受远方</p>
+    <div class="stats">
+      <div class="stat-item"><div class="stat-number" data-target="49">0</div><div class="stat-label">已点亮城市</div></div>
+      <div class="stat-item"><div class="stat-number" data-target="16">0</div><div class="stat-label">足迹遍布省份</div></div>
+      <div class="stat-item"><div class="stat-number" data-target="14">0</div><div class="stat-label">旅行时光(年)</div></div>
+    </div>
+  </div>
+  <div class="scroll-hint">向下探索</div>
+</section>
+
+<!-- ===== MAP ===== -->
+<section class="map-section">
+  <div class="section">
+    <h2 class="section-title">旅行<span>地图</span></h2>
+    <p class="section-sub">金色光点 = 已去过 · 蓝色虚线 = 想去的地方</p>
+    <div class="map-wrapper">
+      <div id="mapContainer"></div>
+      <div class="map-legend">
+        <div class="legend-item"><div class="legend-dot visited"></div>已去过</div>
+        <div class="legend-item"><div class="legend-dot wish"></div>想去</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TAB SECTION ===== -->
+<section class="section">
+  <h2 class="section-title">旅行<span>记忆</span></h2>
+  <p class="section-sub">每一座城市，都是一段独特的回忆</p>
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="visited">已点亮 · 去过的地方</button>
+    <button class="tab-btn" data-tab="wish">下一站 · 想去的地方</button>
+  </div>
+
+  <!-- VISITED PANEL -->
+  <div class="tab-panel active" id="panel-visited">
+    <div class="visited-grid" id="visitedGrid"></div>
+  </div>
+
+  <!-- WISH PANEL -->
+  <div class="tab-panel" id="panel-wish">
+    <div class="wish-grid" id="wishGrid"></div>
+  </div>
+</section>
+
+<!-- LIGHTBOX -->
+<div class="lightbox-overlay" id="lightbox">
+  <img src="" alt="" id="lightboxImg">
+</div>
+
+<!-- ===== CITY DETAIL OVERLAY ===== -->
+<div class="city-detail-overlay" id="cityDetailOverlay">
+  <div class="city-detail-panel" id="cityDetailPanel">
+    <!-- dynamically populated -->
+  </div>
+</div>
+
+<!-- ===== GUIDE PLATFORM MODAL ===== -->
+<div class="guide-platform-overlay" id="guidePlatformOverlay">
+  <div class="guide-platform-modal">
+    <div class="guide-platform-header">
+      <span class="guide-platform-title" id="guidePlatformTitle">选择攻略平台</span>
+      <button class="guide-platform-close" id="guidePlatformClose">&times;</button>
+    </div>
+    <div class="guide-platform-grid" id="guidePlatformGrid">
+      <!-- dynamically populated -->
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  用 <span>❤</span> 记录每一次出发 · 我的旅行足迹
+</footer>
+
+<!-- ===== AI CHAT FAB ===== -->
+<div class="ai-chat-fab" id="aiChatFab" title="旅行AI助手">💬</div>
+
+<!-- ===== AI CHAT PANEL ===== -->
+<div class="ai-chat-panel" id="aiChatPanel">
+  <div class="ai-chat-header">
+    <span class="ai-chat-title">旅行AI助手</span>
+    <div class="ai-chat-actions">
+      <button class="ai-chat-clear" id="aiChatClear" title="清空对话">清空</button>
+      <button class="ai-chat-close" id="aiChatClose">&times;</button>
+    </div>
+  </div>
+  <div class="ai-chat-messages" id="aiChatMessages"></div>
+  <div class="ai-chat-input-wrap">
+    <textarea class="ai-chat-input" id="aiChatInput" placeholder="输入旅行问题..." rows="1"></textarea>
+    <button class="ai-chat-send" id="aiChatSend">➤</button>
+  </div>
+</div>
+
+<script>
+// ==================== DATA ====================
+const visitedData = [
+  { name:"日照", date:"2013-07-09", coord:[119.46,35.42], desc:"万平口海滨浴场、灯塔风景区、日照海滨国家森林公园，感受黄海之滨的日出之美。" },
+  { name:"淮安", date:"2023-07-16", coord:[119.02,33.61], desc:"周恩来纪念馆、河下古镇、洪泽湖湿地，运河之都的历史底蕴。" },
+  { name:"青岛", date:"2023-07-19", coord:[120.38,36.07], desc:"栈桥、八大关万国建筑、崂山道教圣地、五四广场，红瓦绿树碧海蓝天。" },
+  { name:"南京", date:"2023-09-17", coord:[118.79,32.06], desc:"中山陵、夫子庙秦淮河、明孝陵、总统府，六朝古都的金陵烟雨。" },
+  { name:"武汉", date:"2024-02-17", coord:[114.30,30.60], desc:"黄鹤楼登高望远、东湖绿道骑行、户部巷过早、长江大桥赏夜景。" },
+  { name:"杭州", date:"2024-01-31", coord:[120.15,30.28], desc:"西湖十景、灵隐禅寺、西溪湿地、雷峰塔，人间天堂的江南韵味。" },
+  { name:"泰州", date:"2024-03-17", coord:[119.92,32.45], desc:"溱潼古镇、凤城河、千垛菜花，水城慢生活的温柔。" },
+  { name:"上海", date:"2024-04-03", coord:[121.47,31.23], desc:"外滩万国建筑、陆家嘴摩天楼群、豫园江南园林、迪士尼梦幻城堡。" },
+  { name:"苏州", date:"2024-04-06", coord:[120.58,31.30], desc:"拙政园、狮子林、平江路、金鸡湖，园林之城的小桥流水。" },
+  { name:"扬州", date:"2024-04-14", coord:[119.41,32.39], desc:"瘦西湖、个园四季假山、大明寺、东关街，淮左名都的精致慢生活。" },
+  { name:"洛阳", date:"2024-05-03", coord:[112.45,34.62], desc:"龙门石窟千年石刻、白马寺中国第一古刹、老君山云海、洛阳牡丹甲天下。" },
+  { name:"郑州", date:"2024-05-06", coord:[113.62,34.75], desc:"少林寺功夫圣地、嵩山峻极峰、河南博物院，中原大地的厚重。" },
+  { name:"北京", date:"2024-07-12", coord:[116.40,39.90], desc:"故宫红墙黄瓦、长城雄伟壮丽、天安门广场、颐和园皇家园林、天坛祈年殿。" },
+  { name:"合肥", date:"2024-08-23", coord:[117.22,31.82], desc:"包公园、三河古镇、逍遥津，三国故地的庐州风情。" },
+  { name:"九江", date:"2024-08-23", coord:[115.99,29.71], desc:"庐山瀑布云海、鄱阳湖候鸟、浔阳楼，山水诗画之城。" },
+  { name:"南昌", date:"2024-08-23", coord:[115.86,28.68], desc:"滕王阁落霞孤鹜、八一广场红色记忆、绳金塔美食街。" },
+  { name:"芜湖", date:"2024-08-28", coord:[118.38,31.34], desc:"方特梦幻王国、鸠兹古镇、马仁奇峰，欢乐与山水并存。" },
+  { name:"上饶", date:"2024-10-01", coord:[117.97,28.45], desc:"三清山奇峰云海、婺源油菜花梯田、龟峰丹霞，赣东北山水画廊。" },
+  { name:"黄山", date:"2024-10-01", coord:[118.33,29.71], desc:"迎客松、光明顶日出、西海大峡谷、宏村徽派古村，天下第一奇山。" },
+  { name:"泰安", date:"2024-10-25", coord:[117.13,36.20], desc:"泰山五岳独尊、岱庙古建筑群，登泰山而小天下。" },
+  { name:"镇江", date:"2024-12-22", coord:[119.42,32.19], desc:"金山寺白蛇传说、焦山碑林、北固山怀古，京口三山的千年故事。" },
+  { name:"济南", date:"2025-01-14", coord:[117.00,36.67], desc:"趵突泉天下第一泉、大明湖畔、千佛山，泉城的温润。" },
+  { name:"烟台", date:"2025-01-15", coord:[121.44,37.46], desc:"蓬莱阁海上仙境、长岛渔家乐、养马岛环岛路，仙境海岸。" },
+  { name:"大连", date:"2025-01-16", coord:[121.61,38.91], desc:"星海广场、老虎滩海洋公园、棒棰岛、滨海路，浪漫之都。" },
+  { name:"哈尔滨", date:"2025-01-16", coord:[126.53,45.80], desc:"冰雪大世界、中央大街欧式建筑、圣索菲亚教堂，冰城夏都。" },
+  { name:"沈阳", date:"2025-01-20", coord:[123.43,41.80], desc:"沈阳故宫、张氏帅府、北陵公园，一朝发祥地两代帝王都。" },
+  { name:"马鞍山", date:"2025-01-22", coord:[118.51,31.67], desc:"采石矶长江三矶之首、褒禅山，诗仙李白终老之地。" },
+  { name:"无锡", date:"2025-01-30", coord:[120.31,31.49], desc:"鼋头渚太湖佳绝处、灵山大佛、惠山古镇，太湖明珠。" },
+  { name:"常州", date:"2025-03-14", coord:[119.97,31.81], desc:"中华恐龙园、天目湖南山竹海、春秋淹城，创意之都的欢乐。" },
+  { name:"嘉兴", date:"2025-03-14", coord:[120.76,30.75], desc:"南湖红船启航地、西塘古镇烟雨长廊、乌镇水乡，梦里江南。" },
+  { name:"三亚", date:"2025-03-29", coord:[109.51,18.25], desc:"亚龙湾碧海银沙、天涯海角、蜈支洲岛潜水、南山寺，东方夏威夷。" },
+  { name:"厦门", date:"2025-07-06", coord:[118.08,24.48], desc:"鼓浪屿万国建筑、南普陀寺、环岛路、曾厝垵，海上花园。" },
+  { name:"福州", date:"2025-07-26", coord:[119.30,26.07], desc:"三坊七巷明清古街、鼓山涌泉寺、平潭蓝眼泪，有福之州。" },
+  { name:"香港", date:"2025-08-09", coord:[114.17,22.28], desc:"维多利亚港夜景、太平山顶俯瞰、迪士尼乐园、海洋公园，东方之珠。" },
+  { name:"深圳", date:"2025-08-10", coord:[114.07,22.62], desc:"世界之窗、欢乐谷、深圳湾公园，创新之城的活力。" },
+  { name:"漳州", date:"2025-08-20", coord:[117.65,24.51], desc:"南靖土楼群、东山岛、云水谣古镇，闽南土楼传奇。" },
+  { name:"渭南", date:"2025-09-26", coord:[109.51,34.50], desc:"华山奇险天下第一、韩城古城，西岳之雄。" },
+  { name:"西安", date:"2025-09-27", coord:[108.94,34.26], desc:"兵马俑世界奇迹、大雁塔、古城墙骑行、回民街美食、华清宫，十三朝古都。" },
+  { name:"银川", date:"2025-09-30", coord:[106.23,38.49], desc:"镇北堡西部影城、西夏王陵、沙湖，塞上江南。" },
+  { name:"阿拉善盟", date:"2025-10-01", coord:[105.67,38.83], desc:"额济纳胡杨林金秋、巴丹吉林沙漠、腾格里沙漠星空，大漠孤烟直。" },
+  { name:"威海", date:"2025-12-29", coord:[122.12,37.51], desc:"刘公岛甲午记忆、成山头天尽头、国际海水浴场，最干净的海滨城市。" },
+  { name:"宁波", date:"2026-02-18", coord:[121.54,29.87], desc:"天一阁藏书楼、东钱湖、老外滩，书藏古今港通天下。" },
+  { name:"台州", date:"2026-02-20", coord:[121.42,28.66], desc:"神仙居云海、天台山国清寺、临海古城墙，山海之城。" },
+  { name:"长沙", date:"2026-04-02", coord:[112.97,28.23], desc:"岳麓山爱晚亭、橘子洲头、太平街夜市、湖南博物院，星城不夜天。" },
+  { name:"六安", date:"2026-04-02", coord:[116.50,31.73], desc:"天堂寨大别山主峰、万佛湖、大别山国家风景道，红色与绿色交织。" },
+  { name:"湘潭", date:"2026-04-03", coord:[112.94,27.83], desc:"韶山毛泽东故居、盘龙大观园，伟人故里。" },
+  { name:"衡阳", date:"2026-04-04", coord:[112.57,26.89], desc:"南岳衡山独秀、石鼓书院，雁城之南。" }
+];
+
+const wishData = [
+  { icon:"🏔️", name:"新疆·伊犁赛里木湖", desc:"天山脚下的塞外江南，大西洋最后一滴眼泪", guide:"最佳季节6-8月，建议环湖自驾约90公里，沿途果子沟大桥必停。伊犁草原推荐那拉提和喀拉峻，骑马体验草原牧歌。乌鲁木齐飞伊宁约1.5小时，建议行程5-7天。赛里木湖边可露营看星空。" },
+  { icon:"🏝️", name:"台湾·本岛", desc:"太平洋的风，吹过宝岛的每一个角落", guide:"推荐环岛8-10天，台北故宫博物院+101大楼+士林夜市→台中彩虹眷村→日月潭→阿里山小火车日出→高雄驳二艺术区→垦丁鹅銮鼻灯塔+白沙湾。台北捷运方便，环岛可高铁+台铁。夜市必吃：蚵仔煎、珍珠奶茶、盐酥鸡。" },
+  { icon:"🏯", name:"云南·大理丽江香格里拉", desc:"雪山之巅，云端漫步，风花雪月的滇西", guide:"经典滇西线7-10天。大理：洱海环湖骑行、双廊古镇、崇圣寺三塔。丽江：大研古城、束河古镇、玉龙雪山（大索道需提前抢票）。香格里拉：独克宗古城、普达措国家公园、松赞林寺。虎跳峡徒步可选1-2天。昆明中转，大理动车2小时到丽江，丽江包车到香格里拉约4小时。" },
+  { icon:"🏞️", name:"四川·川西稻城九寨沟", desc:"蓝色星球上的最后一片净土", guide:"秋季（9-10月）最佳。稻城亚丁：牛奶海+五色海徒步需体力和高原适应，从成都自驾走318约2天。九寨沟：五花海+诺日朗瀑布+长海，沟口住宿方便，提前预约门票。黄龙五彩池顺路可去。成都出发建议安排8-10天，高原注意防晒和防高反。" },
+  { icon:"🐴", name:"内蒙古·乌兰布统草原", desc:"策马奔腾，在草原上看日出日落", guide:"夏季7-8月草绿花海，秋季9月底金色摄影天堂。北京出发自驾约6小时。必体验：草原骑马、越野车穿越、公主湖日出、蛤蟆坝摄影。可住蒙古包体验游牧生活。建议3-4天，早晚温差大需带外套。" },
+  { icon:"🌆", name:"广东·广州", desc:"食在广州，一座把吃刻进DNA的城市", guide:"必吃早茶（点都德/陶陶居）、煲仔饭、云吞面。景点：广州塔、沙面欧式建筑群、陈家祠、永庆坊、珠江夜游。长隆野生动物园适合亲子。2-3天足够，地铁覆盖全城。" },
+  { icon:"🎰", name:"澳门", desc:"东方拉斯维加斯与葡式风情的完美碰撞", guide:"必去：大三巴牌坊+恋爱巷+议事亭前地、威尼斯人水城、澳门塔、官也街吃葡挞和猪扒包。可顺路从珠海拱北口岸过关，建议2天。赌场21岁以上才能进入。安德鲁蛋挞必打卡。" },
+  { icon:"🐼", name:"成都·重庆", desc:"火锅的热辣，熊猫的慵懒，西南双城的极致魅力", guide:"成都：大熊猫繁育基地（早上去看熊猫活跃）、宽窄巷子、锦里、武侯祠。重庆：洪崖洞夜景、李子坝轻轨穿楼、磁器口古镇、长江索道。火锅推荐成都的蜀大侠、重庆的珮姐。两地高铁1.5小时，建议各玩3天，串联7天行程。" },
+  { icon:"🏔️", name:"湖南·张家界武陵源", desc:"阿凡达的潘多拉星球，悬浮在云端的仙境", guide:"天门山玻璃栈道需提前预约A线票。武陵源核心景区：袁家界（哈利路亚山）+天子山+金鞭溪，2天逛完。大峡谷玻璃桥刺激体验。张家界市区有机场和高铁站，长沙过来高铁约3小时。建议3-4天，山上温度低带外套。" },
+  { icon:"⛰️", name:"山西·恒山", desc:"悬空寺下，北岳巍巍", guide:"悬空寺是最大亮点，建议早上到达避开人流。恒山主峰海拔2016米，登山约3-4小时。大同市区出发约1.5小时车程，可顺路游览云冈石窟。建议1-2天，5-10月最佳。悬空寺登临需另购票且限流。" },
+  { icon:"⛰️", name:"浙江·雁荡山", desc:"灵峰夜景，大龙湫飞瀑，东南第一山的奇秀", guide:"核心三绝：灵峰（日景+夜景两种风光）、灵岩（飞渡表演）、大龙湫（落差197米瀑布）。温州出发约1.5小时，高铁雁荡山站。建议2-3天，4-6月水量大。灵峰夜景是最大特色，一定要看。" }
+];
+
+// Wish coord (for map)
+const wishCoord = [
+  { name:"伊犁", coord:[81.32,43.92] }, { name:"赛里木湖", coord:[81.15,44.61] },
+  { name:"台湾", coord:[121.00,23.50] }, { name:"大理", coord:[100.23,25.61] },
+  { name:"丽江", coord:[100.23,26.88] }, { name:"香格里拉", coord:[99.70,27.83] },
+  { name:"稻城", coord:[100.30,29.04] }, { name:"九寨沟", coord:[103.92,33.26] },
+  { name:"乌兰布统", coord:[117.24,42.51] }, { name:"广州", coord:[113.26,23.13] },
+  { name:"澳门", coord:[113.55,22.20] }, { name:"成都", coord:[104.07,30.67] },
+  { name:"重庆", coord:[106.55,29.57] }, { name:"张家界", coord:[110.48,29.35] },
+  { name:"恒山", coord:[113.73,39.67] }, { name:"雁荡山", coord:[121.09,28.35] }
+];
+
+// ==================== STARS ====================
+(function generateStars() {
+  const container = document.getElementById('stars');
+  const count = 55;
+  let html = '';
+  for (let i = 0; i < count; i++) {
+    const x = Math.random() * 100;
+    const y = Math.random() * 100;
+    const size = 1 + Math.random() * 2;
+    const dur = 2 + Math.random() * 5;
+    const delay = Math.random() * 6;
+    html += `<div class="star" style="left:${x}%;top:${y}%;width:${size}px;height:${size}px;--dur:${dur}s;--delay:${delay}s"></div>`;
+  }
+  container.innerHTML = html;
+})();
+
+// ==================== STATS COUNTER ====================
+function animateCounters() {
+  document.querySelectorAll('.stat-number').forEach(el => {
+    const target = parseInt(el.dataset.target);
+    const duration = 2000;
+    const start = performance.now();
+    function update(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.floor(eased * target);
+      if (progress < 1) requestAnimationFrame(update);
+      else el.textContent = target;
+    }
+    requestAnimationFrame(update);
+  });
+}
+new IntersectionObserver((entries, obs) => {
+  entries.forEach(e => { if (e.isIntersecting) { animateCounters(); obs.disconnect(); } });
+}, { threshold: 0.3 }).observe(document.querySelector('.hero'));
+
+// ==================== TAB SWITCHING ====================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ==================== IMAGE COMPRESSION ====================
+function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        const maxW = 800;
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = h * (maxW / w); w = maxW; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function getStorageKey(name) {
+  return 'travel_photos_' + encodeURIComponent(name);
+}
+
+function loadPhotos(name) {
+  try {
+    const raw = localStorage.getItem(getStorageKey(name));
+    return raw ? JSON.parse(raw) : [];
+  } catch(e) { return []; }
+}
+
+function savePhotos(name, photos) {
+  try {
+    localStorage.setItem(getStorageKey(name), JSON.stringify(photos));
+  } catch(e) {
+    if (photos.length > 1) {
+      photos.shift();
+      try { localStorage.setItem(getStorageKey(name), JSON.stringify(photos)); } catch(e2) {}
+    }
+  }
+}
+
+// ==================== CITY DETAIL PANEL ====================
+function getCityPhotoKey(name) {
+  return 'travel_city_photos_' + name;
+}
+
+function loadCityPhotos(name) {
+  try {
+    const raw = localStorage.getItem(getCityPhotoKey(name));
+    return raw ? JSON.parse(raw) : [];
+  } catch(e) { return []; }
+}
+
+function saveCityPhotos(name, photos) {
+  try {
+    localStorage.setItem(getCityPhotoKey(name), JSON.stringify(photos));
+  } catch(e) {
+    if (photos.length > 1) {
+      photos.shift();
+      try { localStorage.setItem(getCityPhotoKey(name), JSON.stringify(photos)); } catch(e2) {}
+    }
+  }
+}
+
+function renderCityDetailPhotos(cityName) {
+  const container = document.getElementById('cityDetailPhotos');
+  const info = document.getElementById('cityDetailPhotoInfo');
+  if (!container) return;
+  const photos = loadCityPhotos(cityName);
+  container.innerHTML = '';
+
+  photos.forEach((b64, idx) => {
+    const thumb = document.createElement('img');
+    thumb.className = 'city-detail-photo-thumb';
+    thumb.src = b64;
+    thumb.addEventListener('click', (ev) => { ev.stopPropagation(); showLightbox(b64); });
+    container.appendChild(thumb);
+  });
+
+  if (photos.length < 10) {
+    const uploadBtn = document.createElement('div');
+    uploadBtn.className = 'city-detail-upload';
+    uploadBtn.innerHTML = '📷<span>上传照片</span>';
+    uploadBtn.title = '点击上传旅行照片（最多10张）';
+    uploadBtn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const fi = document.getElementById('cityDetailFileInput');
+      if (fi) fi.click();
+    });
+    container.appendChild(uploadBtn);
+  }
+
+  if (info) info.textContent = photos.length + '/10';
+}
+
+function generateCityIntro(city) {
+  const parts = city.desc.split(/[，、。]/).filter(s => s.trim().length > 0);
+  const poeticPhrase = parts.length > 0 ? parts[parts.length - 1].trim() : '';
+  const attractions = parts.slice(0, -1).filter(s => s.trim().length > 0);
+  const mainAttr = attractions.slice(0, 3).join('、');
+  const year = new Date(city.date).getFullYear();
+  return `${year}年到访${city.name}。${mainAttr ? '从' + mainAttr + '，' : ''}足迹遍布这座城市的每一个角落。${poeticPhrase ? poeticPhrase + '。' : ''}这座城市用它独特的魅力，在旅途中留下了深深的印记。`;
+}
+
+function closeCityDetail() {
+  document.getElementById('cityDetailOverlay').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function openCityDetail(city) {
+  const overlay = document.getElementById('cityDetailOverlay');
+  const panel = document.getElementById('cityDetailPanel');
+
+  const dateObj = new Date(city.date);
+  const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const dd = String(dateObj.getDate()).padStart(2, '0');
+  const dateStr = dateObj.getFullYear() + '年' + mm + '月' + dd + '日';
+
+  const parts = city.desc.split(/[，、]/).filter(s => s.trim().length > 0);
+  const attractions = parts.slice(0, -1).filter(s => s.trim().length > 0);
+
+  panel.innerHTML = `
+    <button class="city-detail-close" id="cityDetailClose">&times;</button>
+    <div class="city-detail-header">
+      <div class="city-detail-name">${city.name}</div>
+      <div class="city-detail-date">到访日期：${dateStr}</div>
+    </div>
+    <div class="city-detail-body">
+      <div class="city-detail-section-title">城市印象</div>
+      <div class="city-detail-intro">${generateCityIntro(city)}</div>
+      <div class="city-detail-section-title">景点 / 地标</div>
+      <div class="city-detail-attractions">
+        ${attractions.map(a => `<span class="city-detail-tag">${a}</span>`).join('')}
+      </div>
+      <div class="city-detail-section-title">旅行相册</div>
+      <div class="city-detail-photos" id="cityDetailPhotos"></div>
+      <div class="city-detail-photo-info" id="cityDetailPhotoInfo"></div>
+      <input type="file" accept="image/*" multiple style="display:none" id="cityDetailFileInput">
+    </div>
+  `;
+
+  overlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+
+  document.getElementById('cityDetailClose').addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    closeCityDetail();
+  });
+
+  renderCityDetailPhotos(city.name);
+
+  const fileInput = document.getElementById('cityDetailFileInput');
+  fileInput.addEventListener('change', async function() {
+    const files = Array.from(this.files);
+    let current = loadCityPhotos(city.name);
+    const remaining = 10 - current.length;
+    const toAdd = files.slice(0, remaining);
+
+    for (const f of toAdd) {
+      try {
+        const b64 = await compressImage(f);
+        current.push(b64);
+        if (current.length > 10) current = current.slice(0, 10);
+        saveCityPhotos(city.name, current);
+      } catch(e) { console.error('City photo upload failed', e); }
+    }
+    renderCityDetailPhotos(city.name);
+    this.value = '';
+  });
+}
+
+// ==================== BUILD VISITED CARDS ====================
+function buildVisitedCards() {
+  const grid = document.getElementById('visitedGrid');
+  grid.innerHTML = '';
+
+  visitedData.forEach((v, idx) => {
+    const card = document.createElement('div');
+    card.className = 'vcard anim-card';
+    card.style.transitionDelay = (idx % 12) * 0.05 + 's';
+
+    const dateObj = new Date(v.date);
+    const mm = String(dateObj.getMonth()+1).padStart(2,'0');
+    const dd = String(dateObj.getDate()).padStart(2,'0');
+    const dateStr = dateObj.getFullYear() + '年' + mm + '月' + dd + '日';
+
+    card.innerHTML = `
+      <div class="vcard-name">${v.name}</div>
+      <div class="vcard-date">${dateStr}</div>
+      <div class="vcard-desc">${v.desc}</div>
+      <div class="vcard-photos" data-name="${v.name}"></div>
+      <input type="file" accept="image/*" multiple style="display:none" data-name="${v.name}">
+    `;
+
+    grid.appendChild(card);
+
+    card.addEventListener('click', (ev) => {
+      if (ev.target.closest('.vcard-photo-thumb') || ev.target.closest('.upload-trigger')) return;
+      openCityDetail(v);
+    });
+
+    const photos = loadPhotos(v.name);
+    const photoContainer = card.querySelector('.vcard-photos');
+    const fileInput = card.querySelector('input[type=file]');
+
+    function renderPhotos() {
+      const current = loadPhotos(v.name);
+      photoContainer.innerHTML = '';
+      current.forEach((b64, pi) => {
+        const thumb = document.createElement('img');
+        thumb.className = 'vcard-photo-thumb';
+        thumb.src = b64;
+        thumb.addEventListener('click', (ev) => { ev.stopPropagation(); showLightbox(b64); });
+        photoContainer.appendChild(thumb);
+      });
+      const trigger = document.createElement('div');
+      trigger.className = 'upload-trigger' + (current.length >= 5 ? ' full' : '');
+      trigger.innerHTML = '📷';
+      trigger.title = current.length >= 5 ? '最多5张照片' : '点击上传照片';
+      if (current.length < 5) {
+        trigger.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          console.log('[PhotoUpload] Trigger clicked for city:', v.name);
+          if (fileInput) {
+            fileInput.click();
+          } else {
+            console.error('[PhotoUpload] fileInput not found for city:', v.name);
+          }
+        });
+      }
+      photoContainer.appendChild(trigger);
+      if (current.length > 0) {
+        const cnt = document.createElement('span');
+        cnt.className = 'vcard-photo-count';
+        cnt.textContent = current.length + '/5';
+        photoContainer.appendChild(cnt);
+      }
+    }
+
+    renderPhotos();
+
+    fileInput.addEventListener('change', async function() {
+      const files = Array.from(this.files);
+      let current = loadPhotos(v.name);
+      const remaining = 5 - current.length;
+      const toAdd = files.slice(0, remaining);
+
+      for (const f of toAdd) {
+        try {
+          const b64 = await compressImage(f);
+          current.push(b64);
+          if (current.length > 5) current = current.slice(0, 5);
+          savePhotos(v.name, current);
+        } catch(e) { console.error('Photo upload failed', e); }
+      }
+      renderPhotos();
+      this.value = '';
+    });
+  });
+
+  observeAnimCards();
+}
+
+// ==================== GUIDE PLATFORM MODAL ====================
+const guidePlatforms = [
+  { icon:'📕', label:'小红书', url:'https://www.xiaohongshu.com/search_result?keyword={q}&source=unknown' },
+  { icon:'🐝', label:'马蜂窝', url:'https://www.mafengwo.cn/search/s.php?q={q}' },
+  { icon:'✈️', label:'携程攻略', url:'https://you.ctrip.com/searchsite/?query={q}' },
+  { icon:'🎒', label:'去哪儿', url:'https://travel.qunar.com/?q={q}' },
+  { icon:'🌍', label:'穷游', url:'https://www.qyer.com/search?q={q}' },
+  { icon:'🎵', label:'抖音', url:'https://www.douyin.com/search/{q}?type=general' }
+];
+
+function openGuidePlatform(destName) {
+  const overlay = document.getElementById('guidePlatformOverlay');
+  const title = document.getElementById('guidePlatformTitle');
+  const grid = document.getElementById('guidePlatformGrid');
+
+  title.textContent = '选择攻略平台 · ' + destName;
+  grid.innerHTML = '';
+
+  guidePlatforms.forEach(p => {
+    const btn = document.createElement('a');
+    btn.className = 'guide-platform-btn';
+    btn.href = p.url.replace('{q}', encodeURIComponent(destName + ' 旅游攻略'));
+    btn.target = '_blank';
+    btn.rel = 'noopener';
+    btn.innerHTML = `<span class="guide-platform-btn-icon">${p.icon}</span><span class="guide-platform-btn-label">${p.label}</span>`;
+    btn.addEventListener('click', () => { closeGuidePlatform(); });
+    grid.appendChild(btn);
+  });
+
+  overlay.classList.add('active');
+}
+
+function closeGuidePlatform() {
+  document.getElementById('guidePlatformOverlay').classList.remove('active');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('guidePlatformClose').addEventListener('click', closeGuidePlatform);
+  document.getElementById('guidePlatformOverlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeGuidePlatform();
+  });
+});
+
+// ==================== BUILD WISH CARDS ====================
+function buildWishCards() {
+  const grid = document.getElementById('wishGrid');
+  grid.innerHTML = '';
+
+  wishData.forEach((w, idx) => {
+    const card = document.createElement('div');
+    card.className = 'wcard anim-card';
+    card.style.transitionDelay = (idx % 8) * 0.05 + 's';
+
+    card.innerHTML = `
+      <span class="wcard-icon">${w.icon}</span>
+      <div class="wcard-name">${w.name}</div>
+      <div class="wcard-desc">${w.desc}</div>
+      <div class="wcard-guide-toggle">📋 查看攻略</div>
+      <div class="wcard-guide">
+        <div class="wcard-guide-inner">${w.guide}</div>
+      </div>
+    `;
+
+    try {
+      const toggle = card.querySelector('.wcard-guide-toggle');
+      if (toggle) {
+        toggle.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          openGuidePlatform(w.name);
+        });
+      } else {
+        console.error('[WishCard] Toggle element not found for:', w.name);
+      }
+    } catch(e) {
+      console.error('[WishCard] Failed to bind toggle for:', w.name, e);
+    }
+
+    grid.appendChild(card);
+  });
+
+  observeAnimCards();
+}
+
+// ==================== SCROLL ANIMATION ====================
+function observeAnimCards() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.anim-card').forEach(c => observer.observe(c));
+}
+
+// ==================== LIGHTBOX ====================
+function showLightbox(src) {
+  const lb = document.getElementById('lightbox');
+  const img = document.getElementById('lightboxImg');
+  img.src = src;
+  lb.classList.add('show');
+}
+document.getElementById('lightbox').addEventListener('click', function() {
+  this.classList.remove('show');
+});
+
+// ==================== CITY DETAIL OVERLAY CLICK TO CLOSE ====================
+document.getElementById('cityDetailOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeCityDetail();
+});
+
+// ==================== MAP ====================
+function initMap() {
+  const chart = echarts.init(document.getElementById('mapContainer'));
+
+  const visitedSeries = visitedData.map(p => ({
+    name: p.name,
+    value: [...p.coord, p.name, p.date],
+  }));
+
+  const wishSeries = wishCoord.map(w => ({
+    name: w.name,
+    value: [...w.coord, w.name],
+  }));
+
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: 'rgba(10,14,39,0.95)',
+      borderColor: 'rgba(212,175,55,0.3)',
+      textStyle: { color:'#e0e0e0', fontSize:13, fontFamily:'Microsoft YaHei' },
+      formatter: function(params) {
+        if (params.seriesName === '已去过') {
+          const d = new Date(params.value[3]);
+          return '<b style="color:#d4af37">'+params.name+'</b><br/>点亮日期：'+d.getFullYear()+'年'+String(d.getMonth()+1).padStart(2,'0')+'月'+String(d.getDate()).padStart(2,'0')+'日';
+        }
+        return '<b style="color:#4fc3f7">'+params.name+'</b><br/>心愿目的地';
+      }
+    },
+    geo: {
+      map:'china', roam:true, zoom:1.15, center:[104.5,36],
+      itemStyle: {
+        areaColor:'rgba(26,36,86,0.6)',
+        borderColor:'rgba(212,175,55,0.15)', borderWidth:0.8,
+        shadowColor:'rgba(0,0,0,0.5)', shadowBlur:10,
+      },
+      emphasis: {
+        itemStyle: { areaColor:'rgba(212,175,55,0.15)', borderColor:'#d4af37', borderWidth:1 }
+      },
+      regions: [{ name:'南海诸岛', itemStyle:{ areaColor:'transparent', borderColor:'transparent' }, label:{ show:false } }]
+    },
+    series: [
+      {
+        name:'光晕', type:'effectScatter', coordinateSystem:'geo',
+        data:visitedSeries, symbolSize:22, showEffectOn:'render',
+        rippleEffect:{ brushType:'stroke', scale:3, period:4 },
+        itemStyle:{ color:'rgba(212,175,55,0.12)', shadowBlur:10, shadowColor:'rgba(212,175,55,0.3)' },
+        zlevel:1,
+      },
+      {
+        name:'已去过', type:'effectScatter', coordinateSystem:'geo',
+        data:visitedSeries, symbolSize:10, showEffectOn:'render',
+        rippleEffect:{ brushType:'fill', scale:2.5, period:3 },
+        itemStyle:{
+          color:{ type:'radial', x:0.5,y:0.5,r:0.5, colorStops:[{offset:0,color:'#f5d76e'},{offset:1,color:'#d4af37'}] },
+          shadowBlur:12, shadowColor:'rgba(212,175,55,0.6)',
+        },
+        label:{ show:false, position:'right', formatter:'{b}', fontSize:11, color:'#d4af37', fontFamily:'Microsoft YaHei' },
+        emphasis:{ label:{ show:true }, itemStyle:{ shadowBlur:20, symbolSize:14 } },
+        zlevel:2,
+      },
+      {
+        name:'想去', type:'scatter', coordinateSystem:'geo',
+        data:wishSeries, symbol:'circle', symbolSize:12,
+        itemStyle:{
+          color:'transparent', borderColor:'#4fc3f7', borderWidth:2, borderType:[4,3],
+          shadowBlur:8, shadowColor:'rgba(79,195,247,0.3)',
+        },
+        label:{ show:false, position:'right', formatter:'{b}', fontSize:11, color:'#4fc3f7', fontFamily:'Microsoft YaHei' },
+        emphasis:{ label:{ show:true }, itemStyle:{ borderColor:'#81d4fa', shadowBlur:16, symbolSize:16 } },
+        zlevel:2,
+      }
+    ]
+  };
+
+  fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
+    .then(r => r.json())
+    .then(geoJson => { echarts.registerMap('china', geoJson); chart.setOption(option); })
+    .catch(() => { chart.setOption(option); });
+
+  window.addEventListener('resize', () => chart.resize());
+}
+
+// ==================== AI CHAT ====================
+(function initAIChat() {
+  const fab = document.getElementById('aiChatFab');
+  const panel = document.getElementById('aiChatPanel');
+  const closeBtn = document.getElementById('aiChatClose');
+  const clearBtn = document.getElementById('aiChatClear');
+  const messagesEl = document.getElementById('aiChatMessages');
+  const inputEl = document.getElementById('aiChatInput');
+  const sendBtn = document.getElementById('aiChatSend');
+
+  const API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
+  const API_KEY = 'sk-50bbd5d26d4f410bb31e0b171428ba42';
+  const MODEL = 'qwen-turbo';
+  const STORAGE_KEY = 'travel_ai_chat_history';
+  const MAX_HISTORY = 20;
+
+  const SYSTEM_PROMPT = `你是一位专业的旅行规划助手，名叫"旅行小马"。你非常了解用户（小马）的旅行历史和未来计划。
+
+## 用户已去过的地方（共49个，按时间排序）：
+2013年：日照
+2023年：淮安、青岛、南京
+2024年：武汉、杭州、泰州、上海、苏州、扬州、洛阳、郑州、北京、合肥、九江、南昌、芜湖、上饶、黄山、泰安、镇江
+2025年：济南、烟台、大连、哈尔滨、沈阳、马鞍山、无锡、常州、嘉兴、三亚、厦门、福州、香港、深圳、漳州、渭南、西安、银川、阿拉善盟、威海
+2026年：宁波、台州、长沙、六安、湘潭、衡阳
+
+## 用户想去的地方（共11个目的地）：
+新疆伊犁赛里木湖、台湾本岛、云南大理洱海丽江玉龙雪山香格里拉、四川川西稻城九寨沟、内蒙古乌兰布统草原、广州、澳门、成都重庆、湖南张家界武陵源、恒山、雁荡山
+
+## 你的能力：
+1. 回答关于用户已去过地方的任何问题（景点推荐、美食、交通、住宿等）
+2. 为用户想去的地方提供旅行建议、攻略、最佳季节、行程规划
+3. 比较不同目的地的优劣，帮用户做决策
+4. 根据用户去过的地方，分析旅行偏好，推荐类似目的地
+5. 回答通用旅行问题（行李打包、旅行保险、签证等）
+6. 你的知识截止到2025年，对于2025年后的信息请诚实说明
+
+## 回复风格：
+- 热情但专业，像朋友一样聊天
+- 回答简洁有料，每次控制在200字以内，除非用户要求详细
+- 善用emoji但不过度（每条1-2个即可）
+- 如果用户问的问题与旅行无关，礼貌地引导回旅行话题`;
+
+  let isOpen = false;
+  let isLoading = false;
+
+  function loadHistory() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch(e) { return []; }
+  }
+
+  function saveHistory(messages) {
+    try {
+      const toSave = messages.filter(m => m.role !== 'system');
+      if (toSave.length > MAX_HISTORY * 2) {
+        toSave.splice(0, toSave.length - MAX_HISTORY * 2);
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    } catch(e) { }
+  }
+
+  let chatMessages = loadHistory();
+
+  function buildAPIMessages() {
+    return [
+      { role: 'system', content: SYSTEM_PROMPT },
+      ...chatMessages
+    ];
+  }
+
+  function scrollToBottom() {
+    setTimeout(() => { messagesEl.scrollTop = messagesEl.scrollHeight; }, 50);
+  }
+
+  function addMessage(role, content) {
+    const div = document.createElement('div');
+    div.className = 'chat-msg ' + role;
+    div.textContent = content;
+    messagesEl.appendChild(div);
+    scrollToBottom();
+  }
+
+  function addError(text) {
+    const div = document.createElement('div');
+    div.className = 'chat-msg error';
+    div.textContent = text;
+    messagesEl.appendChild(div);
+    scrollToBottom();
+  }
+
+  function showTyping() {
+    const div = document.createElement('div');
+    div.className = 'chat-typing';
+    div.id = 'typingIndicator';
+    div.innerHTML = '<span></span><span></span><span></span>';
+    messagesEl.appendChild(div);
+    scrollToBottom();
+  }
+
+  function hideTyping() {
+    const el = document.getElementById('typingIndicator');
+    if (el) el.remove();
+  }
+
+  async function callAI(userMessage) {
+    chatMessages.push({ role: 'user', content: userMessage });
+    if (chatMessages.length > MAX_HISTORY) {
+      chatMessages = chatMessages.slice(-MAX_HISTORY);
+    }
+
+    const apiMessages = buildAPIMessages();
+
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + API_KEY
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          messages: apiMessages,
+          stream: false,
+          max_tokens: 1024,
+          temperature: 0.7
+        })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error?.message || '请求失败 (HTTP ' + response.status + ')');
+      }
+
+      const data = await response.json();
+      const reply = data.choices[0].message.content;
+
+      chatMessages.push({ role: 'assistant', content: reply });
+      saveHistory(chatMessages);
+      return reply;
+    } catch(e) {
+      chatMessages.pop();
+      saveHistory(chatMessages);
+      throw e;
+    }
+  }
+
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text || isLoading) return;
+
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+    sendBtn.disabled = true;
+    isLoading = true;
+
+    addMessage('user', text);
+    showTyping();
+
+    try {
+      const reply = await callAI(text);
+      hideTyping();
+      addMessage('ai', reply);
+    } catch(e) {
+      hideTyping();
+      addError('抱歉，请求出错了：' + (e.message || '网络异常，请检查连接后重试'));
+    }
+
+    isLoading = false;
+    sendBtn.disabled = false;
+    inputEl.focus();
+  }
+
+  function renderWelcome() {
+    if (chatMessages.length === 0) {
+      addMessage('ai', '你好！我是旅行小马 🐴 我知道你去过49座城市，还有11个想去的目的地。有什么旅行问题尽管问我～');
+    } else {
+      chatMessages.forEach(m => {
+        if (m.role === 'user' || m.role === 'assistant') {
+          addMessage(m.role === 'user' ? 'user' : 'ai', m.content);
+        }
+      });
+    }
+  }
+
+  function openPanel() {
+    isOpen = true;
+    panel.classList.add('open');
+    fab.classList.add('hidden');
+    if (messagesEl.children.length === 0) {
+      renderWelcome();
+    }
+    scrollToBottom();
+  }
+
+  function closePanel() {
+    isOpen = false;
+    panel.classList.remove('open');
+    fab.classList.remove('hidden');
+  }
+
+  function clearChat() {
+    chatMessages = [];
+    localStorage.removeItem(STORAGE_KEY);
+    messagesEl.innerHTML = '';
+    addMessage('ai', '你好！我是旅行小马 🐴 我知道你去过49座城市，还有11个想去的目的地。有什么旅行问题尽管问我～');
+  }
+
+  fab.addEventListener('click', openPanel);
+  closeBtn.addEventListener('click', closePanel);
+  clearBtn.addEventListener('click', clearChat);
+  sendBtn.addEventListener('click', sendMessage);
+
+  inputEl.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  inputEl.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+  });
+})();
+
+// ==================== INIT ====================
+buildVisitedCards();
+buildWishCards();
+initMap();
+</script>
+</body>
+</html>
