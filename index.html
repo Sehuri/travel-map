@@ -1355,7 +1355,7 @@ async function loadCityPhotos(name) {
   } catch(e) { return []; }
 }
 
-async function saveCityPhotos(name, photos) {
+async function saveCityPhotos(name, photos, newB64s) {
   // Always save to localStorage as backup
   try {
     localStorage.setItem(getCityPhotoKey(name), JSON.stringify(photos));
@@ -1365,12 +1365,12 @@ async function saveCityPhotos(name, photos) {
       try { localStorage.setItem(getCityPhotoKey(name), JSON.stringify(photos)); } catch(e2) {}
     }
   }
-  // Also push to GitHub (upload only new ones that are base64 data URLs)
-  const newOnes = photos.filter(p => p.startsWith('data:'));
-  if (newOnes.length > 0) {
+  // Only upload explicitly marked new photos (prevents duplicates)
+  const toUpload = newB64s || photos.filter(p => p.startsWith('data:'));
+  if (toUpload.length > 0) {
     try {
-      await GitHubPhotos.uploadPhotos(name, newOnes);
-      console.log('[Photos] Uploaded ' + newOnes.length + ' photos to GitHub for ' + name);
+      await GitHubPhotos.uploadPhotos(name, toUpload);
+      console.log('[Photos] Uploaded ' + toUpload.length + ' photos to GitHub for ' + name);
     } catch(e) {
       console.warn('[Photos] GitHub upload failed, saved locally only:', e.message);
     }
@@ -1385,19 +1385,39 @@ async function renderCityDetailPhotos(cityName) {
   container.innerHTML = '';
 
   photos.forEach((src, idx) => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;';
+    wrap.className = 'photo-thumb-wrap';
+
     const thumb = document.createElement('img');
     thumb.className = 'city-detail-photo-thumb';
     thumb.src = src;
-    // Cross-origin for GitHub raw URLs
     thumb.crossOrigin = 'anonymous';
     thumb.addEventListener('click', (ev) => { ev.stopPropagation(); showLightbox(src); });
-    container.appendChild(thumb);
+    wrap.appendChild(thumb);
+
+    // Delete button (hover to show)
+    const delBtn = document.createElement('button');
+    delBtn.innerHTML = '&times;';
+    delBtn.title = '删除照片（需验证Token）';
+    delBtn.style.cssText = 'position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(0,0,0,0.6);color:#fff;font-size:14px;line-height:22px;cursor:pointer;opacity:0;transition:opacity 0.2s;z-index:3;';
+    wrap.addEventListener('mouseenter', function() { delBtn.style.opacity = '1'; });
+    wrap.addEventListener('mouseleave', function() { delBtn.style.opacity = '0'; });
+
+    delBtn.addEventListener('click', async function(ev) {
+      ev.stopPropagation();
+      ev.preventDefault();
+      await deleteCityPhoto(cityName, src, idx);
+      await renderCityDetailPhotos(cityName);
+    });
+
+    wrap.appendChild(delBtn);
+    container.appendChild(wrap);
   });
 
   if (photos.length < 10) {
     const uploadBtn = document.createElement('div');
     uploadBtn.className = 'city-detail-upload';
-    uploadBtn.innerHTML = '📷<span>上传照片</span>';
     uploadBtn.title = '点击上传旅行照片（最多10张）';
     uploadBtn.addEventListener('click', (ev) => {
       ev.stopPropagation();
@@ -1469,23 +1489,68 @@ function openCityDetail(city) {
   const fileInput = document.getElementById('cityDetailFileInput');
   fileInput.addEventListener('change', async function() {
     const files = Array.from(this.files);
+    if (files.length === 0) return;
     // Ensure token before uploading
     await new Promise(resolve => { ensureGitHubToken(resolve); });
     let current = await loadCityPhotos(city.name);
     const remaining = 10 - current.length;
     const toAdd = files.slice(0, remaining);
+    const newB64s = [];
 
+    // Compress all first, then save once
     for (const f of toAdd) {
       try {
         const b64 = await compressImage(f);
         current.push(b64);
-        if (current.length > 10) current = current.slice(0, 10);
-        await saveCityPhotos(city.name, current);
+        newB64s.push(b64);
       } catch(e) { console.error('City photo upload failed', e); }
     }
-    renderCityDetailPhotos(city.name);
+    if (current.length > 10) current = current.slice(0, 10);
+    
+    // Save once (prevents duplicate uploads)
+    await saveCityPhotos(city.name, current, newB64s);
+    // Render immediately after save
+    await renderCityDetailPhotos(city.name);
     this.value = '';
   });
+}
+
+
+// ==================== DELETE PHOTO ====================
+async function deleteCityPhoto(cityName, src, idx) {
+  const storedToken = localStorage.getItem('travel_github_token') || '';
+  let token = storedToken;
+
+  // If no token stored, prompt for it
+  if (!token) {
+    token = prompt('删除照片需要验证身份。请输入您的 GitHub Token（仅保存在当前浏览器）：');
+    if (!token) return; // User cancelled
+    localStorage.setItem('travel_github_token', token);
+  }
+
+  // Confirm
+  if (!confirm('确定要删除这张照片吗？此操作不可撤销。')) return;
+
+  try {
+    // Delete from GitHub if it's a GitHub URL
+    if (src.startsWith('https://raw.githubusercontent.com/')) {
+      await GitHubPhotos.deletePhoto(cityName, src);
+    }
+
+    // Also remove from localStorage
+    const key = getCityPhotoKey(cityName);
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      let local = JSON.parse(raw);
+      local = local.filter(function(item) { return item !== src; });
+      localStorage.setItem(key, JSON.stringify(local));
+    }
+
+    console.log('[Photos] Deleted photo from ' + cityName);
+  } catch(e) {
+    console.error('[Photos] Delete failed:', e);
+    alert('删除失败：' + e.message);
+  }
 }
 
 // ==================== BUILD VISITED CARDS ====================
