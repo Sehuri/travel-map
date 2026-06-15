@@ -408,6 +408,51 @@ body {
 }
 .footer span { color:var(--gold); }
 
+/* ===== EXPORT PHOTOS BUTTON ===== */
+.export-photos-wrap {
+  position:fixed; bottom:30px; left:30px; z-index:9995;
+}
+.export-photos-btn {
+  display:flex; align-items:center; gap:8px;
+  padding:10px 18px;
+  border-radius:24px;
+  border:1px solid rgba(212,175,55,0.25);
+  background:rgba(10,14,39,0.85);
+  color:var(--text-dim);
+  font-size:13px;
+  font-family:inherit;
+  cursor:pointer;
+  transition:all 0.3s ease;
+  backdrop-filter:blur(10px);
+  user-select:none;
+  letter-spacing:0.5px;
+}
+.export-photos-btn:hover {
+  border-color:var(--gold);
+  color:var(--gold);
+  background:rgba(212,175,55,0.1);
+  box-shadow:0 0 16px rgba(212,175,55,0.15);
+}
+.export-toast {
+  position:fixed; bottom:80px; left:30px; z-index:9994;
+  padding:12px 20px;
+  border-radius:10px;
+  background:rgba(10,14,39,0.95);
+  border:1px solid rgba(212,175,55,0.3);
+  color:var(--gold-light);
+  font-size:13px;
+  font-family:inherit;
+  opacity:0;
+  transform:translateY(10px);
+  transition:opacity 0.35s ease, transform 0.35s ease;
+  pointer-events:none;
+  backdrop-filter:blur(10px);
+}
+.export-toast.show {
+  opacity:1;
+  transform:translateY(0);
+}
+
 /* ===== AI CHAT FAB ===== */
 .ai-chat-fab {
   position:fixed; bottom:30px; right:30px; z-index:9998;
@@ -805,6 +850,7 @@ body {
     <div class="stats">
       <div class="stat-item"><div class="stat-number" data-target="53">0</div><div class="stat-label">已点亮城市</div></div>
       <div class="stat-item"><div class="stat-number" data-target="16">0</div><div class="stat-label">足迹遍布省份</div></div>
+      <div class="stat-item"><div class="stat-number" data-target="2">0</div><div class="stat-label">覆盖国家</div></div>
       <div class="stat-item"><div class="stat-number" data-target="14">0</div><div class="stat-label">旅行时光(年)</div></div>
     </div>
   </div>
@@ -871,6 +917,14 @@ body {
   </div>
 </div>
 
+<!-- EXPORT PHOTOS -->
+<div class="export-photos-wrap">
+  <button class="export-photos-btn" onclick="exportPhotos()" title="导出所有旅行照片">
+    <span>&#128247;</span><span>导出照片</span>
+  </button>
+</div>
+<div class="export-toast" id="exportToast"></div>
+
 <!-- FOOTER -->
 <footer class="footer">
   用 <span>❤</span> 记录每一次出发 · 我的旅行足迹
@@ -898,58 +952,58 @@ body {
 <script>
 // ==================== DATA ====================
 const visitedData = [
-  { name:"日照", date:"2013-07-09", coord:[119.46,35.42], desc:"万平口海滨浴场、灯塔风景区、日照海滨国家森林公园，感受黄海之滨的日出之美。" },
-  { name:"淮安", date:"2023-07-16", coord:[119.02,33.61], desc:"周恩来纪念馆、河下古镇、洪泽湖湿地，运河之都的历史底蕴。" },
-  { name:"青岛", date:"2023-07-19", coord:[120.38,36.07], desc:"栈桥、八大关万国建筑、崂山道教圣地、五四广场，红瓦绿树碧海蓝天。" },
-  { name:"南京", date:"2023-09-17", coord:[118.79,32.06], desc:"中山陵、夫子庙秦淮河、明孝陵、总统府，六朝古都的金陵烟雨。" },
-  { name:"武汉", date:"2024-02-17", coord:[114.30,30.60], desc:"黄鹤楼登高望远、东湖绿道骑行、户部巷过早、长江大桥赏夜景。" },
-  { name:"杭州", date:"2024-01-31", coord:[120.15,30.28], desc:"西湖十景、灵隐禅寺、西溪湿地、雷峰塔，人间天堂的江南韵味。" },
-  { name:"泰州", date:"2024-03-17", coord:[119.92,32.45], desc:"溱潼古镇、凤城河、千垛菜花，水城慢生活的温柔。" },
-  { name:"上海", date:"2024-04-03", coord:[121.47,31.23], desc:"外滩万国建筑、陆家嘴摩天楼群、豫园江南园林、迪士尼梦幻城堡。" },
-  { name:"苏州", date:"2024-04-06", coord:[120.58,31.30], desc:"拙政园、狮子林、平江路、金鸡湖，园林之城的小桥流水。" },
-  { name:"扬州", date:"2024-04-14", coord:[119.41,32.39], desc:"瘦西湖、个园四季假山、大明寺、东关街，淮左名都的精致慢生活。" },
-  { name:"洛阳", date:"2024-05-03", coord:[112.45,34.62], desc:"龙门石窟千年石刻、白马寺中国第一古刹、老君山云海、洛阳牡丹甲天下。" },
-  { name:"郑州", date:"2024-05-06", coord:[113.62,34.75], desc:"少林寺功夫圣地、嵩山峻极峰、河南博物院，中原大地的厚重。" },
-  { name:"北京", date:"2024-07-12", coord:[116.40,39.90], desc:"故宫红墙黄瓦、长城雄伟壮丽、天安门广场、颐和园皇家园林、天坛祈年殿。" },
-  { name:"合肥", date:"2024-08-23", coord:[117.22,31.82], desc:"包公园、三河古镇、逍遥津，三国故地的庐州风情。" },
-  { name:"九江", date:"2024-08-23", coord:[115.99,29.71], desc:"庐山瀑布云海、鄱阳湖候鸟、浔阳楼，山水诗画之城。" },
-  { name:"南昌", date:"2024-08-23", coord:[115.86,28.68], desc:"滕王阁落霞孤鹜、八一广场红色记忆、绳金塔美食街。" },
-  { name:"芜湖", date:"2024-08-28", coord:[118.38,31.34], desc:"方特梦幻王国、鸠兹古镇、马仁奇峰，欢乐与山水并存。" },
-  { name:"上饶", date:"2024-10-01", coord:[117.97,28.45], desc:"三清山奇峰云海、婺源油菜花梯田、龟峰丹霞，赣东北山水画廊。" },
-  { name:"黄山", date:"2024-10-01", coord:[118.33,29.71], desc:"迎客松、光明顶日出、西海大峡谷、宏村徽派古村，天下第一奇山。" },
-  { name:"泰安", date:"2024-10-25", coord:[117.13,36.20], desc:"泰山五岳独尊、岱庙古建筑群，登泰山而小天下。" },
-  { name:"镇江", date:"2024-12-22", coord:[119.42,32.19], desc:"金山寺白蛇传说、焦山碑林、北固山怀古，京口三山的千年故事。" },
-  { name:"济南", date:"2025-01-14", coord:[117.00,36.67], desc:"趵突泉天下第一泉、大明湖畔、千佛山，泉城的温润。" },
-  { name:"烟台", date:"2025-01-15", coord:[121.44,37.46], desc:"蓬莱阁海上仙境、长岛渔家乐、养马岛环岛路，仙境海岸。" },
-  { name:"大连", date:"2025-01-16", coord:[121.61,38.91], desc:"星海广场、老虎滩海洋公园、棒棰岛、滨海路，浪漫之都。" },
-  { name:"哈尔滨", date:"2025-01-16", coord:[126.53,45.80], desc:"冰雪大世界、中央大街欧式建筑、圣索菲亚教堂，冰城夏都。" },
-  { name:"沈阳", date:"2025-01-20", coord:[123.43,41.80], desc:"沈阳故宫、张氏帅府、北陵公园，一朝发祥地两代帝王都。" },
-  { name:"马鞍山", date:"2025-01-22", coord:[118.51,31.67], desc:"采石矶长江三矶之首、褒禅山，诗仙李白终老之地。" },
-  { name:"无锡", date:"2025-01-30", coord:[120.31,31.49], desc:"鼋头渚太湖佳绝处、灵山大佛、惠山古镇，太湖明珠。" },
-  { name:"常州", date:"2025-03-14", coord:[119.97,31.81], desc:"中华恐龙园、天目湖南山竹海、春秋淹城，创意之都的欢乐。" },
-  { name:"嘉兴", date:"2025-03-14", coord:[120.76,30.75], desc:"南湖红船启航地、西塘古镇烟雨长廊、乌镇水乡，梦里江南。" },
-  { name:"三亚", date:"2025-03-29", coord:[109.51,18.25], desc:"亚龙湾碧海银沙、天涯海角、蜈支洲岛潜水、南山寺，东方夏威夷。" },
-  { name:"厦门", date:"2025-07-06", coord:[118.08,24.48], desc:"鼓浪屿万国建筑、南普陀寺、环岛路、曾厝垵，海上花园。" },
-  { name:"福州", date:"2025-07-26", coord:[119.30,26.07], desc:"三坊七巷明清古街、鼓山涌泉寺、平潭蓝眼泪，有福之州。" },
-  { name:"香港", date:"2025-08-09", coord:[114.17,22.28], desc:"维多利亚港夜景、太平山顶俯瞰、迪士尼乐园、海洋公园，东方之珠。" },
-  { name:"深圳", date:"2025-08-10", coord:[114.07,22.62], desc:"世界之窗、欢乐谷、深圳湾公园，创新之城的活力。" },
-  { name:"漳州", date:"2025-08-20", coord:[117.65,24.51], desc:"南靖土楼群、东山岛、云水谣古镇，闽南土楼传奇。" },
-  { name:"渭南", date:"2025-09-26", coord:[109.51,34.50], desc:"华山奇险天下第一、韩城古城，西岳之雄。" },
-  { name:"西安", date:"2025-09-27", coord:[108.94,34.26], desc:"兵马俑世界奇迹、大雁塔、古城墙骑行、回民街美食、华清宫，十三朝古都。" },
-  { name:"银川", date:"2025-09-30", coord:[106.23,38.49], desc:"镇北堡西部影城、西夏王陵、沙湖，塞上江南。" },
-  { name:"阿拉善盟", date:"2025-10-01", coord:[105.67,38.83], desc:"额济纳胡杨林金秋、巴丹吉林沙漠、腾格里沙漠星空，大漠孤烟直。" },
-  { name:"威海", date:"2025-12-29", coord:[122.12,37.51], desc:"刘公岛甲午记忆、成山头天尽头、国际海水浴场，最干净的海滨城市。" },
-  { name:"大阪", date:"2026-02-03", coord:[135.50,34.69], desc:"大阪城天守阁、道顿堀美食街、环球影城、心斋桥购物，关西的活力之都。" },
-  { name:"京都", date:"2026-02-06", coord:[135.77,35.02], desc:"伏见稻荷大社千本鸟居、清水寺、金阁寺、岚山竹林，千年古都的唐风遗韵。" },
-  { name:"东京", date:"2026-02-09", coord:[139.69,35.69], desc:"浅草寺雷门、涩谷十字路口、秋叶原电器街、东京塔夜景，世界第一都市的繁华。" },
-  { name:"镰仓", date:"2026-02-12", coord:[139.55,35.32], desc:"镰仓大佛、江之岛电车、湘南海岸、鹤冈八幡宫，灌篮高手同款的海滨古都。" },
+  { name:"日照", country:"中国", date:"2013-07-09", coord:[119.46,35.42], desc:"万平口海滨浴场、灯塔风景区、日照海滨国家森林公园，感受黄海之滨的日出之美。" },
+  { name:"淮安", country:"中国", date:"2023-07-16", coord:[119.02,33.61], desc:"周恩来纪念馆、河下古镇、洪泽湖湿地，运河之都的历史底蕴。" },
+  { name:"青岛", country:"中国", date:"2023-07-19", coord:[120.38,36.07], desc:"栈桥、八大关万国建筑、崂山道教圣地、五四广场，红瓦绿树碧海蓝天。" },
+  { name:"南京", country:"中国", date:"2023-09-17", coord:[118.79,32.06], desc:"中山陵、夫子庙秦淮河、明孝陵、总统府，六朝古都的金陵烟雨。" },
+  { name:"武汉", country:"中国", date:"2024-02-17", coord:[114.30,30.60], desc:"黄鹤楼登高望远、东湖绿道骑行、户部巷过早、长江大桥赏夜景。" },
+  { name:"杭州", country:"中国", date:"2024-01-31", coord:[120.15,30.28], desc:"西湖十景、灵隐禅寺、西溪湿地、雷峰塔，人间天堂的江南韵味。" },
+  { name:"泰州", country:"中国", date:"2024-03-17", coord:[119.92,32.45], desc:"溱潼古镇、凤城河、千垛菜花，水城慢生活的温柔。" },
+  { name:"上海", country:"中国", date:"2024-04-03", coord:[121.47,31.23], desc:"外滩万国建筑、陆家嘴摩天楼群、豫园江南园林、迪士尼梦幻城堡。" },
+  { name:"苏州", country:"中国", date:"2024-04-06", coord:[120.58,31.30], desc:"拙政园、狮子林、平江路、金鸡湖，园林之城的小桥流水。" },
+  { name:"扬州", country:"中国", date:"2024-04-14", coord:[119.41,32.39], desc:"瘦西湖、个园四季假山、大明寺、东关街，淮左名都的精致慢生活。" },
+  { name:"洛阳", country:"中国", date:"2024-05-03", coord:[112.45,34.62], desc:"龙门石窟千年石刻、白马寺中国第一古刹、老君山云海、洛阳牡丹甲天下。" },
+  { name:"郑州", country:"中国", date:"2024-05-06", coord:[113.62,34.75], desc:"少林寺功夫圣地、嵩山峻极峰、河南博物院，中原大地的厚重。" },
+  { name:"北京", country:"中国", date:"2024-07-12", coord:[116.40,39.90], desc:"故宫红墙黄瓦、长城雄伟壮丽、天安门广场、颐和园皇家园林、天坛祈年殿。" },
+  { name:"合肥", country:"中国", date:"2024-08-23", coord:[117.22,31.82], desc:"包公园、三河古镇、逍遥津，三国故地的庐州风情。" },
+  { name:"九江", country:"中国", date:"2024-08-23", coord:[115.99,29.71], desc:"庐山瀑布云海、鄱阳湖候鸟、浔阳楼，山水诗画之城。" },
+  { name:"南昌", country:"中国", date:"2024-08-23", coord:[115.86,28.68], desc:"滕王阁落霞孤鹜、八一广场红色记忆、绳金塔美食街。" },
+  { name:"芜湖", country:"中国", date:"2024-08-28", coord:[118.38,31.34], desc:"方特梦幻王国、鸠兹古镇、马仁奇峰，欢乐与山水并存。" },
+  { name:"上饶", country:"中国", date:"2024-10-01", coord:[117.97,28.45], desc:"三清山奇峰云海、婺源油菜花梯田、龟峰丹霞，赣东北山水画廊。" },
+  { name:"黄山", country:"中国", date:"2024-10-01", coord:[118.33,29.71], desc:"迎客松、光明顶日出、西海大峡谷、宏村徽派古村，天下第一奇山。" },
+  { name:"泰安", country:"中国", date:"2024-10-25", coord:[117.13,36.20], desc:"泰山五岳独尊、岱庙古建筑群，登泰山而小天下。" },
+  { name:"镇江", country:"中国", date:"2024-12-22", coord:[119.42,32.19], desc:"金山寺白蛇传说、焦山碑林、北固山怀古，京口三山的千年故事。" },
+  { name:"济南", country:"中国", date:"2025-01-14", coord:[117.00,36.67], desc:"趵突泉天下第一泉、大明湖畔、千佛山，泉城的温润。" },
+  { name:"烟台", country:"中国", date:"2025-01-15", coord:[121.44,37.46], desc:"蓬莱阁海上仙境、长岛渔家乐、养马岛环岛路，仙境海岸。" },
+  { name:"大连", country:"中国", date:"2025-01-16", coord:[121.61,38.91], desc:"星海广场、老虎滩海洋公园、棒棰岛、滨海路，浪漫之都。" },
+  { name:"哈尔滨", country:"中国", date:"2025-01-16", coord:[126.53,45.80], desc:"冰雪大世界、中央大街欧式建筑、圣索菲亚教堂，冰城夏都。" },
+  { name:"沈阳", country:"中国", date:"2025-01-20", coord:[123.43,41.80], desc:"沈阳故宫、张氏帅府、北陵公园，一朝发祥地两代帝王都。" },
+  { name:"马鞍山", country:"中国", date:"2025-01-22", coord:[118.51,31.67], desc:"采石矶长江三矶之首、褒禅山，诗仙李白终老之地。" },
+  { name:"无锡", country:"中国", date:"2025-01-30", coord:[120.31,31.49], desc:"鼋头渚太湖佳绝处、灵山大佛、惠山古镇，太湖明珠。" },
+  { name:"常州", country:"中国", date:"2025-03-14", coord:[119.97,31.81], desc:"中华恐龙园、天目湖南山竹海、春秋淹城，创意之都的欢乐。" },
+  { name:"嘉兴", country:"中国", date:"2025-03-14", coord:[120.76,30.75], desc:"南湖红船启航地、西塘古镇烟雨长廊、乌镇水乡，梦里江南。" },
+  { name:"三亚", country:"中国", date:"2025-03-29", coord:[109.51,18.25], desc:"亚龙湾碧海银沙、天涯海角、蜈支洲岛潜水、南山寺，东方夏威夷。" },
+  { name:"厦门", country:"中国", date:"2025-07-06", coord:[118.08,24.48], desc:"鼓浪屿万国建筑、南普陀寺、环岛路、曾厝垵，海上花园。" },
+  { name:"福州", country:"中国", date:"2025-07-26", coord:[119.30,26.07], desc:"三坊七巷明清古街、鼓山涌泉寺、平潭蓝眼泪，有福之州。" },
+  { name:"香港", country:"中国", date:"2025-08-09", coord:[114.17,22.28], desc:"维多利亚港夜景、太平山顶俯瞰、迪士尼乐园、海洋公园，东方之珠。" },
+  { name:"深圳", country:"中国", date:"2025-08-10", coord:[114.07,22.62], desc:"世界之窗、欢乐谷、深圳湾公园，创新之城的活力。" },
+  { name:"漳州", country:"中国", date:"2025-08-20", coord:[117.65,24.51], desc:"南靖土楼群、东山岛、云水谣古镇，闽南土楼传奇。" },
+  { name:"渭南", country:"中国", date:"2025-09-26", coord:[109.51,34.50], desc:"华山奇险天下第一、韩城古城，西岳之雄。" },
+  { name:"西安", country:"中国", date:"2025-09-27", coord:[108.94,34.26], desc:"兵马俑世界奇迹、大雁塔、古城墙骑行、回民街美食、华清宫，十三朝古都。" },
+  { name:"银川", country:"中国", date:"2025-09-30", coord:[106.23,38.49], desc:"镇北堡西部影城、西夏王陵、沙湖，塞上江南。" },
+  { name:"阿拉善盟", country:"中国", date:"2025-10-01", coord:[105.67,38.83], desc:"额济纳胡杨林金秋、巴丹吉林沙漠、腾格里沙漠星空，大漠孤烟直。" },
+  { name:"威海", country:"中国", date:"2025-12-29", coord:[122.12,37.51], desc:"刘公岛甲午记忆、成山头天尽头、国际海水浴场，最干净的海滨城市。" },
+  { name:"大阪", country:"日本", date:"2026-02-03", coord:[135.50,34.69], desc:"大阪城天守阁、道顿堀美食街、环球影城、心斋桥购物，关西的活力之都。" },
+  { name:"京都", country:"日本", date:"2026-02-06", coord:[135.77,35.02], desc:"伏见稻荷大社千本鸟居、清水寺、金阁寺、岚山竹林，千年古都的唐风遗韵。" },
+  { name:"东京", country:"日本", date:"2026-02-09", coord:[139.69,35.69], desc:"浅草寺雷门、涩谷十字路口、秋叶原电器街、东京塔夜景，世界第一都市的繁华。" },
+  { name:"镰仓", country:"日本", date:"2026-02-12", coord:[139.55,35.32], desc:"镰仓大佛、江之岛电车、湘南海岸、鹤冈八幡宫，灌篮高手同款的海滨古都。" },
 
-  { name:"宁波", date:"2026-02-18", coord:[121.54,29.87], desc:"天一阁藏书楼、东钱湖、老外滩，书藏古今港通天下。" },
-  { name:"台州", date:"2026-02-20", coord:[121.42,28.66], desc:"神仙居云海、天台山国清寺、临海古城墙，山海之城。" },
-  { name:"长沙", date:"2026-04-02", coord:[112.97,28.23], desc:"岳麓山爱晚亭、橘子洲头、太平街夜市、湖南博物院，星城不夜天。" },
-  { name:"六安", date:"2026-04-02", coord:[116.50,31.73], desc:"天堂寨大别山主峰、万佛湖、大别山国家风景道，红色与绿色交织。" },
-  { name:"湘潭", date:"2026-04-03", coord:[112.94,27.83], desc:"韶山毛泽东故居、盘龙大观园，伟人故里。" },
-  { name:"衡阳", date:"2026-04-04", coord:[112.57,26.89], desc:"南岳衡山独秀、石鼓书院，雁城之南。" }
+  { name:"宁波", country:"中国", date:"2026-02-18", coord:[121.54,29.87], desc:"天一阁藏书楼、东钱湖、老外滩，书藏古今港通天下。" },
+  { name:"台州", country:"中国", date:"2026-02-20", coord:[121.42,28.66], desc:"神仙居云海、天台山国清寺、临海古城墙，山海之城。" },
+  { name:"长沙", country:"中国", date:"2026-04-02", coord:[112.97,28.23], desc:"岳麓山爱晚亭、橘子洲头、太平街夜市、湖南博物院，星城不夜天。" },
+  { name:"六安", country:"中国", date:"2026-04-02", coord:[116.50,31.73], desc:"天堂寨大别山主峰、万佛湖、大别山国家风景道，红色与绿色交织。" },
+  { name:"湘潭", country:"中国", date:"2026-04-03", coord:[112.94,27.83], desc:"韶山毛泽东故居、盘龙大观园，伟人故里。" },
+  { name:"衡阳", country:"中国", date:"2026-04-04", coord:[112.57,26.89], desc:"南岳衡山独秀、石鼓书院，雁城之南。" }
 ];
 
 const wishData = [
@@ -968,14 +1022,14 @@ const wishData = [
 
 // Wish coord (for map)
 const wishCoord = [
-  { name:"伊犁", coord:[81.32,43.92] }, { name:"赛里木湖", coord:[81.15,44.61] },
-  { name:"台湾", coord:[121.00,23.50] }, { name:"大理", coord:[100.23,25.61] },
-  { name:"丽江", coord:[100.23,26.88] }, { name:"香格里拉", coord:[99.70,27.83] },
-  { name:"稻城", coord:[100.30,29.04] }, { name:"九寨沟", coord:[103.92,33.26] },
-  { name:"乌兰布统", coord:[117.24,42.51] }, { name:"广州", coord:[113.26,23.13] },
-  { name:"澳门", coord:[113.55,22.20] }, { name:"成都", coord:[104.07,30.67] },
-  { name:"重庆", coord:[106.55,29.57] }, { name:"张家界", coord:[110.48,29.35] },
-  { name:"恒山", coord:[113.73,39.67] }, { name:"雁荡山", coord:[121.09,28.35] }
+  { name:"伊犁", country:"中国", coord:[81.32,43.92] }, { name:"赛里木湖", country:"中国", coord:[81.15,44.61] },
+  { name:"台湾", country:"中国", coord:[121.00,23.50] }, { name:"大理", country:"中国", coord:[100.23,25.61] },
+  { name:"丽江", country:"中国", coord:[100.23,26.88] }, { name:"香格里拉", country:"中国", coord:[99.70,27.83] },
+  { name:"稻城", country:"中国", coord:[100.30,29.04] }, { name:"九寨沟", country:"中国", coord:[103.92,33.26] },
+  { name:"乌兰布统", country:"中国", coord:[117.24,42.51] }, { name:"广州", country:"中国", coord:[113.26,23.13] },
+  { name:"澳门", country:"中国", coord:[113.55,22.20] }, { name:"成都", country:"中国", coord:[104.07,30.67] },
+  { name:"重庆", country:"中国", coord:[106.55,29.57] }, { name:"张家界", country:"中国", coord:[110.48,29.35] },
+  { name:"恒山", country:"中国", coord:[113.73,39.67] }, { name:"雁荡山", country:"中国", coord:[121.09,28.35] }
 ];
 
 // ==================== STARS ====================
@@ -1010,6 +1064,26 @@ function animateCounters() {
     }
     requestAnimationFrame(update);
   });
+
+  // Dynamically compute country count
+  const countrySet = new Set(visitedData.map(d => d.country || '中国'));
+  const countryCount = countrySet.size;
+  const countryEl = document.querySelector('.stat-item:nth-child(3) .stat-number');
+  if (countryEl) {
+    countryEl.dataset.target = countryCount;
+    const target = countryCount;
+    const duration = 2000;
+    const start = performance.now();
+    function updateCountry(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      countryEl.textContent = Math.floor(eased * target);
+      if (progress < 1) requestAnimationFrame(updateCountry);
+      else countryEl.textContent = target;
+    }
+    requestAnimationFrame(updateCountry);
+  }
 }
 new IntersectionObserver((entries, obs) => {
   entries.forEach(e => { if (e.isIntersecting) { animateCounters(); obs.disconnect(); } });
@@ -1131,7 +1205,7 @@ function generateCityIntro(city) {
   const attractions = parts.slice(0, -1).filter(s => s.trim().length > 0);
   const mainAttr = attractions.slice(0, 3).join('、');
   const year = new Date(city.date).getFullYear();
-  return `${year}年到访${city.name}。${mainAttr ? '从' + mainAttr + '，' : ''}足迹遍布这座城市的每一个角落。${poeticPhrase ? poeticPhrase + '。' : ''}这座城市用它独特的魅力，在旅途中留下了深深的印记。`;
+  return `${year}年到访${city.country || '中国'}${city.name}。${mainAttr ? '从' + mainAttr + '，' : ''}足迹遍布这座城市的每一个角落。${poeticPhrase ? poeticPhrase + '。' : ''}这座城市用它独特的魅力，在旅途中留下了深深的印记。`;
 }
 
 function closeCityDetail() {
@@ -1155,7 +1229,7 @@ function openCityDetail(city) {
     <button class="city-detail-close" id="cityDetailClose">&times;</button>
     <div class="city-detail-header">
       <div class="city-detail-name">${city.name}</div>
-      <div class="city-detail-date">到访日期：${dateStr}</div>
+      <div class="city-detail-date">${city.country || '中国'} · 到访日期：${dateStr}</div>
     </div>
     <div class="city-detail-body">
       <div class="city-detail-section-title">城市印象</div>
@@ -1217,7 +1291,7 @@ function buildVisitedCards() {
     const dateStr = dateObj.getFullYear() + '年' + mm + '月' + dd + '日';
 
     card.innerHTML = `
-      <div class="vcard-name">${v.name}</div>
+      <div class="vcard-name">${v.name} <span style="font-size:11px;color:var(--gold);border:1px solid rgba(212,175,55,0.3);border-radius:10px;padding:1px 8px;margin-left:4px;font-weight:400;">${v.country || '中国'}</span></div>
       <div class="vcard-date">${dateStr}</div>
       <div class="vcard-desc">${v.desc}</div>
       <div class="vcard-photos" data-name="${v.name}"></div>
@@ -1717,6 +1791,35 @@ function initMap() {
 buildVisitedCards();
 buildWishCards();
 initMap();
+
+// ===== EXPORT PHOTOS =====
+function exportPhotos() {
+  const toast = document.getElementById('exportToast');
+  const data = {};
+  const keys = Object.keys(localStorage).filter(k => k.startsWith('travel_city_photos_'));
+  if (keys.length === 0) {
+    toast.textContent = '暂无已保存的照片';
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+    return;
+  }
+  for (const key of keys) {
+    const city = key.replace('travel_city_photos_', '');
+    try { data[city] = JSON.parse(localStorage.getItem(key)); }
+    catch(e) { data[city] = localStorage.getItem(key); }
+  }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'photos_export.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast.textContent = keys.length === 1
+    ? '已导出 ' + Object.keys(data)[0] + ' 的照片'
+    : '已导出 ' + keys.length + ' 个城市的照片';
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
 </script>
 </body>
 </html>
