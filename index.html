@@ -1099,6 +1099,187 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
+// ==================== GITHUB PHOTO STORAGE ====================
+(function() {
+  const GITHUB_TOKEN_KEY = 'travel_github_token';
+  const DEFAULT_TOKEN = '';
+  const REPO = 'Sehuri/travel-map';
+  const BRANCH = 'main';
+  const API_BASE = 'https://api.github.com/repos/Sehuri/travel-map';
+  const RAW_BASE = 'https://raw.githubusercontent.com/Sehuri/travel-map/main';
+  const PHOTOS_DIR = 'photos';
+  const MAX_PHOTOS = 10;
+
+  function getToken() {
+    return localStorage.getItem(GITHUB_TOKEN_KEY) || DEFAULT_TOKEN;
+  }
+
+  function sanitizeFilename(name) {
+    return name.replace(/[^a-zA-Z0-9\u4e00-\u9fa5_\-\.]/g, '_');
+  }
+
+  // Upload a single photo to GitHub
+  async function uploadPhoto(cityName, base64Data, filename) {
+    const token = getToken();
+    const cleanCity = sanitizeFilename(cityName);
+    const cleanFile = sanitizeFilename(filename);
+    const path = PHOTOS_DIR + '/' + cleanCity + '/' + cleanFile;
+
+    // Strip data: prefix, get raw base64
+    let content = base64Data;
+    const commaIdx = content.indexOf(',');
+    if (commaIdx > -1) content = content.substring(commaIdx + 1);
+
+    const body = {
+      message: 'Upload photo for ' + cityName,
+      content: content,
+      branch: BRANCH
+    };
+
+    const resp = await fetch(API_BASE + '/contents/' + path, {
+      method: 'PUT',
+      headers: {
+        'Authorization': 'token ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error('GitHub upload failed: ' + (err.message || resp.status));
+    }
+    return (await resp.json()).content;
+  }
+
+  // List all photos for a city from GitHub
+  async function listPhotos(cityName) {
+    const token = getToken();
+    const cleanCity = sanitizeFilename(cityName);
+    const path = PHOTOS_DIR + '/' + cleanCity;
+
+    const resp = await fetch(API_BASE + '/contents/' + path, {
+      headers: { 'Authorization': 'token ' + token }
+    });
+
+    if (resp.status === 404) return [];  // No photos yet
+    if (!resp.ok) throw new Error('GitHub list failed: ' + resp.status);
+
+    const files = await resp.json();
+    // Filter image files, sort by name (timestamp)
+    return files
+      .filter(f => f.type === 'file' && /\.(jpg|jpeg|png|gif|webp)$/i.test(f.name))
+      .sort((a, b) => b.name.localeCompare(a.name))  // newest first
+      .map(f => f.download_url);
+  }
+
+  // Delete a photo from GitHub (for managing < 10 limit)
+  async function deletePhoto(cityName, downloadUrl) {
+    const token = getToken();
+    // Extract path from download URL
+    const cleanCity = sanitizeFilename(cityName);
+    const urlParts = downloadUrl.split('/');
+    const filename = urlParts[urlParts.length - 1];
+    const path = PHOTOS_DIR + '/' + cleanCity + '/' + filename;
+
+    // Need sha to delete - first get file info
+    const infoResp = await fetch(API_BASE + '/contents/' + path, {
+      headers: { 'Authorization': 'token ' + token }
+    });
+
+    if (!infoResp.ok) return;
+    const info = await infoResp.json();
+
+    await fetch(API_BASE + '/contents/' + path, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': 'token ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: 'Remove photo from ' + cityName,
+        sha: info.sha,
+        branch: BRANCH
+      })
+    });
+  }
+
+  // Upload multiple photos at once
+  async function uploadPhotos(cityName, base64Array) {
+    const results = [];
+    for (let i = 0; i < base64Array.length; i++) {
+      const ts = Date.now();
+      const filename = 'photo_' + ts + '_' + (i + 1) + '.jpg';
+      try {
+        const result = await uploadPhoto(cityName, base64Array[i], filename);
+        results.push({ success: true, filename: filename });
+      } catch(e) {
+        console.error('[GitHub] Upload failed for photo ' + (i+1) + ':', e);
+        results.push({ success: false, error: e.message });
+      }
+    }
+    return results;
+  }
+
+  window.GitHubPhotos = {
+    uploadPhoto: uploadPhoto,
+    uploadPhotos: uploadPhotos,
+    listPhotos: listPhotos,
+    deletePhoto: deletePhoto,
+    getToken: getToken,
+    MAX_PHOTOS: MAX_PHOTOS
+  };
+})();
+
+// ==================== TOKEN SETUP DIALOG ====================
+(function() {
+  function ensureToken(callback) {
+    const token = GitHubPhotos.getToken ? localStorage.getItem('travel_github_token') || '' : '';
+    if (token) { callback(token); return; }
+
+    // Show setup overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'tokenSetupOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = `
+      <div style="background:linear-gradient(160deg,#0d1b3e,#1a1040);border:1px solid rgba(212,175,55,0.4);border-radius:16px;padding:36px;max-width:480px;width:90%;text-align:center;color:#e0e0e0;">
+        <div style="font-size:20px;font-weight:700;color:#d4af37;margin-bottom:12px;">首次使用设置</div>
+        <p style="font-size:14px;color:#8892b0;margin-bottom:20px;line-height:1.6;">
+          照片将自动保存到 GitHub 仓库，所有人可见。<br>请输入您的 GitHub Personal Access Token。
+        </p>
+        <input id="tokenSetupInput" type="password" placeholder="ghp_xxxxxxxxxxxx"
+          style="width:100%;padding:12px 16px;border:1px solid rgba(212,175,55,0.3);border-radius:10px;background:rgba(255,255,255,0.05);color:#e0e0e0;font-size:14px;margin-bottom:8px;outline:none;box-sizing:border-box;">
+        <p style="font-size:11px;color:#667;margin-bottom:20px;">
+          Token 仅保存在当前浏览器，不会上传到公开代码中
+        </p>
+        <button id="tokenSetupBtn" style="background:linear-gradient(135deg,#d4af37,#f5d76e);color:#0a0e27;border:none;padding:10px 40px;border-radius:24px;font-size:14px;font-weight:700;cursor:pointer;">
+          确认
+        </button>
+        <p style="font-size:11px;color:#667;margin-top:16px;">
+          <a href="https://github.com/settings/tokens" target="_blank" style="color:#4fc3f7;">如何创建 Token？</a> 需勾选 repo 权限
+        </p>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    document.getElementById('tokenSetupBtn').addEventListener('click', function() {
+      const val = document.getElementById('tokenSetupInput').value.trim();
+      if (!val) return;
+      localStorage.setItem('travel_github_token', val);
+      overlay.remove();
+      callback(val);
+    });
+
+    document.getElementById('tokenSetupInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') document.getElementById('tokenSetupBtn').click();
+    });
+  }
+
+  window.ensureGitHubToken = ensureToken;
+})();
+
+
+
 // ==================== IMAGE COMPRESSION ====================
 function compressImage(file) {
   return new Promise((resolve, reject) => {
@@ -1150,14 +1331,27 @@ function getCityPhotoKey(name) {
   return 'travel_city_photos_' + name;
 }
 
-function loadCityPhotos(name) {
+async function loadCityPhotos(name) {
+  // Try GitHub first
+  try {
+    const urls = await GitHubPhotos.listPhotos(name);
+    if (urls && urls.length > 0) {
+      // Convert URLs to a format compatible with existing code
+      // We store the URLs directly - the render function already handles img.src
+      return urls;
+    }
+  } catch(e) {
+    console.log('[Photos] GitHub fetch failed, falling back to local:', e.message);
+  }
+  // Fallback to localStorage
   try {
     const raw = localStorage.getItem(getCityPhotoKey(name));
     return raw ? JSON.parse(raw) : [];
   } catch(e) { return []; }
 }
 
-function saveCityPhotos(name, photos) {
+async function saveCityPhotos(name, photos) {
+  // Always save to localStorage as backup
   try {
     localStorage.setItem(getCityPhotoKey(name), JSON.stringify(photos));
   } catch(e) {
@@ -1166,20 +1360,32 @@ function saveCityPhotos(name, photos) {
       try { localStorage.setItem(getCityPhotoKey(name), JSON.stringify(photos)); } catch(e2) {}
     }
   }
+  // Also push to GitHub (upload only new ones that are base64 data URLs)
+  const newOnes = photos.filter(p => p.startsWith('data:'));
+  if (newOnes.length > 0) {
+    try {
+      await GitHubPhotos.uploadPhotos(name, newOnes);
+      console.log('[Photos] Uploaded ' + newOnes.length + ' photos to GitHub for ' + name);
+    } catch(e) {
+      console.warn('[Photos] GitHub upload failed, saved locally only:', e.message);
+    }
+  }
 }
 
-function renderCityDetailPhotos(cityName) {
+async function renderCityDetailPhotos(cityName) {
   const container = document.getElementById('cityDetailPhotos');
   const info = document.getElementById('cityDetailPhotoInfo');
   if (!container) return;
-  const photos = loadCityPhotos(cityName);
+  const photos = await loadCityPhotos(cityName);
   container.innerHTML = '';
 
-  photos.forEach((b64, idx) => {
+  photos.forEach((src, idx) => {
     const thumb = document.createElement('img');
     thumb.className = 'city-detail-photo-thumb';
-    thumb.src = b64;
-    thumb.addEventListener('click', (ev) => { ev.stopPropagation(); showLightbox(b64); });
+    thumb.src = src;
+    // Cross-origin for GitHub raw URLs
+    thumb.crossOrigin = 'anonymous';
+    thumb.addEventListener('click', (ev) => { ev.stopPropagation(); showLightbox(src); });
     container.appendChild(thumb);
   });
 
@@ -1258,7 +1464,9 @@ function openCityDetail(city) {
   const fileInput = document.getElementById('cityDetailFileInput');
   fileInput.addEventListener('change', async function() {
     const files = Array.from(this.files);
-    let current = loadCityPhotos(city.name);
+    // Ensure token before uploading
+    await new Promise(resolve => { ensureGitHubToken(resolve); });
+    let current = await loadCityPhotos(city.name);
     const remaining = 10 - current.length;
     const toAdd = files.slice(0, remaining);
 
@@ -1267,7 +1475,7 @@ function openCityDetail(city) {
         const b64 = await compressImage(f);
         current.push(b64);
         if (current.length > 10) current = current.slice(0, 10);
-        saveCityPhotos(city.name, current);
+        await saveCityPhotos(city.name, current);
       } catch(e) { console.error('City photo upload failed', e); }
     }
     renderCityDetailPhotos(city.name);
@@ -1378,9 +1586,14 @@ const guidePlatforms = [
 ];
 
 function openGuidePlatform(destName) {
+  console.log('[Guide] Opening platform selector for:', destName);
   const overlay = document.getElementById('guidePlatformOverlay');
   const title = document.getElementById('guidePlatformTitle');
   const grid = document.getElementById('guidePlatformGrid');
+
+  if (!overlay) { console.error('[Guide] overlay not found!'); return; }
+  if (!title) { console.error('[Guide] title not found!'); return; }
+  if (!grid) { console.error('[Guide] grid not found!'); return; }
 
   title.textContent = '选择攻略平台 · ' + destName;
   grid.innerHTML = '';
@@ -1412,7 +1625,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ==================== BUILD WISH CARDS ====================
 function buildWishCards() {
+  console.log('[WishCards] Building wish cards, wishData length:', wishData.length);
   const grid = document.getElementById('wishGrid');
+  console.log('[WishCards] wishGrid element:', grid);
   grid.innerHTML = '';
 
   wishData.forEach((w, idx) => {
@@ -1434,6 +1649,7 @@ function buildWishCards() {
       const toggle = card.querySelector('.wcard-guide-toggle');
       if (toggle) {
         toggle.addEventListener('click', (ev) => {
+          console.log('[WishCards] CLICK FIRED for:', w.name);
           ev.stopPropagation();
           openGuidePlatform(w.name);
         });
@@ -1788,9 +2004,13 @@ function initMap() {
 })();
 
 // ==================== INIT ====================
+console.log('[Init] Starting buildVisitedCards...');
 buildVisitedCards();
+console.log('[Init] Starting buildWishCards...');
 buildWishCards();
+console.log('[Init] buildWishCards done, starting initMap...');
 initMap();
+console.log('[Init] All init complete');
 
 // ===== EXPORT PHOTOS =====
 function exportPhotos() {
