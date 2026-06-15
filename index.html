@@ -1152,21 +1152,26 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     return (await resp.json()).content;
   }
 
-  // List all photos for a city from GitHub
+  // List all photos for a city from GitHub (public access, no token needed for viewing)
   async function listPhotos(cityName) {
-    const token = getToken();
     const cleanCity = sanitizeFilename(cityName);
     const path = PHOTOS_DIR + '/' + cleanCity;
 
-    const resp = await fetch(API_BASE + '/contents/' + path, {
-      headers: { 'Authorization': 'token ' + token }
-    });
+    // Try without token first - public repos allow unauthenticated API access
+    let resp = await fetch(API_BASE + '/contents/' + path);
+    if (resp.status === 403 || resp.status === 401) {
+      const token = getToken();
+      if (token) {
+        resp = await fetch(API_BASE + '/contents/' + path, {
+          headers: { 'Authorization': 'token ' + token }
+        });
+      }
+    }
 
     if (resp.status === 404) return [];  // No photos yet
     if (!resp.ok) throw new Error('GitHub list failed: ' + resp.status);
 
     const files = await resp.json();
-    // Filter image files, sort by name (timestamp)
     return files
       .filter(f => f.type === 'file' && /\.(jpg|jpeg|png|gif|webp)$/i.test(f.name))
       .sort((a, b) => b.name.localeCompare(a.name))  // newest first
