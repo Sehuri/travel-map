@@ -1,67 +1,66 @@
-# 🗺️ 旅行足迹地图
+# Sehuri 的旅行足迹
 
-一个纯静态的旅行足迹可视化网站，用 ECharts 在中国地图上点亮去过的城市，记录每一段旅程。
+一个以地图、时间线和照片记录个人旅程的纯静态网站。目前收录 51 座城市、2 个国家，以及 11 个想去的目的地。
 
-## 在线访问
+## 在线地址
 
-```
-https://sehuri.github.io/travel-map
-```
+https://sehuri.github.io/travel-map/
 
-部署在 [GitHub Pages](https://pages.github.com/) 上，无需服务器。
+## 本次改造
 
-## 功能
-
-- **中国地图可视化**：ECharts 渲染散点地图，去过的城市以金色光点标记
-- **城市详情面板**：每个城市附带到访日期、介绍文字、旅行照片
-- **跨设备照片同步**：照片通过 GitHub API 上传到仓库，任何设备都能看到
-- **国家维度统计**：自动统计覆盖国家和城市数量
-- **照片导出**：一键导出所有已保存的照片为 JSON
-- **照片管理**：支持上传（最多 10 张/城市）和删除（Token 验证）
-
-## 技术栈
-
-| 层级 | 技术 |
-|------|------|
-| 地图渲染 | ECharts 5 + 中国 GeoJSON |
-| CDN | BootCDN（国内友好） |
-| 照片存储 | GitHub API（公开仓库免认证读取） |
-| 部署 | GitHub Pages |
-| 本地缓存 | localStorage 兜底 |
+- 将中国单地图升级为“世界 / 中国”双视图，境外城市也能正确展示
+- 旅行统计、年份筛选和城市列表全部从同一份数据自动生成
+- 删除前端 AI 密钥与 GitHub Token 输入，公开页面不再接触写入凭证
+- 保留现有 GitHub `photos/城市名/` 目录的只读照片展示
+- 将原本 600KB 以上的单文件拆分为 HTML、CSS、数据和交互逻辑
+- 增加移动端布局、键盘操作、对话框语义和减少动画偏好支持
+- 增加页面描述、Open Graph 基础信息、canonical 地址和主题色
 
 ## 项目结构
 
+```text
+├── index.html
+├── travel-map.html       # 旧地址兼容跳转
+├── assets/
+│   ├── styles.css
+│   ├── data.js
+│   ├── photos.js         # 本地照片清单
+│   └── app.js
+└── photos/               # 67 张本地照片
 ```
-├── index.html          # 也指向旅行地图（GitHub Pages 默认入口）
-├── travel-map.html     # 主页面
-└── photos/             # 照片目录（由网页端通过 API 创建）
-    ├── 北京/
-    ├── 上海/
-    └── ...
-```
 
-> `photos/` 目录由网页端 JS 通过 GitHub API 自动创建和管理，无需手动维护。
+## 修改旅行数据
 
-## 如何添加新城市
-
-编辑 `travel-map.html`，在 `visitedData` 数组中添加记录：
+所有城市和愿望目的地都位于 `assets/data.js`：
 
 ```javascript
 {
-  name: '城市名',
-  date: 'YYYY-MM-DD',
-  desc: '简短描述',
-  lat: 纬度,
-  lng: 经度,
-  country: '国家'
+  name: "城市名",
+  country: "国家",
+  date: "YYYY-MM-DD",
+  coord: [经度, 纬度],
+  desc: "旅行记忆"
 }
 ```
 
-提交后 GitHub Pages 会自动重新部署。
+添加记录后，首页统计、年份筛选、时间线和地图标记会自动更新。
 
-## 照片功能说明
+## 照片
 
-- **上传**：需要 GitHub Personal Access Token（仅存在浏览器 localStorage，不上传）
-- **查看**：无需 Token，公开仓库直接访问
-- **删除**：需要 Token 验证身份
-- Token 可在 [GitHub Settings → Developer settings → Tokens](https://github.com/settings/tokens) 创建，勾选 `repo` 权限即可
+网站直接读取项目中的本地照片：
+
+```text
+photos/城市名/
+```
+
+照片清单记录在 `assets/photos.js`。新增或删除图片后，需要同步更新清单。公开网站不再访问 GitHub API，也不要求输入 Personal Access Token，因此不会受到接口限流影响。
+
+## 安全提醒
+
+旧版本曾把第三方 AI 服务密钥写入公开页面。该密钥应立即在对应平台撤销并重新生成。即使最新代码已经删除密钥，旧提交仍可能保留它；如需彻底删除，应另行清理 Git 历史。
+
+若未来恢复 AI 功能，请通过受保护的服务端接口调用，并将密钥保存为服务端环境变量，绝不能放在浏览器代码中。
+
+## 本地预览
+
+项目是纯静态页面，可以用任意静态服务器打开。由于地图和照片需要网络请求，不建议直接双击 `index.html` 预览。
