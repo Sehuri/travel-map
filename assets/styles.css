@@ -218,6 +218,36 @@ h1 em { color: var(--accent); font-weight: 400; }
 }
 .map-tooltip::before { display: none !important; }
 
+.footprint-extremes { margin-top: 1.5rem; border: 1px solid var(--line); background: var(--panel); }
+.extremes-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; padding: 1.3rem 1.5rem; border-bottom: 1px solid var(--line); }
+.extremes-heading .eyebrow { margin: 0; }
+.extremes-heading h3 { margin: 0; font-family: var(--display); font-size: 1.45rem; font-weight: 400; }
+.extremes-grid { display: grid; grid-template-columns: repeat(4, 1fr); }
+.extreme-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  min-height: 132px;
+  padding: 1.3rem;
+  border: 0;
+  border-right: 1px solid var(--line);
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background .25s ease;
+}
+.extreme-card:last-child { border-right: 0; }
+.extreme-card:hover { background: rgba(228,255,117,.045); }
+.extreme-direction { display: grid; width: 2.7rem; height: 2.7rem; place-items: center; border: 1px solid var(--accent); border-radius: 50%; color: var(--accent); font-family: var(--display); font-size: 1.15rem; }
+.extreme-copy { display: grid; gap: .2rem; }
+.extreme-copy small { color: var(--faint); font-size: .65rem; letter-spacing: .08em; }
+.extreme-copy strong { font-family: var(--display); font-size: 1.35rem; font-weight: 400; }
+.extreme-copy span { color: var(--muted); font-size: .68rem; }
+.extreme-arrow { position: absolute; top: 1rem; right: 1rem; color: var(--accent); font-size: .9rem; }
+
 .city-controls { display: flex; align-items: end; justify-content: flex-end; flex-wrap: wrap; gap: .8rem; }
 .filter-wrap { display: grid; gap: .4rem; color: var(--faint); font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; }
 .filter-wrap select, .filter-wrap input {
@@ -440,6 +470,9 @@ dialog h2 { margin: 1rem 0; font-size: clamp(2.8rem, 7vw, 5rem); letter-spacing:
   .hero-stats { grid-template-columns: repeat(3, 1fr); align-self: auto; margin: 1rem 0 0; }
   .year-group { grid-template-columns: 90px 1fr; }
   .year-cities { grid-template-columns: repeat(2, 1fr); }
+  .extremes-grid { grid-template-columns: repeat(2, 1fr); }
+  .extreme-card:nth-child(2) { border-right: 0; }
+  .extreme-card:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
   .wish-grid { grid-template-columns: repeat(2, 1fr); }
   .city-controls { justify-content: flex-start; }
 }
@@ -460,6 +493,10 @@ dialog h2 { margin: 1rem 0; font-size: clamp(2.8rem, 7vw, 5rem); letter-spacing:
   #travel-map { min-height: 500px; }
   .map-caption { align-items: flex-start; flex-wrap: wrap; }
   .map-caption p { width: 100%; margin-left: 0; }
+  .extremes-heading { display: grid; align-items: start; }
+  .extremes-grid { grid-template-columns: 1fr; }
+  .extreme-card, .extreme-card:nth-child(2) { border-right: 0; border-bottom: 1px solid var(--line); }
+  .extreme-card:last-child { border-bottom: 0; }
   .year-group { grid-template-columns: 1fr; }
   .year-label { padding-bottom: .7rem; }
   .year-cities { grid-template-columns: 1fr; border-left: 0; }

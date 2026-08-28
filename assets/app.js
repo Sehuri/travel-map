@@ -70,6 +70,54 @@
     document.querySelector("#current-year").textContent = new Date().getFullYear();
   }
 
+  function initializeExtremeFootprints() {
+    const grid = document.querySelector("#extremes-grid");
+    const findExtreme = (axis, comparison) => visits.reduce((extreme, visit) => (
+      comparison(visit.coord[axis], extreme.coord[axis]) ? visit : extreme
+    ));
+    const extremes = [
+      { direction: "N", label: "最北足迹", visit: findExtreme(1, (value, current) => value > current), axis: 1 },
+      { direction: "S", label: "最南足迹", visit: findExtreme(1, (value, current) => value < current), axis: 1 },
+      { direction: "E", label: "最东足迹", visit: findExtreme(0, (value, current) => value > current), axis: 0 },
+      { direction: "W", label: "最西足迹", visit: findExtreme(0, (value, current) => value < current), axis: 0 }
+    ];
+
+    extremes.forEach(({ direction, label, visit, axis }) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "extreme-card";
+      button.setAttribute("aria-label", `${label}：${visit.name}`);
+
+      const compass = document.createElement("span");
+      compass.className = "extreme-direction";
+      compass.setAttribute("aria-hidden", "true");
+      compass.textContent = direction;
+
+      const copy = document.createElement("span");
+      copy.className = "extreme-copy";
+      const caption = document.createElement("small");
+      caption.textContent = label;
+      const city = document.createElement("strong");
+      city.textContent = visit.name;
+      const coordinate = document.createElement("span");
+      const coordinateValue = visit.coord[axis];
+      const suffix = axis === 1
+        ? (coordinateValue >= 0 ? "N" : "S")
+        : (coordinateValue >= 0 ? "E" : "W");
+      coordinate.textContent = `${Math.abs(coordinateValue).toFixed(2)}° ${suffix} · ${visit.country}`;
+      copy.append(caption, city, coordinate);
+
+      const arrow = document.createElement("span");
+      arrow.className = "extreme-arrow";
+      arrow.setAttribute("aria-hidden", "true");
+      arrow.textContent = "↗";
+
+      button.append(compass, copy, arrow);
+      button.addEventListener("click", () => openCity(visit));
+      grid.append(button);
+    });
+  }
+
   function initializeFilters() {
     const years = [...new Set(visits.map((visit) => visit.date.slice(0, 4)))].sort().reverse();
     years.forEach((year) => {
@@ -616,6 +664,7 @@
   }
 
   initializeStats();
+  initializeExtremeFootprints();
   initializeFilters();
   initializeRatings();
   renderTimeline();
