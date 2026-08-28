@@ -10,9 +10,26 @@
     month: "long",
     day: "numeric"
   });
+  const originalTitle = document.title;
+  const regionGroups = {
+    "中国 · 华东": ["日照", "淮安", "青岛", "南京", "杭州", "泰州", "上海", "苏州", "扬州", "合肥", "九江", "南昌", "芜湖", "上饶", "黄山", "泰安", "镇江", "济南", "烟台", "马鞍山", "无锡", "常州", "嘉兴", "厦门", "福州", "漳州", "威海", "宁波", "台州", "六安", "绍兴"],
+    "中国 · 华中": ["武汉", "洛阳", "郑州", "长沙", "湘潭", "衡阳"],
+    "中国 · 华南": ["三亚", "香港", "深圳"],
+    "中国 · 华北": ["北京"],
+    "中国 · 东北": ["大连", "哈尔滨", "沈阳"],
+    "中国 · 西北": ["渭南", "西安", "银川", "阿拉善盟"],
+    "日本 · 关西": ["大阪", "京都"],
+    "日本 · 关东": ["东京", "镰仓"]
+  };
+  const regionByCity = new Map(
+    Object.entries(regionGroups).flatMap(([region, cities]) => cities.map((city) => [city, region]))
+  );
 
   const timeline = document.querySelector("#timeline");
   const yearFilter = document.querySelector("#year-filter");
+  const locationFilter = document.querySelector("#location-filter");
+  const citySearch = document.querySelector("#city-search");
+  const filterSummary = document.querySelector("#filter-summary");
   const cityDialog = document.querySelector("#city-dialog");
   const guideDialog = document.querySelector("#guide-dialog");
   const lightbox = document.querySelector("#lightbox");
@@ -20,6 +37,8 @@
   let markerLayer;
   let markers = [];
   let activeMarker = null;
+  let activeCity = null;
+  let syncingHistory = false;
 
   function countUp(element, target) {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -45,7 +64,7 @@
     document.querySelector("#current-year").textContent = new Date().getFullYear();
   }
 
-  function initializeYearFilter() {
+  function initializeFilters() {
     const years = [...new Set(visits.map((visit) => visit.date.slice(0, 4)))].sort().reverse();
     years.forEach((year) => {
       const option = document.createElement("option");
@@ -53,14 +72,69 @@
       option.textContent = `${year} 年`;
       yearFilter.append(option);
     });
-    yearFilter.addEventListener("change", () => renderTimeline(yearFilter.value));
+
+    const countryGroup = document.createElement("optgroup");
+    countryGroup.label = "国家";
+    [...new Set(visits.map((visit) => visit.country))].sort().forEach((country) => {
+      const option = document.createElement("option");
+      option.value = `country:${country}`;
+      option.textContent = country;
+      countryGroup.append(option);
+    });
+
+    const regionGroup = document.createElement("optgroup");
+    regionGroup.label = "地区";
+    Object.keys(regionGroups).forEach((region) => {
+      const option = document.createElement("option");
+      option.value = `region:${region}`;
+      option.textContent = region;
+      regionGroup.append(option);
+    });
+    locationFilter.append(countryGroup, regionGroup);
+
+    yearFilter.addEventListener("change", renderTimeline);
+    locationFilter.addEventListener("change", renderTimeline);
+    citySearch.addEventListener("input", renderTimeline);
   }
 
-  function renderTimeline(selectedYear = "all") {
+  function getFilteredVisits() {
+    const query = citySearch.value.trim().toLocaleLowerCase("zh-CN");
+    const selectedYear = yearFilter.value;
+    const selectedLocation = locationFilter.value;
+
+    return visits.filter((visit) => {
+      const matchesYear = selectedYear === "all" || visit.date.startsWith(selectedYear);
+      const matchesQuery = !query || visit.name.toLocaleLowerCase("zh-CN").includes(query);
+      const [locationType, locationValue] = selectedLocation.split(":");
+      const matchesLocation = selectedLocation === "all"
+        || (locationType === "country" && visit.country === locationValue)
+        || (locationType === "region" && getRegion(visit) === locationValue);
+      return matchesYear && matchesQuery && matchesLocation;
+    });
+  }
+
+  function getRegion(visit) {
+    return regionByCity.get(visit.name) || visit.country;
+  }
+
+  function renderTimeline() {
     timeline.replaceChildren();
-    const filtered = selectedYear === "all"
-      ? visits
-      : visits.filter((visit) => visit.date.startsWith(selectedYear));
+    const filtered = getFilteredVisits();
+    const hasActiveFilters = yearFilter.value !== "all"
+      || locationFilter.value !== "all"
+      || citySearch.value.trim();
+    filterSummary.textContent = hasActiveFilters
+      ? `找到 ${filtered.length} 座城市`
+      : `共 ${visits.length} 座城市`;
+
+    if (!filtered.length) {
+      const empty = document.createElement("p");
+      empty.className = "empty-state";
+      empty.textContent = "没有找到符合条件的城市，试试调整搜索或筛选条件。";
+      timeline.append(empty);
+      return;
+    }
+
     const groups = Map.groupBy
       ? Map.groupBy(filtered, (visit) => visit.date.slice(0, 4))
       : filtered.reduce((map, visit) => {
@@ -192,16 +266,104 @@
     activeMarker.getElement()?.querySelector(".travel-marker")?.classList.add("active");
   }
 
-  async function openCity(visit) {
+  function getCityUrl(cityName) {
+    const url = new URL(window.location.href);
+    url.searchParams.set("city", cityName);
+    url.hash = "";
+    return url;
+  }
+
+  function updateCityUrl(visit) {
+    const currentName = new URL(window.location.href).searchParams.get("city");
+    if (currentName !== visit.name) {
+      history.pushState({ travelCity: visit.name }, "", getCityUrl(visit.name));
+    }
+  }
+
+  async function openCity(visit, { updateUrl = true } = {}) {
+    activeCity = visit;
     document.querySelector("#dialog-country").textContent = visit.country;
+    document.querySelector("#dialog-region").textContent = getRegion(visit).replace(`${visit.country} · `, "");
     document.querySelector("#dialog-date").dateTime = visit.date;
     document.querySelector("#dialog-date").textContent = dateFormatter.format(new Date(`${visit.date}T00:00:00`));
     document.querySelector("#dialog-title").textContent = visit.name;
     document.querySelector("#dialog-description").textContent = visit.desc;
+    document.querySelector("#share-status").textContent = "";
     document.querySelector("#photo-grid").replaceChildren();
     document.querySelector("#photo-status").textContent = "正在寻找这座城市的旅行照片…";
     if (!cityDialog.open) cityDialog.showModal();
     loadPhotos(visit.name);
+    window.TRAVEL_COMMUNITY?.showCity(visit.name);
+    document.title = `${visit.name}｜Sehuri 的旅行足迹`;
+    if (updateUrl) updateCityUrl(visit);
+  }
+
+  function syncCityFromUrl() {
+    const cityName = new URL(window.location.href).searchParams.get("city");
+    const visit = visits.find((entry) => entry.name === cityName);
+    syncingHistory = true;
+    if (visit) {
+      const markerEntry = markers.find((entry) => entry.visit.name === visit.name);
+      if (markerEntry) setActiveMarker(markerEntry.marker);
+      openCity(visit, { updateUrl: false });
+    } else if (cityDialog.open) {
+      cityDialog.close();
+    }
+    syncingHistory = false;
+  }
+
+  function clearCityUrl() {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("city")) return;
+    url.searchParams.delete("city");
+    history.replaceState(null, "", url);
+  }
+
+  function setShareStatus(message) {
+    const status = document.querySelector("#share-status");
+    status.textContent = message;
+    window.setTimeout(() => {
+      if (status.textContent === message) status.textContent = "";
+    }, 2400);
+  }
+
+  async function copyCityLink() {
+    if (!activeCity) return;
+    const url = getCityUrl(activeCity.name).toString();
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareStatus("链接已复制");
+    } catch {
+      const input = document.createElement("textarea");
+      input.value = url;
+      input.setAttribute("readonly", "");
+      input.style.position = "fixed";
+      input.style.opacity = "0";
+      document.body.append(input);
+      input.select();
+      const copied = document.execCommand("copy");
+      input.remove();
+      setShareStatus(copied ? "链接已复制" : "复制失败，请手动复制地址栏链接");
+    }
+  }
+
+  async function shareCity() {
+    if (!activeCity) return;
+    const shareData = {
+      title: `${activeCity.name}｜Sehuri 的旅行足迹`,
+      text: `看看 Sehuri 在${activeCity.name}的旅行记忆`,
+      url: getCityUrl(activeCity.name).toString()
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        setShareStatus("分享成功");
+      } catch (error) {
+        if (error.name !== "AbortError") setShareStatus("分享失败，请复制链接");
+      }
+    } else {
+      await copyCityLink();
+    }
   }
 
   function loadPhotos(cityName) {
@@ -292,6 +454,8 @@
 
   function initializeDialogs() {
     document.querySelector("#dialog-close").addEventListener("click", () => cityDialog.close());
+    document.querySelector("#copy-city-link").addEventListener("click", copyCityLink);
+    document.querySelector("#share-city").addEventListener("click", shareCity);
     document.querySelector("#guide-close").addEventListener("click", () => guideDialog.close());
     document.querySelector("#lightbox-close").addEventListener("click", closeLightbox);
     lightbox.addEventListener("click", (event) => {
@@ -305,15 +469,22 @@
         if (!inside) dialog.close();
       });
     });
+    cityDialog.addEventListener("close", () => {
+      activeCity = null;
+      document.title = originalTitle;
+      if (!syncingHistory) clearCityUrl();
+    });
+    window.addEventListener("popstate", syncCityFromUrl);
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && !lightbox.hidden) closeLightbox();
     });
   }
 
   initializeStats();
-  initializeYearFilter();
+  initializeFilters();
   renderTimeline();
   initializeMap();
   initializeWishlist();
   initializeDialogs();
+  syncCityFromUrl();
 })();

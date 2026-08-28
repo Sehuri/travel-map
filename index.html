@@ -78,11 +78,22 @@
           <p class="eyebrow">02 / MEMORIES</p>
           <h2 id="memories-title">沿时间，重走一遍</h2>
         </div>
-        <div class="filter-wrap">
-          <label for="year-filter">按年份筛选</label>
-          <select id="year-filter"><option value="all">全部年份</option></select>
+        <div class="city-controls" aria-label="筛选旅行城市">
+          <div class="filter-wrap search-wrap">
+            <label for="city-search">搜索城市</label>
+            <input id="city-search" type="search" placeholder="输入城市名称" autocomplete="off">
+          </div>
+          <div class="filter-wrap">
+            <label for="location-filter">国家或地区</label>
+            <select id="location-filter"><option value="all">全部国家和地区</option></select>
+          </div>
+          <div class="filter-wrap">
+            <label for="year-filter">按年份筛选</label>
+            <select id="year-filter"><option value="all">全部年份</option></select>
+          </div>
         </div>
       </div>
+      <p class="filter-summary" id="filter-summary" aria-live="polite"></p>
       <div class="timeline" id="timeline" aria-live="polite"></div>
     </section>
 
@@ -107,10 +118,77 @@
     <button class="dialog-close" id="dialog-close" type="button" aria-label="关闭城市详情">×</button>
     <div class="dialog-meta">
       <span id="dialog-country"></span>
+      <span id="dialog-region"></span>
       <time id="dialog-date"></time>
     </div>
     <h2 id="dialog-title"></h2>
     <p id="dialog-description"></p>
+    <div class="dialog-actions">
+      <button type="button" id="copy-city-link">复制链接</button>
+      <button type="button" id="share-city">分享城市</button>
+      <span id="share-status" aria-live="polite"></span>
+    </div>
+    <section class="city-community" aria-label="城市旅行资料与评分">
+      <div class="city-notes-panel">
+        <div class="community-heading">
+          <div>
+            <p class="eyebrow">SEHURI'S NOTES</p>
+            <h3>我的旅行建议</h3>
+          </div>
+          <button class="text-button" id="owner-edit-toggle" type="button">站主编辑</button>
+        </div>
+        <dl class="city-facts" id="city-facts">
+          <div><dt>最喜欢的地点</dt><dd id="favorite-places">待填写</dd></div>
+          <div><dt>吃过的食物</dt><dd id="favorite-foods">待填写</dd></div>
+          <div><dt>适合旅行天数</dt><dd id="travel-days">待填写</dd></div>
+        </dl>
+
+        <form class="owner-login-form" id="owner-login-form" hidden>
+          <label for="owner-email">站主邮箱</label>
+          <div class="inline-form-row">
+            <input id="owner-email" name="email" type="email" autocomplete="email" required placeholder="输入邮箱接收登录链接">
+            <button type="submit">发送登录链接</button>
+          </div>
+          <p>登录链接会发送到邮箱；只有预设的站主账号拥有编辑权限。</p>
+        </form>
+
+        <form class="city-details-form" id="city-details-form" hidden>
+          <label for="favorite-places-input">最喜欢的地点</label>
+          <textarea id="favorite-places-input" rows="3" maxlength="500" placeholder="例如：伏见稻荷大社、鸭川"></textarea>
+          <label for="favorite-foods-input">吃过的食物</label>
+          <textarea id="favorite-foods-input" rows="3" maxlength="500" placeholder="例如：汤豆腐、抹茶甜品"></textarea>
+          <fieldset class="days-fields">
+            <legend>适合旅行天数</legend>
+            <label>最少 <input id="travel-days-min" type="number" min="1" max="90" inputmode="numeric"></label>
+            <label>最多 <input id="travel-days-max" type="number" min="1" max="90" inputmode="numeric"></label>
+          </fieldset>
+          <div class="owner-form-actions">
+            <button type="submit">保存城市资料</button>
+            <button class="text-button" id="owner-sign-out" type="button">退出站主登录</button>
+          </div>
+        </form>
+        <p class="community-status" id="owner-status" aria-live="polite"></p>
+      </div>
+
+      <div class="rating-panel">
+        <p class="eyebrow">COMMUNITY SCORE</p>
+        <div class="rating-summary">
+          <strong id="rating-average">—</strong>
+          <span>/ 10</span>
+          <p id="rating-count">暂无评分</p>
+        </div>
+        <form id="rating-form">
+          <div class="rating-label-row">
+            <label for="rating-score">你的评分</label>
+            <output id="rating-value" for="rating-score">8.0</output>
+          </div>
+          <input id="rating-score" type="range" min="1" max="10" step="0.5" value="8" aria-describedby="rating-help">
+          <p id="rating-help">每个浏览器对每座城市一票，可以随时修改。</p>
+          <button type="submit">提交评分</button>
+        </form>
+        <p class="community-status" id="rating-status" aria-live="polite"></p>
+      </div>
+    </section>
     <div class="photo-status" id="photo-status" aria-live="polite"></div>
     <div class="photo-grid" id="photo-grid"></div>
   </dialog>
@@ -130,8 +208,11 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
   <script src="./assets/data.js"></script>
   <script src="./assets/photos.js"></script>
+  <script src="./assets/supabase-config.js"></script>
+  <script src="./assets/community.js"></script>
   <script src="./assets/app.js"></script>
 </body>
 </html>
