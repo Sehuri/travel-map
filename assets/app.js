@@ -113,10 +113,39 @@
     renderRanking();
   }
 
+  async function loadRatingSummariesDirectly() {
+    if (ratingsLoaded && !ratingsFailed) return;
+    const config = window.SUPABASE_CONFIG || {};
+    if (!window.supabase?.createClient || !config.url || !config.publishableKey) {
+      applyRatingState({ loaded: true, error: true, ratings: [] });
+      return;
+    }
+
+    try {
+      const fallbackClient = window.supabase.createClient(config.url, config.publishableKey);
+      const { data, error } = await fallbackClient
+        .from("city_rating_summary")
+        .select("city_name, average_score, rating_count");
+      applyRatingState({
+        loaded: true,
+        error: Boolean(error),
+        ratings: (data || []).map((rating) => ({
+          cityName: rating.city_name,
+          averageScore: Number(rating.average_score),
+          ratingCount: Number(rating.rating_count)
+        }))
+      });
+    } catch {
+      applyRatingState({ loaded: true, error: true, ratings: [] });
+    }
+  }
+
   function initializeRatings() {
     window.addEventListener("travel:ratings-updated", (event) => applyRatingState(event.detail));
     const initialState = window.TRAVEL_COMMUNITY?.getRatingState?.();
     if (initialState) applyRatingState(initialState);
+    else loadRatingSummariesDirectly();
+    window.setTimeout(loadRatingSummariesDirectly, 4000);
   }
 
   function getFilteredVisits() {
