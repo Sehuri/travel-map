@@ -30,6 +30,9 @@
   let currentUser = null;
   let isOwner = false;
   let requestSequence = 0;
+  let ratingSummaries = new Map();
+  let ratingSummariesLoaded = false;
+  let ratingSummariesError = false;
 
   function isConfigured() {
     return Boolean(
@@ -57,6 +60,38 @@
     form.querySelectorAll("input, textarea, button").forEach((control) => {
       control.disabled = !enabled;
     });
+  }
+
+  function getRatingState() {
+    return {
+      loaded: ratingSummariesLoaded,
+      error: ratingSummariesError,
+      ratings: [...ratingSummaries.values()].map((rating) => ({ ...rating }))
+    };
+  }
+
+  function announceRatingSummaries() {
+    window.dispatchEvent(new CustomEvent("travel:ratings-updated", {
+      detail: getRatingState()
+    }));
+  }
+
+  async function refreshRatingSummaries() {
+    if (!client) return;
+    const { data, error } = await client
+      .from("city_rating_summary")
+      .select("city_name, average_score, rating_count");
+
+    ratingSummariesLoaded = true;
+    ratingSummariesError = Boolean(error);
+    if (!error) {
+      ratingSummaries = new Map((data || []).map((rating) => [rating.city_name, {
+        cityName: rating.city_name,
+        averageScore: Number(rating.average_score),
+        ratingCount: Number(rating.rating_count)
+      }]));
+    }
+    announceRatingSummaries();
   }
 
   function renderDetails(details) {
@@ -203,6 +238,7 @@
     }
     setStatus(elements.ratingStatus, "评分已保存");
     await loadCityData(currentCity);
+    await refreshRatingSummaries();
   }
 
   async function sendOwnerLogin(event) {
@@ -310,6 +346,7 @@
     }
 
     client = window.supabase.createClient(config.url, config.publishableKey);
+    const ratingSummariesRequest = refreshRatingSummaries();
     try {
       await ensureSession();
       await refreshOwnerState();
@@ -319,6 +356,7 @@
       setStatus(elements.ratingStatus, "评分服务连接失败，请稍后重试。", true);
       return;
     }
+    await ratingSummariesRequest;
 
     client.auth.onAuthStateChange((_event, session) => {
       window.setTimeout(async () => {
@@ -330,5 +368,5 @@
   }
 
   const ready = initialize();
-  window.TRAVEL_COMMUNITY = { showCity };
+  window.TRAVEL_COMMUNITY = { showCity, getRatingState, refreshRatingSummaries };
 })();

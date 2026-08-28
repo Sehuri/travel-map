@@ -28,6 +28,7 @@
     <nav>
       <a href="#map-section">地图</a>
       <a href="#memories">足迹</a>
+      <a href="#ratings">排行</a>
       <a href="#wishlist">下一站</a>
     </nav>
   </header>
@@ -91,16 +92,39 @@
             <label for="year-filter">按年份筛选</label>
             <select id="year-filter"><option value="all">全部年份</option></select>
           </div>
+          <div class="filter-wrap">
+            <label for="rating-filter">按评分筛选</label>
+            <select id="rating-filter" disabled>
+              <option value="all">全部评分</option>
+              <option value="rated">已有评分</option>
+              <option value="9">9 分以上</option>
+              <option value="8">8 分以上</option>
+              <option value="7">7 分以上</option>
+              <option value="unrated">暂无评分</option>
+            </select>
+          </div>
         </div>
       </div>
       <p class="filter-summary" id="filter-summary" aria-live="polite"></p>
       <div class="timeline" id="timeline" aria-live="polite"></div>
     </section>
 
+    <section class="ratings-section section-shell" id="ratings" aria-labelledby="ratings-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">03 / COMMUNITY RANKING</p>
+          <h2 id="ratings-title">旅行城市评分排行</h2>
+        </div>
+        <p class="section-note">按平均分排序；同分时，评分人数更多的城市优先。</p>
+      </div>
+      <p class="ranking-status" id="ranking-status" aria-live="polite">正在载入城市评分…</p>
+      <ol class="ranking-list" id="ranking-list"></ol>
+    </section>
+
     <section class="wishlist section-shell" id="wishlist" aria-labelledby="wishlist-title">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">03 / NEXT STOPS</p>
+          <p class="eyebrow">04 / NEXT STOPS</p>
           <h2 id="wishlist-title">仍在期待的远方</h2>
         </div>
         <p class="section-note">愿望不是清单，是下一次出发的方向。</p>

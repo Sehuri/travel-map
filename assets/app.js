@@ -28,8 +28,11 @@
   const timeline = document.querySelector("#timeline");
   const yearFilter = document.querySelector("#year-filter");
   const locationFilter = document.querySelector("#location-filter");
+  const ratingFilter = document.querySelector("#rating-filter");
   const citySearch = document.querySelector("#city-search");
   const filterSummary = document.querySelector("#filter-summary");
+  const rankingList = document.querySelector("#ranking-list");
+  const rankingStatus = document.querySelector("#ranking-status");
   const cityDialog = document.querySelector("#city-dialog");
   const guideDialog = document.querySelector("#guide-dialog");
   const lightbox = document.querySelector("#lightbox");
@@ -39,6 +42,9 @@
   let activeMarker = null;
   let activeCity = null;
   let syncingHistory = false;
+  let ratingSummaries = new Map();
+  let ratingsLoaded = false;
+  let ratingsFailed = false;
 
   function countUp(element, target) {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -94,13 +100,30 @@
 
     yearFilter.addEventListener("change", renderTimeline);
     locationFilter.addEventListener("change", renderTimeline);
+    ratingFilter.addEventListener("change", renderTimeline);
     citySearch.addEventListener("input", renderTimeline);
+  }
+
+  function applyRatingState(state) {
+    ratingsLoaded = Boolean(state?.loaded);
+    ratingsFailed = Boolean(state?.error);
+    ratingSummaries = new Map((state?.ratings || []).map((rating) => [rating.cityName, rating]));
+    ratingFilter.disabled = !ratingsLoaded || ratingsFailed;
+    renderTimeline();
+    renderRanking();
+  }
+
+  function initializeRatings() {
+    window.addEventListener("travel:ratings-updated", (event) => applyRatingState(event.detail));
+    const initialState = window.TRAVEL_COMMUNITY?.getRatingState?.();
+    if (initialState) applyRatingState(initialState);
   }
 
   function getFilteredVisits() {
     const query = citySearch.value.trim().toLocaleLowerCase("zh-CN");
     const selectedYear = yearFilter.value;
     const selectedLocation = locationFilter.value;
+    const selectedRating = ratingFilter.value;
 
     return visits.filter((visit) => {
       const matchesYear = selectedYear === "all" || visit.date.startsWith(selectedYear);
@@ -109,7 +132,13 @@
       const matchesLocation = selectedLocation === "all"
         || (locationType === "country" && visit.country === locationValue)
         || (locationType === "region" && getRegion(visit) === locationValue);
-      return matchesYear && matchesQuery && matchesLocation;
+      const rating = ratingSummaries.get(visit.name);
+      const hasRating = Boolean(rating?.ratingCount);
+      const matchesRating = selectedRating === "all"
+        || (selectedRating === "rated" && hasRating)
+        || (selectedRating === "unrated" && !hasRating)
+        || (hasRating && Number(rating.averageScore) >= Number(selectedRating));
+      return matchesYear && matchesQuery && matchesLocation && matchesRating;
     });
   }
 
@@ -122,6 +151,7 @@
     const filtered = getFilteredVisits();
     const hasActiveFilters = yearFilter.value !== "all"
       || locationFilter.value !== "all"
+      || ratingFilter.value !== "all"
       || citySearch.value.trim();
     filterSummary.textContent = hasActiveFilters
       ? `找到 ${filtered.length} 座城市`
@@ -188,9 +218,85 @@
     const meta = document.createElement("p");
     meta.textContent = `${dateFormatter.format(new Date(`${visit.date}T00:00:00`))} · ${visit.country}`;
 
-    button.append(number, arrow, name, meta);
+    const rating = ratingSummaries.get(visit.name);
+    const score = document.createElement("span");
+    score.className = "city-card-score";
+    score.textContent = rating?.ratingCount
+      ? `★ ${Number(rating.averageScore).toFixed(1)} · ${rating.ratingCount} 人`
+      : "暂无评分";
+
+    button.append(number, arrow, name, meta, score);
     button.addEventListener("click", () => openCity(visit));
     return button;
+  }
+
+  function renderRanking() {
+    rankingList.replaceChildren();
+    if (!ratingsLoaded) {
+      rankingStatus.textContent = "正在载入城市评分…";
+      return;
+    }
+    if (ratingsFailed) {
+      rankingStatus.textContent = "城市评分暂时无法载入，请稍后刷新页面。";
+      return;
+    }
+
+    const ranked = visits
+      .map((visit) => ({ visit, rating: ratingSummaries.get(visit.name) }))
+      .filter(({ rating }) => rating?.ratingCount > 0)
+      .sort((a, b) => Number(b.rating.averageScore) - Number(a.rating.averageScore)
+        || b.rating.ratingCount - a.rating.ratingCount
+        || a.visit.name.localeCompare(b.visit.name, "zh-CN"));
+
+    if (!ranked.length) {
+      rankingStatus.textContent = "还没有城市获得评分，打开城市详情即可成为第一位评分者。";
+      return;
+    }
+
+    const visible = ranked.slice(0, 10);
+    rankingStatus.textContent = ranked.length > visible.length
+      ? `目前 ${ranked.length} 座城市参与排行，展示前 ${visible.length} 名。`
+      : `目前 ${ranked.length} 座城市参与排行。`;
+
+    visible.forEach(({ visit, rating }, index) => {
+      const item = document.createElement("li");
+      item.className = "ranking-item";
+      if (index < 3) item.classList.add("top-three");
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.setAttribute("aria-label", `第${index + 1}名，${visit.name}，${Number(rating.averageScore).toFixed(1)}分`);
+
+      const rank = document.createElement("span");
+      rank.className = "ranking-position";
+      rank.textContent = String(index + 1).padStart(2, "0");
+
+      const city = document.createElement("span");
+      city.className = "ranking-city";
+      const name = document.createElement("strong");
+      name.textContent = visit.name;
+      const location = document.createElement("small");
+      location.textContent = `${visit.country} · ${getRegion(visit).replace(`${visit.country} · `, "")}`;
+      city.append(name, location);
+
+      const score = document.createElement("span");
+      score.className = "ranking-score";
+      const average = document.createElement("strong");
+      average.textContent = Number(rating.averageScore).toFixed(1);
+      const count = document.createElement("small");
+      count.textContent = `${rating.ratingCount} 人评分`;
+      score.append(average, count);
+
+      const arrow = document.createElement("span");
+      arrow.className = "ranking-arrow";
+      arrow.setAttribute("aria-hidden", "true");
+      arrow.textContent = "↗";
+
+      button.append(rank, city, score, arrow);
+      button.addEventListener("click", () => openCity(visit));
+      item.append(button);
+      rankingList.append(item);
+    });
   }
 
   function initializeMap() {
@@ -482,7 +588,9 @@
 
   initializeStats();
   initializeFilters();
+  initializeRatings();
   renderTimeline();
+  renderRanking();
   initializeMap();
   initializeWishlist();
   initializeDialogs();
