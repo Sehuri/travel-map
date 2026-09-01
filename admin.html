@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07111f">
+  <meta name="robots" content="noindex,nofollow">
+  <title>站主管理｜Sehuri 的旅行足迹</title>
+  <link rel="stylesheet" href="./assets/admin.css?v=20260901.1">
+</head>
+<body>
+  <header class="admin-header">
+    <a class="admin-brand" href="./">SEHURI / JOURNEYS</a>
+    <div>
+      <span id="session-label">未登录</span>
+      <button class="quiet-button" id="sign-out" type="button" hidden>退出登录</button>
+      <a class="quiet-button" href="./">返回旅行地图 ↗</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="login-card" id="login-panel">
+      <p class="eyebrow">OWNER ACCESS</p>
+      <h1>站主管理后台</h1>
+      <p>输入预设的站主邮箱，Supabase 会发送一次性登录链接。</p>
+      <form id="login-form">
+        <label for="login-email">站主邮箱</label>
+        <div class="inline-row">
+          <input id="login-email" type="email" autocomplete="email" required placeholder="name@example.com">
+          <button type="submit">发送登录链接</button>
+        </div>
+      </form>
+      <p class="status" id="login-status" aria-live="polite"></p>
+    </section>
+
+    <div id="admin-app" hidden>
+      <section class="admin-intro">
+        <p class="eyebrow">CONTENT STUDIO</p>
+        <h1>管理旅行档案</h1>
+        <p>这里的修改会直接保存到 Supabase，并在公开网站刷新后生效。代码中的原始资料仍作为备用版本保留。</p>
+        <nav class="section-nav" aria-label="后台功能">
+          <a href="#cities">城市</a>
+          <a href="#photos">照片</a>
+          <a href="#wishes">愿望清单</a>
+          <a href="#ratings-admin">评分</a>
+        </nav>
+      </section>
+
+      <section class="admin-section" id="cities">
+        <div class="section-title">
+          <div><p class="eyebrow">01 / CITIES</p><h2>城市资料</h2></div>
+          <button id="new-city" type="button">＋ 添加新城市</button>
+        </div>
+        <div class="workspace-grid">
+          <aside>
+            <label for="city-picker">选择城市</label>
+            <select id="city-picker" size="12"></select>
+          </aside>
+          <form class="editor-form" id="city-form">
+            <div class="field-grid">
+              <label>城市名称<input id="city-name" required maxlength="80"></label>
+              <label>国家或地区<input id="city-country" required maxlength="80"></label>
+              <label>区域<input id="city-region" maxlength="80" placeholder="例如：中国 · 华东"></label>
+              <label>到访日期<input id="city-date" type="date" required></label>
+              <label>经度<input id="city-longitude" type="number" min="-180" max="180" step="0.000001" required></label>
+              <label>纬度<input id="city-latitude" type="number" min="-90" max="90" step="0.000001" required></label>
+            </div>
+            <label>城市描述<textarea id="city-description" rows="4" maxlength="1200" required></textarea></label>
+            <label>封面图地址<input id="city-cover" type="text" placeholder="可在照片管理中一键设为封面"></label>
+            <label class="check-row"><input id="city-hidden" type="checkbox"> 暂不在公开网站展示这座城市</label>
+            <div class="form-actions">
+              <button type="submit">保存城市</button>
+              <button class="danger-button" id="remove-city-override" type="button">恢复代码版本</button>
+            </div>
+            <p class="status" id="city-status" aria-live="polite"></p>
+          </form>
+        </div>
+      </section>
+
+      <section class="admin-section" id="photos">
+        <div class="section-title">
+          <div><p class="eyebrow">02 / PHOTOS</p><h2>照片与封面</h2></div>
+        </div>
+        <div class="photo-toolbar">
+          <label>城市<select id="photo-city"></select></label>
+          <label class="file-field">选择照片<input id="photo-files" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple></label>
+          <button id="upload-photos" type="button">上传照片</button>
+          <button class="quiet-button" id="import-photos" type="button">导入现有照片顺序</button>
+        </div>
+        <p class="hint">单张不超过 15 MB。上传后可调整顺序、设为封面或删除。</p>
+        <p class="status" id="photo-admin-status" aria-live="polite"></p>
+        <div class="admin-photo-grid" id="admin-photo-grid"></div>
+      </section>
+
+      <section class="admin-section" id="wishes">
+        <div class="section-title">
+          <div><p class="eyebrow">03 / WISHLIST</p><h2>愿望清单</h2></div>
+          <button id="new-wish" type="button">＋ 添加目的地</button>
+        </div>
+        <div class="workspace-grid">
+          <aside>
+            <label for="wish-picker">选择目的地</label>
+            <select id="wish-picker" size="10"></select>
+          </aside>
+          <form class="editor-form" id="wish-form">
+            <div class="field-grid">
+              <label>目的地名称<input id="wish-name" required maxlength="120"></label>
+              <label>图标文字<input id="wish-icon" required maxlength="4" placeholder="山"></label>
+              <label>排序<input id="wish-order" type="number" min="0" step="1" required></label>
+            </div>
+            <label>一句话描述<textarea id="wish-description" rows="3" maxlength="500" required></textarea></label>
+            <label>旅行建议<textarea id="wish-guide" rows="6" maxlength="3000" required></textarea></label>
+            <label class="check-row"><input id="wish-hidden" type="checkbox"> 暂不在公开网站展示</label>
+            <div class="form-actions">
+              <button type="submit">保存目的地</button>
+              <button class="danger-button" id="remove-wish-override" type="button">恢复代码版本</button>
+            </div>
+            <p class="status" id="wish-status" aria-live="polite"></p>
+          </form>
+        </div>
+      </section>
+
+      <section class="admin-section" id="ratings-admin">
+        <div class="section-title">
+          <div><p class="eyebrow">04 / RATINGS</p><h2>评分管理</h2></div>
+          <label class="compact-field">筛选城市<select id="rating-city-filter"><option value="all">全部城市</option></select></label>
+        </div>
+        <p class="hint">删除明显异常的评分后，城市平均分会自动重新计算。用户编号仅显示前 8 位。</p>
+        <p class="status" id="rating-admin-status" aria-live="polite"></p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>城市</th><th>评分</th><th>用户编号</th><th>更新时间</th><th></th></tr></thead>
+            <tbody id="ratings-table"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+  <script src="./assets/data.js"></script>
+  <script src="./assets/photos.js"></script>
+  <script src="./assets/supabase-config.js"></script>
+  <script src="./assets/admin.js?v=20260901.1"></script>
+</body>
+</html>

@@ -46,6 +46,17 @@
 
 首次启用资料与评分功能前，请按 [Supabase 配置说明](./SUPABASE_SETUP.md) 完成数据库与前端连接。
 
+### 站主管理后台
+
+- 站主通过邮箱登录 [`admin.html`](./admin.html)
+- 可添加城市，修改日期、国家、地区、坐标和描述
+- 可上传和排序照片，并指定城市封面图
+- 可新增、编辑、排序或隐藏愿望清单项目
+- 可查看并删除明显异常的公众评分，平均分会自动重算
+- 采用“Supabase 后台内容优先、代码资料兜底”的方式，仍可继续直接修改代码维护
+
+启用后台前需要额外运行 [`supabase/admin_backend.sql`](./supabase/admin_backend.sql)，具体步骤见 [Supabase 配置说明](./SUPABASE_SETUP.md)。
+
 ### 城市照片画廊
 
 - 在城市详情中浏览真实旅行照片
@@ -108,9 +119,16 @@
 ├── travel-map.html
 ├── assets/
 │   ├── app.js
+│   ├── admin.js
+│   ├── admin.css
+│   ├── content.js
 │   ├── data.js
 │   ├── photos.js
 │   └── styles.css
+├── admin.html
+├── supabase/
+│   ├── schema.sql
+│   └── admin_backend.sql
 └── photos/
     ├── 东京/
     ├── 京都/

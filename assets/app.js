@@ -1,10 +1,10 @@
 (function () {
   "use strict";
 
-  const { visits, wishlist } = window.TRAVEL_DATA;
-  const photoManifest = window.PHOTO_MANIFEST || {};
+  let visits = [];
+  let wishlist = [];
+  let photoManifest = {};
   const chinaBounds = [[17, 73], [54, 136]];
-  const worldBounds = [[-5, 65], [58, 145]];
   const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
     year: "numeric",
     month: "long",
@@ -138,7 +138,11 @@
 
     const regionGroup = document.createElement("optgroup");
     regionGroup.label = "地区";
-    Object.keys(regionGroups).forEach((region) => {
+    const regions = [...new Set(visits
+      .map((visit) => getRegion(visit))
+      .filter((region, index) => region && region !== visits[index].country))]
+      .sort((a, b) => a.localeCompare(b, "zh-CN"));
+    regions.forEach((region) => {
       const option = document.createElement("option");
       option.value = `region:${region}`;
       option.textContent = region;
@@ -220,7 +224,7 @@
   }
 
   function getRegion(visit) {
-    return regionByCity.get(visit.name) || visit.country;
+    return visit.region || regionByCity.get(visit.name) || visit.country;
   }
 
   function renderTimeline() {
@@ -434,7 +438,8 @@
       button.classList.toggle("active", active);
       button.setAttribute("aria-pressed", String(active));
     });
-    travelMap.fitBounds(view === "china" ? chinaBounds : worldBounds, {
+    const visitedBounds = L.latLngBounds(visits.map((visit) => [visit.coord[1], visit.coord[0]])).pad(.16);
+    travelMap.fitBounds(view === "china" ? chinaBounds : visitedBounds, {
       padding: [18, 18],
       animate: !window.matchMedia("(prefers-reduced-motion: reduce)").matches
     });
@@ -471,6 +476,15 @@
     document.querySelector("#dialog-date").textContent = dateFormatter.format(new Date(`${visit.date}T00:00:00`));
     document.querySelector("#dialog-title").textContent = visit.name;
     document.querySelector("#dialog-description").textContent = visit.desc;
+    const cover = document.querySelector("#dialog-cover");
+    cover.hidden = !visit.coverUrl;
+    if (visit.coverUrl) {
+      cover.src = visit.coverUrl;
+      cover.alt = `${visit.name}城市封面`;
+    } else {
+      cover.removeAttribute("src");
+      cover.alt = "";
+    }
     document.querySelector("#share-status").textContent = "";
     document.querySelector("#photo-grid").replaceChildren();
     document.querySelector("#photo-status").textContent = "正在寻找这座城市的旅行照片…";
@@ -663,14 +677,27 @@
     });
   }
 
-  initializeStats();
-  initializeExtremeFootprints();
-  initializeFilters();
-  initializeRatings();
-  renderTimeline();
-  renderRanking();
-  initializeMap();
-  initializeWishlist();
-  initializeDialogs();
-  syncCityFromUrl();
+  async function initialize() {
+    if (window.TRAVEL_CONTENT?.ready) await window.TRAVEL_CONTENT.ready;
+    const content = window.TRAVEL_CONTENT?.getState?.() || {
+      visits: window.TRAVEL_DATA?.visits || [],
+      wishlist: window.TRAVEL_DATA?.wishlist || [],
+      photoManifest: window.PHOTO_MANIFEST || {}
+    };
+    visits = content.visits;
+    wishlist = content.wishlist;
+    photoManifest = content.photoManifest;
+    initializeStats();
+    initializeExtremeFootprints();
+    initializeFilters();
+    initializeRatings();
+    renderTimeline();
+    renderRanking();
+    initializeMap();
+    initializeWishlist();
+    initializeDialogs();
+    syncCityFromUrl();
+  }
+
+  initialize();
 })();

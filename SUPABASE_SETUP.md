@@ -48,3 +48,24 @@ Publishable Key 设计上可以出现在浏览器代码中，真正的权限由 
 - 登录成功后可以填写最喜欢的地点、吃过的食物和适合旅行天数。
 
 匿名身份保存在浏览器中。清除浏览器数据或更换设备后会生成新的匿名身份，因此这是一种低摩擦的一票机制，不等同于严格实名投票；如需更强的防刷能力，可继续接入 CAPTCHA 或要求访客登录。
+
+## 5. 启用站主管理后台
+
+已有资料和评分功能的项目，再执行一次 [`supabase/admin_backend.sql`](./supabase/admin_backend.sql)：
+
+1. 打开 Supabase Dashboard 的 SQL Editor。
+2. 新建查询，粘贴 `supabase/admin_backend.sql` 的完整内容。
+3. 点击 Run，看到 `Success. No rows returned` 即表示完成。
+4. 打开 [`admin.html`](./admin.html)，或在线访问 `https://sehuri.github.io/travel-map/admin.html`。
+5. 使用 `schema.sql` 中设置的站主邮箱接收登录链接。
+
+管理后台新增：
+
+- 城市资料覆盖和新增城市
+- 愿望清单编辑、排序和隐藏
+- 照片上传、排序、删除与城市封面
+- 异常评分查看和删除
+
+新表保存的是“后台覆盖版本”。没有在后台修改过的城市和愿望目的地仍从 `assets/data.js` 读取；Supabase 暂时不可用时，公开网站也会自动退回代码中的资料。
+
+照片会上传到公开的 `city-photos` Storage bucket。Bucket 只允许站主写入，访客只能读取；每张图片限制为 15 MB。
