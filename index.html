@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://unpkg.com">
   <link rel="preconnect" href="https://basemaps.cartocdn.com">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="./assets/styles.css?v=20260902.1">
+  <link rel="stylesheet" href="./assets/styles.css?v=20260902.2">
   <title>Sehuri 的旅行足迹｜52 座城市与旅行记忆</title>
 </head>
 <body>
@@ -128,6 +128,24 @@
             </select>
           </div>
         </div>
+      </div>
+      <div class="route-overview" aria-label="旅行路线概览">
+        <div class="compass-rose" aria-hidden="true">
+          <span class="compass-north">N</span>
+          <span class="compass-east">E</span>
+          <span class="compass-south">S</span>
+          <span class="compass-west">W</span>
+          <i></i>
+        </div>
+        <div class="route-overview-copy">
+          <span>TRAVEL ROUTE / EAST ASIA</span>
+          <strong>2013—2026</strong>
+          <p>从第一枚坐标开始，沿经纬度串起每一段真实旅程。</p>
+        </div>
+        <dl class="route-overview-stats">
+          <div><dt>ROUTE NODES</dt><dd id="route-city-count">0</dd></div>
+          <div><dt>COUNTRIES</dt><dd id="route-country-count">0</dd></div>
+        </dl>
       </div>
       <p class="filter-summary" id="filter-summary" aria-live="polite"></p>
       <div class="timeline" id="timeline" aria-live="polite"></div>
@@ -256,6 +274,6 @@
   <script src="./assets/supabase-config.js"></script>
   <script src="./assets/content.js?v=20260901.1"></script>
   <script src="./assets/community.js?v=20260901.1"></script>
-  <script src="./assets/app.js?v=20260902.1"></script>
+  <script src="./assets/app.js?v=20260902.2"></script>
 </body>
 </html>

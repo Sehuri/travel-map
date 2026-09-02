@@ -67,6 +67,8 @@
     countUp(document.querySelector("#city-count"), visits.length);
     countUp(document.querySelector("#country-count"), countries.size);
     countUp(document.querySelector("#year-count"), years.size);
+    countUp(document.querySelector("#route-city-count"), visits.length);
+    countUp(document.querySelector("#route-country-count"), countries.size);
     document.querySelector("#current-year").textContent = new Date().getFullYear();
   }
 
@@ -230,6 +232,12 @@
   function renderTimeline() {
     timeline.replaceChildren();
     const filtered = getFilteredVisits();
+    const routeOrder = new Map(
+      visits
+        .slice()
+        .sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name, "zh-CN"))
+        .map((visit, index) => [visit.name, index + 1])
+    );
     const hasActiveFilters = yearFilter.value !== "all"
       || locationFilter.value !== "all"
       || ratingFilter.value !== "all"
@@ -271,14 +279,18 @@
       entries
         .slice()
         .sort((a, b) => a.date.localeCompare(b.date))
-        .forEach((visit, index) => cities.append(createCityCard(visit, index)));
+        .forEach((visit) => cities.append(createCityCard(visit, routeOrder.get(visit.name))));
 
       group.append(heading, cities);
       timeline.append(group);
     });
   }
 
-  function createCityCard(visit, index) {
+  function formatCoordinate(value, positive, negative) {
+    return `${Math.abs(value).toFixed(2)}°${value >= 0 ? positive : negative}`;
+  }
+
+  function createCityCard(visit, routeIndex) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "city-card";
@@ -286,7 +298,11 @@
 
     const number = document.createElement("span");
     number.className = "index";
-    number.textContent = String(index + 1).padStart(2, "0");
+    number.textContent = `STOP ${String(routeIndex).padStart(3, "0")}`;
+
+    const routeNode = document.createElement("span");
+    routeNode.className = "route-node";
+    routeNode.setAttribute("aria-hidden", "true");
 
     const arrow = document.createElement("span");
     arrow.className = "arrow";
@@ -299,6 +315,10 @@
     const meta = document.createElement("p");
     meta.textContent = `${dateFormatter.format(new Date(`${visit.date}T00:00:00`))} · ${visit.country}`;
 
+    const coordinate = document.createElement("span");
+    coordinate.className = "city-card-coordinate";
+    coordinate.textContent = `${formatCoordinate(visit.coord[1], "N", "S")} / ${formatCoordinate(visit.coord[0], "E", "W")}`;
+
     const rating = ratingSummaries.get(visit.name);
     const score = document.createElement("span");
     score.className = "city-card-score";
@@ -306,7 +326,7 @@
       ? `★ ${Number(rating.averageScore).toFixed(1)} · ${rating.ratingCount} 人`
       : "暂无评分";
 
-    button.append(number, arrow, name, meta, score);
+    button.append(number, routeNode, arrow, name, meta, coordinate, score);
     button.addEventListener("click", () => openCity(visit));
     return button;
   }
