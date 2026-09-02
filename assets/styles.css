@@ -87,27 +87,53 @@ nav a:hover { color: var(--accent); }
 
 .hero {
   position: relative;
-  display: grid;
   min-height: min(900px, 100svh);
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 3rem;
   overflow: hidden;
-  padding: 8rem clamp(1.25rem, 9vw, 9rem) 6rem;
+  padding: 7.3rem clamp(1.25rem, 9vw, 9rem) 4.5rem;
   border-bottom: 1px solid var(--line);
+  background:
+    linear-gradient(90deg, rgba(7,17,31,.97) 0%, rgba(7,17,31,.82) 43%, rgba(7,17,31,.35) 78%, rgba(7,17,31,.5) 100%),
+    linear-gradient(180deg, rgba(7,17,31,.64) 0%, rgba(7,17,31,.08) 48%, rgba(7,17,31,.85) 100%),
+    url("./osaka-mario-hero.jpg") center 53% / cover no-repeat;
 }
 .hero::before {
   position: absolute;
-  width: 38rem;
-  height: 38rem;
-  right: -10rem;
-  top: 7rem;
-  border-radius: 50%;
-  background:
-    linear-gradient(135deg, rgba(228,255,117,.18), transparent 35%),
-    repeating-radial-gradient(circle, transparent 0 38px, rgba(255,255,255,.035) 39px 40px);
+  inset: 0;
+  background: radial-gradient(circle at 78% 45%, transparent 0 16rem, rgba(228,255,117,.04) 16.1rem 16.2rem, transparent 16.3rem);
   content: "";
-  filter: blur(.2px);
+  pointer-events: none;
+}
+.hero-tabs {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  gap: 1.6rem;
+  margin-bottom: clamp(2rem, 5vh, 4rem);
+  border-bottom: 1px solid rgba(238,243,234,.22);
+}
+.hero-tabs button {
+  position: relative;
+  padding: .65rem 0 .8rem;
+  border: 0;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+}
+.hero-tabs button::after { position: absolute; right: 0; bottom: -1px; left: 0; height: 2px; background: transparent; content: ""; }
+.hero-tabs button[aria-selected="true"] { color: var(--accent); }
+.hero-tabs button[aria-selected="true"]::after { background: var(--accent); }
+.hero-tabs button span { margin-left: .35rem; color: var(--faint); font-family: var(--display); font-size: .9rem; letter-spacing: 0; }
+.hero-panel { position: relative; z-index: 1; }
+.hero-panel[hidden] { display: none; }
+.hero-journeys-panel {
+  display: grid;
+  min-height: min(650px, calc(100svh - 13rem));
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 3rem;
 }
 .hero-copy { position: relative; z-index: 1; max-width: 850px; }
 .eyebrow {
@@ -165,9 +191,10 @@ h1 em { color: var(--accent); font-weight: 400; }
   letter-spacing: .14em;
   writing-mode: vertical-rl;
 }
-.hero-orbit { position: absolute; border: 1px solid rgba(228,255,117,.1); border-radius: 50%; pointer-events: none; }
-.orbit-one { right: 2%; width: 26rem; height: 26rem; }
-.orbit-two { right: 8%; width: 18rem; height: 18rem; }
+.hero-wishlist-panel { padding-bottom: 1rem; }
+.hero-wishlist-heading { display: flex; align-items: end; justify-content: space-between; gap: 2rem; margin-bottom: 2rem; }
+.hero-wishlist-heading h2 { max-width: 760px; font-size: clamp(2.8rem, 6vw, 6rem); line-height: .95; letter-spacing: -.045em; }
+.hero-wishlist-heading > p { max-width: 320px; margin: 0; color: var(--muted); font-size: .85rem; }
 
 .section-shell { max-width: 1480px; margin: auto; padding: clamp(5rem, 10vw, 9rem) clamp(1.25rem, 6vw, 6rem); }
 .section-heading {
@@ -325,27 +352,24 @@ h1 em { color: var(--accent); font-weight: 400; }
 .ranking-score strong { color: var(--accent); font-family: var(--display); font-size: 2.2rem; font-weight: 400; line-height: 1; }
 .ranking-arrow { color: var(--accent); font-size: 1.1rem; }
 
-.wishlist { max-width: none; background: #e7eadf; color: #132019; }
-.wishlist > * { max-width: 1330px; margin-left: auto; margin-right: auto; }
-.wishlist .eyebrow { color: #566228; }
-.wishlist .section-note { color: #647069; }
-.wish-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; border: 1px solid rgba(19,32,25,.18); background: rgba(19,32,25,.18); }
+.wish-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; border: 1px solid var(--line); background: var(--line); }
 .wish-card {
   position: relative;
-  min-height: 320px;
-  padding: 2rem;
+  min-height: 180px;
+  padding: 1.25rem;
   border: 0;
-  color: #132019;
-  background: #e7eadf;
+  color: var(--ink);
+  background: rgba(7,17,31,.84);
   text-align: left;
   cursor: pointer;
   transition: background .25s, color .25s;
 }
-.wish-card:hover { color: var(--accent); background: #132019; }
-.wish-icon { display: grid; width: 3.2rem; height: 3.2rem; place-items: center; border: 1px solid currentColor; border-radius: 50%; font-family: var(--display); font-size: 1.15rem; }
-.wish-card h3 { max-width: 250px; margin: 5rem 0 .7rem; font-family: var(--display); font-size: 1.55rem; font-weight: 400; line-height: 1.25; }
-.wish-card p { max-width: 280px; margin: 0; opacity: .68; font-size: .78rem; }
-.wish-card .arrow { position: absolute; top: 2rem; right: 2rem; font-size: 1.2rem; }
+.wish-card:hover { color: var(--accent); background: rgba(7,17,31,.97); }
+.wish-icon { display: grid; width: 2.4rem; height: 2.4rem; place-items: center; border: 1px solid currentColor; border-radius: 50%; font-family: var(--display); font-size: .92rem; }
+.wish-card h3 { max-width: 250px; margin: 2rem 0 .45rem; font-family: var(--display); font-size: 1.22rem; font-weight: 400; line-height: 1.25; }
+.wish-card p { max-width: 280px; margin: 0; color: var(--muted); font-size: .7rem; }
+.wish-card:hover p { color: rgba(228,255,117,.72); }
+.wish-card .arrow { position: absolute; top: 1.25rem; right: 1.25rem; font-size: 1rem; }
 
 footer {
   display: flex;
@@ -479,7 +503,7 @@ dialog h2 { margin: 1rem 0; font-size: clamp(2.8rem, 7vw, 5rem); letter-spacing:
 .noscript { padding: 1rem; color: var(--muted); }
 
 @media (max-width: 900px) {
-  .hero { grid-template-columns: 1fr; align-content: center; }
+  .hero-journeys-panel { min-height: 650px; grid-template-columns: 1fr; align-content: center; }
   .hero-stats { grid-template-columns: repeat(3, 1fr); align-self: auto; margin: 1rem 0 0; }
   .year-group { grid-template-columns: 90px 1fr; }
   .year-cities { grid-template-columns: repeat(2, 1fr); }
@@ -494,8 +518,12 @@ dialog h2 { margin: 1rem 0; font-size: clamp(2.8rem, 7vw, 5rem); letter-spacing:
   .site-header nav { display: none; }
   .header-actions { gap: 0; }
   .admin-entry { padding: .42rem .58rem; font-size: .62rem; }
-  .hero { min-height: 820px; padding-top: 7rem; }
-  .hero::before { width: 25rem; height: 25rem; right: -14rem; }
+  .hero { min-height: 820px; padding: 6.8rem 1.25rem 3rem; background-position: 62% center; }
+  .hero::before { background: linear-gradient(180deg, rgba(7,17,31,.12), rgba(7,17,31,.52)); }
+  .hero-tabs { gap: 1.15rem; margin-bottom: 2.4rem; }
+  .hero-journeys-panel { min-height: 650px; }
+  .hero-wishlist-heading { display: grid; align-items: start; }
+  .hero-wishlist-heading h2 { font-size: clamp(2.8rem, 15vw, 4.5rem); }
   h1 { font-size: clamp(3.4rem, 18vw, 5.3rem); }
   .hero-stats { gap: .5rem; }
   .hero-stats div { min-width: 0; padding-left: .7rem; }
@@ -525,8 +553,8 @@ dialog h2 { margin: 1rem 0; font-size: clamp(2.8rem, 7vw, 5rem); letter-spacing:
   .ranking-score strong { font-size: 1.7rem; }
   .ranking-arrow { display: none; }
   .wish-grid { grid-template-columns: 1fr; }
-  .wish-card { min-height: 260px; }
-  .wish-card h3 { margin-top: 3.6rem; }
+  .wish-card { min-height: 155px; }
+  .wish-card h3 { margin-top: 1.6rem; }
   footer { display: grid; }
   .photo-grid { grid-template-columns: repeat(2, 1fr); }
   .city-community { grid-template-columns: 1fr; }

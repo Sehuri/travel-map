@@ -14,14 +14,14 @@
   <link rel="preconnect" href="https://unpkg.com">
   <link rel="preconnect" href="https://basemaps.cartocdn.com">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="./assets/styles.css?v=20260901.2">
+  <link rel="stylesheet" href="./assets/styles.css?v=20260902.1">
   <title>Sehuri 的旅行足迹｜52 座城市与旅行记忆</title>
 </head>
 <body>
   <a class="skip-link" href="#main">跳到主要内容</a>
 
   <header class="site-header" aria-label="主导航">
-    <a class="brand" href="#top" aria-label="返回首页">
+    <a class="brand" href="#top" aria-label="返回首页" data-home-tab-target="journeys">
       <span class="brand-mark" aria-hidden="true">S</span>
       <span>SEHURI / JOURNEYS</span>
     </a>
@@ -30,28 +30,42 @@
         <a href="#map-section">地图</a>
         <a href="#memories">足迹</a>
         <a href="#ratings">排行</a>
-        <a href="#wishlist">下一站</a>
+        <a href="#wishlist-panel" data-home-tab-target="wishlist">下一站</a>
       </nav>
       <a class="admin-entry" href="./admin.html">站主管理 <span aria-hidden="true">↗</span></a>
     </div>
   </header>
 
   <main id="main">
-    <section class="hero" id="top" aria-labelledby="hero-title">
-      <div class="hero-orbit orbit-one" aria-hidden="true"></div>
-      <div class="hero-orbit orbit-two" aria-hidden="true"></div>
-      <div class="hero-copy">
-        <p class="eyebrow">A PERSONAL TRAVEL ARCHIVE · SINCE 2013</p>
-        <h1 id="hero-title">世界很大，<br><em>我用足迹丈量。</em></h1>
-        <p class="hero-intro">从黄海边的第一次远行，到江南初夏的水乡古城。这里收藏的不是打卡数字，而是一段段真实发生过的生活。</p>
-        <a class="primary-link" href="#map-section">打开我的地图 <span aria-hidden="true">↘</span></a>
+    <section class="hero" id="top" aria-label="旅行首页">
+      <div class="hero-tabs" role="tablist" aria-label="首页内容切换">
+        <button id="journeys-tab" type="button" role="tab" aria-selected="true" aria-controls="journeys-panel" data-home-tab="journeys">旅行足迹</button>
+        <button id="wishlist-tab" type="button" role="tab" aria-selected="false" aria-controls="wishlist-panel" data-home-tab="wishlist" tabindex="-1">仍在期待 <span id="wishlist-count">0</span></button>
       </div>
-      <div class="hero-stats" aria-label="旅行统计">
-        <div><strong id="city-count">0</strong><span>座城市</span></div>
-        <div><strong id="country-count">0</strong><span>个国家</span></div>
-        <div><strong id="year-count">0</strong><span>个旅行年份</span></div>
+      <div class="hero-panel hero-journeys-panel" id="journeys-panel" role="tabpanel" aria-labelledby="journeys-tab">
+        <div class="hero-copy">
+          <p class="eyebrow">A PERSONAL TRAVEL ARCHIVE · SINCE 2013</p>
+          <h1 id="hero-title">世界很大，<br><em>我用足迹丈量。</em></h1>
+          <p class="hero-intro">从黄海边的第一次远行，到江南初夏的水乡古城。这里收藏的不是打卡数字，而是一段段真实发生过的生活。</p>
+          <a class="primary-link" href="#map-section">打开我的地图 <span aria-hidden="true">↘</span></a>
+        </div>
+        <div class="hero-stats" aria-label="旅行统计">
+          <div><strong id="city-count">0</strong><span>座城市</span></div>
+          <div><strong id="country-count">0</strong><span>个国家</span></div>
+          <div><strong id="year-count">0</strong><span>个旅行年份</span></div>
+        </div>
+        <p class="hero-coordinate" aria-hidden="true">34.6654° N / 135.4323° E</p>
       </div>
-      <p class="hero-coordinate" aria-hidden="true">31.2304° N / 121.4737° E</p>
+      <div class="hero-panel hero-wishlist-panel" id="wishlist-panel" role="tabpanel" aria-labelledby="wishlist-tab" hidden>
+        <div class="hero-wishlist-heading">
+          <div>
+            <p class="eyebrow">NEXT STOPS / THE PLACES AHEAD</p>
+            <h2>仍在期待的远方</h2>
+          </div>
+          <p>愿望不是清单，是下一次出发的方向。</p>
+        </div>
+        <div class="wish-grid" id="wish-grid"></div>
+      </div>
     </section>
 
     <section class="map-section section-shell" id="map-section" aria-labelledby="map-title">
@@ -131,16 +145,6 @@
       <ol class="ranking-list" id="ranking-list"></ol>
     </section>
 
-    <section class="wishlist section-shell" id="wishlist" aria-labelledby="wishlist-title">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">04 / NEXT STOPS</p>
-          <h2 id="wishlist-title">仍在期待的远方</h2>
-        </div>
-        <p class="section-note">愿望不是清单，是下一次出发的方向。</p>
-      </div>
-      <div class="wish-grid" id="wish-grid"></div>
-    </section>
   </main>
 
   <footer>
@@ -252,6 +256,6 @@
   <script src="./assets/supabase-config.js"></script>
   <script src="./assets/content.js?v=20260901.1"></script>
   <script src="./assets/community.js?v=20260901.1"></script>
-  <script src="./assets/app.js?v=20260901.1"></script>
+  <script src="./assets/app.js?v=20260902.1"></script>
 </body>
 </html>

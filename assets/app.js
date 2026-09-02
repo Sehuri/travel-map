@@ -584,6 +584,7 @@
 
   function initializeWishlist() {
     const grid = document.querySelector("#wish-grid");
+    document.querySelector("#wishlist-count").textContent = wishlist.length;
     wishlist.forEach((destination) => {
       const button = document.createElement("button");
       button.type = "button";
@@ -609,6 +610,55 @@
       button.addEventListener("click", () => openGuide(destination));
       grid.append(button);
     });
+  }
+
+  function initializeHomeTabs() {
+    const tabs = [...document.querySelectorAll("[data-home-tab]")];
+    const panels = {
+      journeys: document.querySelector("#journeys-panel"),
+      wishlist: document.querySelector("#wishlist-panel")
+    };
+
+    function activateTab(name, { focus = false, scroll = false } = {}) {
+      if (!panels[name]) return;
+      tabs.forEach((tab) => {
+        const active = tab.dataset.homeTab === name;
+        tab.setAttribute("aria-selected", String(active));
+        tab.tabIndex = active ? 0 : -1;
+        if (active && focus) tab.focus();
+      });
+      Object.entries(panels).forEach(([panelName, panel]) => {
+        panel.hidden = panelName !== name;
+      });
+      if (scroll) {
+        document.querySelector("#top").scrollIntoView({
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"
+        });
+      }
+    }
+
+    tabs.forEach((tab, index) => {
+      tab.addEventListener("click", () => activateTab(tab.dataset.homeTab));
+      tab.addEventListener("keydown", (event) => {
+        let nextIndex = null;
+        if (event.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
+        if (event.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
+        if (event.key === "Home") nextIndex = 0;
+        if (event.key === "End") nextIndex = tabs.length - 1;
+        if (nextIndex === null) return;
+        event.preventDefault();
+        activateTab(tabs[nextIndex].dataset.homeTab, { focus: true });
+      });
+    });
+
+    document.querySelectorAll("[data-home-tab-target]").forEach((link) => {
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        activateTab(link.dataset.homeTabTarget, { scroll: true });
+      });
+    });
+
+    if (window.location.hash === "#wishlist-panel") activateTab("wishlist");
   }
 
   function openGuide(destination) {
@@ -695,6 +745,7 @@
     renderRanking();
     initializeMap();
     initializeWishlist();
+    initializeHomeTabs();
     initializeDialogs();
     syncCityFromUrl();
   }
