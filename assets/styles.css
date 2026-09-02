@@ -91,17 +91,13 @@ nav a:hover { color: var(--accent); }
   overflow: hidden;
   padding: 7.3rem clamp(1.25rem, 9vw, 9rem) 4.5rem;
   border-bottom: 1px solid var(--line);
-  background:
-    radial-gradient(circle at 78% 45%, rgba(228,255,117,.07), transparent 24rem),
-    #07111f;
+  background: #73c8ef;
 }
 .hero::before {
   position: absolute;
   z-index: 0;
-  inset: 4.8rem 1.5rem 1.5rem clamp(32rem, 45vw, 46rem);
-  border: 1px solid rgba(238,243,234,.16);
-  background: rgba(7,17,31,.3) url("./osaka-mario-hero.jpg") center / contain no-repeat;
-  box-shadow: 0 2.5rem 8rem rgba(0,0,0,.35);
+  inset: 0;
+  background: url("./osaka-mario-hero.jpg") center 58% / cover no-repeat;
   content: "";
   pointer-events: none;
 }
@@ -110,8 +106,8 @@ nav a:hover { color: var(--accent); }
   z-index: 0;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(7,17,31,.72), transparent 24%, transparent 70%, rgba(7,17,31,.8)),
-    linear-gradient(90deg, rgba(7,17,31,.34), transparent 42%);
+    linear-gradient(180deg, rgba(15,62,96,.32), transparent 28%, transparent 68%, rgba(12,53,43,.42)),
+    linear-gradient(90deg, rgba(5,24,40,.78) 0%, rgba(5,24,40,.62) 30%, rgba(5,24,40,.24) 57%, rgba(5,24,40,.08) 100%);
   content: "";
   pointer-events: none;
 }
@@ -152,8 +148,9 @@ nav a:hover { color: var(--accent); }
   z-index: 1;
   max-width: 790px;
   padding: 2rem 3rem 2rem 0;
-  background: linear-gradient(90deg, rgba(7,17,31,.97) 0%, rgba(7,17,31,.84) 72%, transparent 100%);
-  box-shadow: -6rem 0 0 rgba(7,17,31,.97);
+  background: linear-gradient(90deg, rgba(5,24,40,.58) 0%, rgba(5,24,40,.38) 70%, transparent 100%);
+  box-shadow: -6rem 0 0 rgba(5,24,40,.58);
+  text-shadow: 0 2px 22px rgba(1,9,15,.45);
 }
 .eyebrow {
   margin: 0 0 1.2rem;
@@ -198,7 +195,7 @@ h1 em { color: var(--accent); font-weight: 400; }
   gap: 1px;
   margin: 0;
 }
-.hero-stats div { display: grid; min-width: 110px; padding: .9rem 1.2rem; border-left: 1px solid rgba(228,255,117,.55); background: rgba(7,17,31,.72); backdrop-filter: blur(8px); }
+.hero-stats div { display: grid; min-width: 110px; padding: .9rem 1.2rem; border-left: 1px solid rgba(228,255,117,.72); background: rgba(5,34,48,.58); box-shadow: 0 1rem 3rem rgba(0,0,0,.16); backdrop-filter: blur(8px); }
 .hero-stats strong { color: var(--accent); font-family: var(--display); font-size: 2.8rem; font-weight: 400; line-height: 1; }
 .hero-stats span { color: var(--faint); font-size: .7rem; letter-spacing: .12em; }
 .hero-coordinate {
@@ -604,7 +601,7 @@ dialog h2 { margin: 1rem 0; font-size: clamp(2.8rem, 7vw, 5rem); letter-spacing:
 .noscript { padding: 1rem; color: var(--muted); }
 
 @media (max-width: 900px) {
-  .hero::before { inset: 4.8rem 1rem 1rem 22%; opacity: .78; }
+  .hero::before { background-position: center 58%; }
   .hero-copy { max-width: 720px; }
   .hero-journeys-panel { min-height: 650px; grid-template-columns: 1fr; align-content: center; }
   .hero-stats { position: static; display: grid; grid-template-columns: repeat(3, 1fr); align-self: auto; margin: 1rem 0 0; }
@@ -624,11 +621,11 @@ dialog h2 { margin: 1rem 0; font-size: clamp(2.8rem, 7vw, 5rem); letter-spacing:
   .header-actions { gap: 0; }
   .admin-entry { padding: .42rem .58rem; font-size: .62rem; }
   .hero { min-height: 860px; padding: 6.8rem 1.25rem 3rem; }
-  .hero::before { inset: 22rem .75rem 1rem; opacity: .7; background-position: center bottom; }
-  .hero::after { background: linear-gradient(180deg, rgba(7,17,31,.82), rgba(7,17,31,.52) 50%, rgba(7,17,31,.75)); }
+  .hero::before { background-position: 64% center; }
+  .hero::after { background: linear-gradient(180deg, rgba(5,24,40,.78), rgba(5,24,40,.48) 48%, rgba(8,48,38,.62)); }
   .hero-tabs { gap: 1.15rem; margin-bottom: 2.4rem; }
   .hero-journeys-panel { min-height: 650px; }
-  .hero-copy { padding: 1rem 0; background: linear-gradient(180deg, rgba(7,17,31,.96), rgba(7,17,31,.66) 82%, transparent); box-shadow: none; }
+  .hero-copy { padding: 1rem 0; background: linear-gradient(180deg, rgba(5,24,40,.7), rgba(5,24,40,.34) 82%, transparent); box-shadow: none; }
   .hero-wishlist-heading { display: grid; align-items: start; }
   .hero-wishlist-heading h2 { font-size: clamp(2.8rem, 15vw, 4.5rem); }
   h1 { font-size: clamp(3.4rem, 18vw, 5.3rem); }
