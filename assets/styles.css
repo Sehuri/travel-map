@@ -17,9 +17,7 @@ html { scroll-behavior: smooth; }
 body {
   margin: 0;
   color: var(--ink);
-  background:
-    radial-gradient(circle at 72% 8%, rgba(53, 90, 98, 0.18), transparent 26rem),
-    var(--night);
+  background: #73c8ef url("./osaka-mario-hero.jpg") center 58% / cover fixed no-repeat;
   font-family: var(--sans);
   line-height: 1.65;
 }
@@ -224,7 +222,13 @@ h1 em { color: var(--accent); font-weight: 400; }
 .section-heading h2 { font-size: clamp(2.5rem, 5vw, 5.2rem); line-height: 1; letter-spacing: -.04em; }
 .section-note { max-width: 290px; margin: 0; color: var(--muted); font-size: .88rem; }
 
-.map-section { max-width: none; background: #091521; }
+.map-section {
+  max-width: none;
+  background:
+    linear-gradient(180deg, rgba(5,24,40,.68), rgba(6,42,43,.62)),
+    linear-gradient(90deg, rgba(5,24,40,.38), rgba(38,112,128,.16));
+  backdrop-filter: blur(2px);
+}
 .map-section > * { max-width: 1330px; margin-left: auto; margin-right: auto; }
 .map-switch { display: inline-flex; padding: .3rem; border: 1px solid var(--line); border-radius: 999px; }
 .map-switch-button {
@@ -237,7 +241,7 @@ h1 em { color: var(--accent); font-weight: 400; }
   cursor: pointer;
 }
 .map-switch-button.active { color: var(--night); background: var(--accent); }
-.map-frame { overflow: hidden; border: 1px solid var(--line); border-radius: 1.5rem; background: var(--panel); box-shadow: 0 2rem 6rem rgba(0,0,0,.28); }
+.map-frame { overflow: hidden; border: 1px solid rgba(238,243,234,.22); border-radius: 1.5rem; background: rgba(9,27,38,.84); box-shadow: 0 2rem 6rem rgba(0,0,0,.34); backdrop-filter: blur(10px); }
 #travel-map { height: min(68vh, 660px); min-height: 430px; background: #091521; }
 .map-caption {
   display: flex;
@@ -271,7 +275,7 @@ h1 em { color: var(--accent); font-weight: 400; }
 }
 .map-tooltip::before { display: none !important; }
 
-.footprint-extremes { margin-top: 1.5rem; border: 1px solid var(--line); background: var(--panel); }
+.footprint-extremes { margin-top: 1.5rem; border: 1px solid rgba(238,243,234,.2); background: rgba(8,31,40,.76); box-shadow: 0 1.5rem 4rem rgba(0,0,0,.18); backdrop-filter: blur(10px); }
 .extremes-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; padding: 1.3rem 1.5rem; border-bottom: 1px solid var(--line); }
 .extremes-heading .eyebrow { margin: 0; }
 .extremes-heading h3 { margin: 0; font-family: var(--display); font-size: 1.45rem; font-weight: 400; }
@@ -320,8 +324,9 @@ h1 em { color: var(--accent); font-weight: 400; }
   max-width: none;
   overflow: hidden;
   background:
-    radial-gradient(circle at 88% 17%, rgba(228,255,117,.055), transparent 21rem),
-    #07111f;
+    radial-gradient(circle at 88% 17%, rgba(228,255,117,.09), transparent 21rem),
+    linear-gradient(180deg, rgba(5,28,42,.64), rgba(7,45,42,.62));
+  backdrop-filter: blur(2px);
 }
 .memories::before {
   position: absolute;
@@ -346,7 +351,7 @@ h1 em { color: var(--accent); font-weight: 400; }
   margin-bottom: 3rem;
   padding: 1.4rem 1.6rem;
   border: 1px solid var(--line);
-  background: rgba(9,21,33,.72);
+  background: rgba(7,32,43,.7);
   box-shadow: 0 1.5rem 5rem rgba(0,0,0,.18);
   backdrop-filter: blur(10px);
 }
@@ -381,7 +386,7 @@ h1 em { color: var(--accent); font-weight: 400; }
 .route-overview-stats dd { margin: 0; color: var(--accent); font-family: var(--display); font-size: 2rem; line-height: 1; }
 .filter-summary { min-height: 1.6rem; margin: -2rem 0 1rem; color: var(--faint); font-size: .72rem; letter-spacing: .04em; }
 .timeline { position: relative; border-top: 1px solid rgba(228,255,117,.35); }
-.year-group { position: relative; display: grid; grid-template-columns: minmax(110px, 16%) 1fr; border-bottom: 1px solid var(--line); background: rgba(7,17,31,.46); }
+.year-group { position: relative; display: grid; grid-template-columns: minmax(110px, 16%) 1fr; border-bottom: 1px solid var(--line); background: rgba(5,27,39,.58); backdrop-filter: blur(8px); }
 .year-label {
   position: relative;
   margin: 0;
@@ -406,7 +411,7 @@ h1 em { color: var(--accent); font-weight: 400; }
   color: inherit;
   background:
     linear-gradient(135deg, rgba(228,255,117,.025), transparent 42%),
-    rgba(7,17,31,.46);
+    rgba(5,27,39,.5);
   text-align: left;
   cursor: pointer;
   transition: background .25s ease, box-shadow .25s ease, transform .25s ease;
@@ -421,7 +426,16 @@ h1 em { color: var(--accent); font-weight: 400; }
 .city-card .arrow { position: absolute; right: 1.4rem; top: 1.4rem; color: var(--accent); font-size: 1.1rem; }
 .empty-state { padding: 3rem 0; color: var(--muted); }
 
-.ratings-section { background: #0a1621; }
+.ratings-section {
+  position: relative;
+  max-width: none;
+  background:
+    linear-gradient(180deg, rgba(6,39,43,.63), rgba(4,24,38,.72)),
+    radial-gradient(circle at 15% 35%, rgba(228,255,117,.08), transparent 22rem);
+  backdrop-filter: blur(2px);
+}
+.ratings-section > * { width: min(100%, 1330px); margin-right: auto; margin-left: auto; }
+.ranking-list { background: rgba(5,27,39,.52); box-shadow: 0 1.5rem 5rem rgba(0,0,0,.16); backdrop-filter: blur(8px); }
 .ranking-status { min-height: 1.4rem; margin: -1.5rem 0 1.2rem; color: var(--faint); font-size: .72rem; letter-spacing: .04em; }
 .ranking-list { margin: 0; padding: 0; border-top: 1px solid var(--line); list-style: none; }
 .ranking-item { border-bottom: 1px solid var(--line); }
@@ -617,6 +631,7 @@ dialog h2 { margin: 1rem 0; font-size: clamp(2.8rem, 7vw, 5rem); letter-spacing:
 }
 
 @media (max-width: 640px) {
+  body { background-attachment: scroll; background-position: 64% center; }
   .site-header nav { display: none; }
   .header-actions { gap: 0; }
   .admin-entry { padding: .42rem .58rem; font-size: .62rem; }
