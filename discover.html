@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="根据假期、出发地与旅行喜好，抽取你的下一座目的地城市。支持全国城市目录与县级市。">
+  <meta name="theme-color" content="#246a70">
+  <title>下一站去哪｜Sehuri 的旅行灵感</title>
+  <link rel="stylesheet" href="./assets/styles.css?v=20260904.1">
+  <link rel="stylesheet" href="./assets/discover.css?v=20260905.1">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body class="discover-page">
+  <a class="skip-link" href="#discover-form">跳到推荐条件</a>
+  <header class="discover-header"><a class="brand" href="./index.html"><span class="brand-mark">S</span> SEHURI / DISCOVER</a><a href="./index.html">返回旅行地图 ↗</a></header>
+  <main class="discover-shell">
+    <div class="discover-heading"><p class="eyebrow">LET CURIOSITY CHOOSE / 旅行灵感</p><h1>下一站，<em>交给一点意外。</em></h1><p>告诉我从哪里出发、准备玩几天。让下一座城市，成为旅程的开场。</p></div>
+    <section class="discover-notice" aria-label="数据连接状态"><p id="connection-status" role="status">正在准备城市目录…</p><button id="connect-retry" type="button" hidden>重新连接全国目录</button><button id="preview-button" type="button" hidden>先体验 18 城示例</button><p class="small">全国模式包含地级市、直辖市、县级市及港澳，以高德实际目录为准；台湾城市目录尚待补充。示例模式不是全国范围。</p></section>
+    <form id="discover-form" class="discover-panel">
+      <div class="field-grid">
+        <label>01 / 从哪里出发<input id="origin" list="origin-list" placeholder="输入城市，选择完整归属" autocomplete="off" required disabled><datalist id="origin-list"></datalist></label>
+        <label>02 / 游玩天数<input id="days" type="number" min="1" max="14" step="1" value="3" required><span class="small">不含往返交通，1—14 天</span></label>
+        <label>03 / 距离范围<select id="radius"><option value="auto">按天数建议</option><option value="350">直线 350 公里内</option><option value="800">直线 800 公里内</option><option value="1600">直线 1600 公里内</option><option value="Infinity">全国不限距离</option></select></label>
+        <label>目的地省份<select id="province"><option value="">全部省份</option></select></label>
+        <label>旅行节奏<select id="pace"><option value="relaxed">慢慢逛 · 每天 1 个重点</option><option value="balanced" selected>适中 · 每天最多 2 个重点</option></select></label>
+      </div>
+      <fieldset id="interests"><legend>04 / 想遇见什么 <span class="small">最多选 3 项，任一喜好匹配；不选则随缘</span></legend></fieldset>
+      <div class="draw-bar"><p id="candidate-status" class="small">目录连接后即可抽取。</p><button id="draw" type="submit" disabled>为我选一座城市 <span aria-hidden="true">↗</span></button></div>
+      <p class="small">“按天数建议”：1—2 天约 350 km 内，3—4 天约 800 km 内，5—7 天约 1600 km 内，8 天起不限。仅为探索范围，不是车程或交通可达性判断。</p>
+    </form>
+    <p id="draw-status" role="status" aria-live="polite"></p>
+    <section id="result" class="discover-panel result-panel" aria-labelledby="result-title" hidden tabindex="-1">
+      <div class="result-top"><div><p class="eyebrow">YOUR NEXT STOP / 这次去这里</p><p id="result-region"></p><h2 id="result-title"></h2></div><div class="result-stamp" id="result-distance"></div></div>
+      <p id="result-intro"></p><p id="result-reason" class="result-reason"></p><p id="result-tip" class="small"></p>
+      <div class="resource-heading"><h3>把旅游资源摊开来看</h3><a id="city-map-link" target="_blank" rel="noopener noreferrer">打开城市互动地图 ↗</a></div>
+      <p class="small" id="map-caption"></p><div id="resource-map" aria-label="旅游资源地图"></div><p id="map-status" role="status"></p>
+      <ol id="places" class="place-grid"></ol>
+      <div class="result-actions"><button id="again" type="button">换一座，继续探索 ↻</button><button id="copy-result" type="button">复制旅行灵感</button><a id="memory-link" hidden>看看我的旅行记录 ↗</a></div>
+      <p class="small">这是旅行灵感，不是已核实的完整行程。营业、预约、门票、季节与实际路程请出发前向景区确认；地图保留来源署名。</p>
+    </section>
+    <noscript>请启用 JavaScript 使用随机推荐；现有旅行地图不受影响。</noscript>
+  </main>
+  <script src="./assets/discover-data.js"></script><script src="./assets/discover-engine.js"></script><script src="./assets/discover-config.js"></script>
+  <script src="./assets/data.js"></script><script src="./assets/discover.js?v=20260905.1"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+</body>
+</html>
