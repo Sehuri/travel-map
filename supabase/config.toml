@@ -1,2 +1,5 @@
 [functions.travel-discover]
 verify_jwt = false
+
+[functions.amap-js-proxy]
+verify_jwt = false

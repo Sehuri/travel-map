@@ -39,6 +39,11 @@
   let travelMap;
   let markerLayer;
   let markers = [];
+  let chinaMap;
+  let chinaMarkers = [];
+  let chinaMapPromise;
+  let amapLoadPromise;
+  let activeMapView = "world";
   let activeMarker = null;
   let activeCity = null;
   let syncingHistory = false;
@@ -401,9 +406,9 @@
   }
 
   function initializeMap() {
-    const container = document.querySelector("#travel-map");
+    const container = document.querySelector("#world-map");
     if (!window.L) {
-      container.innerHTML = '<p class="noscript">地图资源暂时无法载入，请通过下方时间线浏览城市。</p>';
+      document.querySelector("#travel-map").innerHTML = '<p class="noscript">地图资源暂时无法载入，请通过下方时间线浏览城市。</p>';
       return;
     }
 
@@ -451,27 +456,175 @@
     });
   }
 
-  function setMapView(view) {
-    if (!travelMap) return;
-    document.querySelectorAll(".map-switch-button").forEach((button) => {
-      const active = button.dataset.view === view;
-      button.classList.toggle("active", active);
-      button.setAttribute("aria-pressed", String(active));
+  function loadAmap() {
+    if (window.AMap?.Map) return Promise.resolve(window.AMap);
+    if (amapLoadPromise) return amapLoadPromise;
+    const config = window.AMAP_MAP_CONFIG || {};
+    if (!config.jsApiKey) return Promise.reject(new Error("高德 Web端（JS API）Key 尚未配置。"));
+    if (!config.serviceHost) return Promise.reject(new Error("高德安全代理尚未配置。"));
+    installAmapProxyBridge(config);
+    window._AMapSecurityConfig = { serviceHost: config.serviceHost.replace(/\/$/, "") };
+    amapLoadPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      const timeout = window.setTimeout(() => reject(new Error("高德地图载入超时。")), 15000);
+      script.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(config.jsApiKey)}&plugin=AMap.ToolBar`;
+      script.referrerPolicy = "strict-origin-when-cross-origin";
+      script.onload = () => {
+        window.clearTimeout(timeout);
+        if (window.AMap?.Map) resolve(window.AMap);
+        else reject(new Error("高德地图没有正确完成初始化。"));
+      };
+      script.onerror = () => {
+        window.clearTimeout(timeout);
+        reject(new Error("高德地图资源暂时无法载入。"));
+      };
+      document.head.append(script);
     });
+    return amapLoadPromise;
+  }
+
+  function installAmapProxyBridge(config) {
+    if (window.__TRAVEL_AMAP_PROXY_BRIDGE__) return;
+    if (!config.proxyTarget) throw new Error("高德安全代理目标尚未配置。");
+    const publicBase = config.serviceHost.replace(/\/$/, "");
+    const proxyBase = config.proxyTarget.replace(/\/$/, "");
+    const rewrite = (value) => {
+      const url = typeof value === "string" || value instanceof URL ? String(value) : value?.url;
+      if (!url || !url.startsWith(`${publicBase}/`)) return url;
+      return `${proxyBase}${url.slice(publicBase.length)}`;
+    };
+
+    const nativeOpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+      return nativeOpen.call(this, method, rewrite(url) || url, ...rest);
+    };
+
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      const rewritten = rewrite(input);
+      if (!rewritten || rewritten === (typeof input === "string" ? input : input?.url)) {
+        return nativeFetch(input, init);
+      }
+      return nativeFetch(input instanceof Request ? new Request(rewritten, input) : rewritten, init);
+    };
+    window.__TRAVEL_AMAP_PROXY_BRIDGE__ = true;
+  }
+
+  async function initializeChinaMap() {
+    if (chinaMap) return chinaMap;
+    if (chinaMapPromise) return chinaMapPromise;
+    chinaMapPromise = loadAmap().then((AMap) => {
+      chinaMap = new AMap.Map("china-map", {
+        viewMode: "2D",
+        mapStyle: "amap://styles/darkblue",
+        zoom: 4,
+        center: [105, 35],
+        resizeEnable: true
+      });
+      chinaMap.addControl(new AMap.ToolBar({ position: "LT" }));
+      const converter = window.TRAVEL_MAP_ENGINE?.wgs84ToGcj02 || ((coord) => coord);
+      chinaMarkers = visits.filter((visit) => visit.country === "中国").map((visit) => {
+        const content = document.createElement("button");
+        content.type = "button";
+        content.className = "amap-marker-button";
+        content.title = `${visit.name} · ${visit.date.slice(0, 4)}`;
+        content.setAttribute("aria-label", `查看${visit.name}旅行详情`);
+        const dot = document.createElement("span");
+        dot.className = "travel-marker";
+        dot.setAttribute("aria-hidden", "true");
+        content.append(dot);
+        const marker = new AMap.Marker({
+          position: converter(visit.coord),
+          content,
+          anchor: "center",
+          title: visit.name,
+          zIndex: 110
+        });
+        content.addEventListener("click", () => {
+          setActiveMarker(marker);
+          openCity(visit);
+        });
+        marker.setMap(chinaMap);
+        return { marker, visit };
+      });
+      return chinaMap;
+    }).catch((error) => {
+      chinaMapPromise = null;
+      throw error;
+    });
+    return chinaMapPromise;
+  }
+
+  function fitLeafletView(view) {
+    if (!travelMap) return;
     const visitedBounds = L.latLngBounds(visits.map((visit) => [visit.coord[1], visit.coord[0]])).pad(.16);
+    travelMap.invalidateSize(false);
     travelMap.fitBounds(view === "china" ? chinaBounds : visitedBounds, {
       padding: [18, 18],
       animate: !window.matchMedia("(prefers-reduced-motion: reduce)").matches
     });
   }
 
+  function showChinaFallback(message) {
+    document.querySelector("#world-map").hidden = false;
+    document.querySelector("#china-map").hidden = true;
+    const status = document.querySelector("#china-map-status");
+    status.textContent = `${message} 暂时显示备用中国底图。`;
+    status.hidden = false;
+    fitLeafletView("china");
+  }
+
+  async function setMapView(view) {
+    if (!travelMap) return;
+    activeMapView = view === "china" ? "china" : "world";
+    document.querySelectorAll(".map-switch-button").forEach((button) => {
+      const active = button.dataset.view === activeMapView;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    const worldCanvas = document.querySelector("#world-map");
+    const chinaCanvas = document.querySelector("#china-map");
+    const status = document.querySelector("#china-map-status");
+    if (activeMapView === "world") {
+      worldCanvas.hidden = false;
+      chinaCanvas.hidden = true;
+      status.hidden = true;
+      fitLeafletView("world");
+      const selected = activeCity && markers.find((entry) => entry.visit.name === activeCity.name);
+      if (selected) setActiveMarker(selected.marker);
+      return;
+    }
+    if (!window.AMAP_MAP_CONFIG?.jsApiKey) {
+      showChinaFallback("高德 Web端（JS API）Key 尚未配置。");
+      return;
+    }
+    worldCanvas.hidden = true;
+    chinaCanvas.hidden = false;
+    status.textContent = "正在载入高德中国地图…";
+    status.hidden = false;
+    try {
+      await initializeChinaMap();
+      if (activeMapView !== "china") return;
+      chinaMap.resize();
+      chinaMap.setFitView(chinaMarkers.map((entry) => entry.marker), false, [24, 24, 24, 24], 7);
+      const selected = activeCity && chinaMarkers.find((entry) => entry.visit.name === activeCity.name);
+      if (selected) setActiveMarker(selected.marker);
+      status.hidden = true;
+    } catch (error) {
+      if (activeMapView === "china") showChinaFallback(error.message || "高德地图暂时无法载入。");
+    }
+  }
+
   function setActiveMarker(marker) {
     if (activeMarker) {
-      const previous = activeMarker.getElement()?.querySelector(".travel-marker");
+      const previousElement = activeMarker.getElement?.() || activeMarker.getContent?.();
+      const previous = previousElement?.matches?.(".travel-marker") ? previousElement : previousElement?.querySelector?.(".travel-marker");
       previous?.classList.remove("active");
     }
     activeMarker = marker;
-    activeMarker.getElement()?.querySelector(".travel-marker")?.classList.add("active");
+    const element = activeMarker.getElement?.() || activeMarker.getContent?.();
+    const dot = element?.matches?.(".travel-marker") ? element : element?.querySelector?.(".travel-marker");
+    dot?.classList.add("active");
   }
 
   function getCityUrl(cityName) {
@@ -520,7 +673,8 @@
     const visit = visits.find((entry) => entry.name === cityName);
     syncingHistory = true;
     if (visit) {
-      const markerEntry = markers.find((entry) => entry.visit.name === visit.name);
+      const markerEntry = (activeMapView === "china" ? chinaMarkers : markers).find((entry) => entry.visit.name === visit.name)
+        || markers.find((entry) => entry.visit.name === visit.name);
       if (markerEntry) setActiveMarker(markerEntry.marker);
       openCity(visit, { updateUrl: false });
     } else if (cityDialog.open) {
