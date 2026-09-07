@@ -41,6 +41,7 @@
   function mergeWishlist(rows) {
     const wishes = new Map(baseData.wishlist.map((item, index) => [item.name, { ...item, sortOrder: index }]));
     (rows || []).forEach((row) => {
+      if (row.name === "成都 · 重庆") return;
       if (row.is_hidden) {
         wishes.delete(row.name);
         return;
@@ -52,6 +53,7 @@
         icon: row.icon || current.icon || "○",
         desc: row.description ?? current.desc ?? "",
         guide: row.guide ?? current.guide ?? "",
+        plannedTime: row.planned_time ?? current.plannedTime ?? "",
         sortOrder: Number(row.sort_order ?? current.sortOrder ?? 0)
       });
     });
@@ -83,7 +85,7 @@
     try {
       const [cities, wishes, photos] = await Promise.all([
         client.from("travel_cities").select("name,country,region,visit_date,longitude,latitude,description,cover_url,is_hidden"),
-        client.from("travel_wishlist").select("name,icon,description,guide,sort_order,is_hidden"),
+        client.from("travel_wishlist").select("name,icon,description,guide,planned_time,sort_order,is_hidden"),
         client.from("city_photos").select("city_name,image_url,sort_order,created_at,is_hidden")
       ]);
       const hasError = cities.error || wishes.error || photos.error;

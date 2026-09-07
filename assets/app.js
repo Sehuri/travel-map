@@ -516,7 +516,7 @@
     chinaMapPromise = loadAmap().then((AMap) => {
       chinaMap = new AMap.Map("china-map", {
         viewMode: "2D",
-        mapStyle: "amap://styles/darkblue",
+        mapStyle: "amap://styles/normal",
         zoom: 4,
         center: [105, 35],
         resizeEnable: true
@@ -780,7 +780,14 @@
       const description = document.createElement("p");
       description.textContent = destination.desc;
 
-      button.append(icon, arrow, name, description);
+      button.append(icon, arrow);
+      if (destination.plannedTime) {
+        const plannedTime = document.createElement("span");
+        plannedTime.className = "wish-planned-time";
+        plannedTime.textContent = `计划 · ${destination.plannedTime}`;
+        button.append(plannedTime);
+      }
+      button.append(name, description);
       button.addEventListener("click", () => openGuide(destination));
       grid.append(button);
     });
@@ -838,6 +845,9 @@
   function openGuide(destination) {
     document.querySelector("#guide-title").textContent = destination.name;
     document.querySelector("#guide-description").textContent = destination.desc;
+    const plannedTime = document.querySelector("#guide-planned-time");
+    plannedTime.textContent = destination.plannedTime ? `计划去的时间 · ${destination.plannedTime}` : "";
+    plannedTime.hidden = !destination.plannedTime;
     document.querySelector("#guide-copy").textContent = destination.guide;
     const links = document.querySelector("#guide-links");
     links.replaceChildren();

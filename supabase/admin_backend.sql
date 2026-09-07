@@ -19,11 +19,14 @@ create table if not exists public.travel_wishlist (
   icon text not null default '○',
   description text not null default '',
   guide text not null default '',
+  planned_time text,
   sort_order integer not null default 0,
   is_hidden boolean not null default false,
   updated_by uuid references auth.users(id),
   updated_at timestamptz not null default now()
 );
+alter table public.travel_wishlist add column if not exists planned_time text;
+delete from public.travel_wishlist where name = '成都 · 重庆';
 
 create table if not exists public.city_photos (
   id uuid primary key default gen_random_uuid(),

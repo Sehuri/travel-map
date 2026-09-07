@@ -63,9 +63,12 @@ Publishable Key 设计上可以出现在浏览器代码中，真正的权限由 
 
 - 城市资料覆盖和新增城市
 - 愿望清单编辑、排序和隐藏
+- 为愿望目的地设置计划去的时间
 - 照片上传、排序、删除与城市封面
 - 异常评分查看和删除
 
 新表保存的是“后台覆盖版本”。没有在后台修改过的城市和愿望目的地仍从 `assets/data.js` 读取；Supabase 暂时不可用时，公开网站也会自动退回代码中的资料。
+
+如果管理后台在此前已经启用，只需在 SQL Editor 运行一次 [`supabase/wishlist_planned_time.sql`](./supabase/wishlist_planned_time.sql)，即可增加计划时间字段并清理已经拆分的“成都 · 重庆”旧记录。
 
 照片会上传到公开的 `city-photos` Storage bucket。Bucket 只允许站主写入，访客只能读取；每张图片限制为 15 MB。

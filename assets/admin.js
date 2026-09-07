@@ -13,7 +13,7 @@
     "city-latitude", "city-description", "city-cover", "city-hidden", "city-status", "new-city",
     "remove-city-override", "photo-city", "photo-files", "upload-photos", "import-photos", "photo-admin-status",
     "admin-photo-grid", "wish-picker", "wish-form", "wish-name", "wish-icon", "wish-order", "wish-description",
-    "wish-guide", "wish-hidden", "wish-status", "new-wish", "remove-wish-override", "rating-city-filter",
+    "wish-guide", "wish-planned-time", "wish-hidden", "wish-status", "new-wish", "remove-wish-override", "rating-city-filter",
     "rating-admin-status", "ratings-table"
   ].map((id) => [id.replaceAll("-", "_"), document.getElementById(id)]));
 
@@ -68,6 +68,7 @@
       icon: row?.icon ?? base?.icon ?? "○",
       description: row?.description ?? base?.desc ?? "",
       guide: row?.guide ?? base?.guide ?? "",
+      plannedTime: row?.planned_time ?? base?.plannedTime ?? "",
       sortOrder: Number(row?.sort_order ?? base?.sortOrder ?? 0),
       hidden: Boolean(row?.is_hidden)
     };
@@ -418,6 +419,7 @@
     elements.wish_order.value = wish.sortOrder;
     elements.wish_description.value = wish.description;
     elements.wish_guide.value = wish.guide;
+    elements.wish_planned_time.value = wish.plannedTime;
     elements.wish_hidden.checked = wish.hidden;
     elements.remove_wish_override.hidden = !wishRows.has(name) && baseWishMap.has(name);
     elements.remove_wish_override.textContent = baseWishMap.has(name) ? "恢复代码版本" : "永久删除新增目的地";
@@ -448,6 +450,7 @@
       icon: elements.wish_icon.value.trim(),
       description: elements.wish_description.value.trim(),
       guide: elements.wish_guide.value.trim(),
+      planned_time: elements.wish_planned_time.value.trim() || null,
       sort_order: Number(elements.wish_order.value),
       is_hidden: elements.wish_hidden.checked,
       updated_by: user.id,
