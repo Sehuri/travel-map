@@ -4,7 +4,6 @@
   let visits = [];
   let wishlist = [];
   let photoManifest = {};
-  const chinaBounds = [[17, 73], [54, 136]];
   const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
     year: "numeric",
     month: "long",
@@ -36,15 +35,11 @@
   const cityDialog = document.querySelector("#city-dialog");
   const guideDialog = document.querySelector("#guide-dialog");
   const lightbox = document.querySelector("#lightbox");
-  let travelMap;
-  let markerLayer;
-  let markers = [];
   let chinaMap;
   let chinaMarkers = [];
   let chinaDistrictLayer;
   let chinaMapPromise;
   let amapLoadPromise;
-  let activeMapView = "world";
   let activeMarker = null;
   let activeCity = null;
   let syncingHistory = false;
@@ -406,55 +401,24 @@
     });
   }
 
-  function initializeMap() {
-    const container = document.querySelector("#world-map");
-    if (!window.L) {
-      document.querySelector("#travel-map").innerHTML = '<p class="noscript">地图资源暂时无法载入，请通过下方时间线浏览城市。</p>';
-      return;
+  async function initializeMap() {
+    const status = document.querySelector("#china-map-status");
+    status.textContent = "正在载入高德旅行地图…";
+    status.hidden = false;
+    try {
+      await initializeChinaMap();
+      chinaMap.resize();
+      const domesticMarkers = chinaMarkers
+        .filter((entry) => entry.visit.country === "中国")
+        .map((entry) => entry.marker);
+      chinaMap.setFitView(domesticMarkers, false, [24, 24, 24, 24], 7);
+      const selected = activeCity && chinaMarkers.find((entry) => entry.visit.name === activeCity.name);
+      if (selected) setActiveMarker(selected.marker);
+      status.hidden = true;
+    } catch (error) {
+      status.textContent = `${error.message || "高德地图暂时无法载入。"} 下方足迹列表仍可正常浏览。`;
+      status.hidden = false;
     }
-
-    travelMap = L.map(container, {
-      zoomControl: true,
-      minZoom: 2,
-      worldCopyJump: true
-    });
-
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_2er4_1_991de9fa689e4c42aeee39c4", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; CARTO',
-      subdomains: "abcd",
-      maxZoom: 19
-    }).addTo(travelMap);
-
-    markerLayer = L.layerGroup().addTo(travelMap);
-    markers = visits.map((visit) => {
-      const icon = L.divIcon({
-        className: "",
-        html: '<span class="travel-marker" aria-hidden="true"></span>',
-        iconSize: [21, 21],
-        iconAnchor: [10, 10]
-      });
-      const marker = L.marker([visit.coord[1], visit.coord[0]], {
-        icon,
-        title: visit.name,
-        keyboard: true
-      });
-      marker.bindTooltip(`${visit.name} · ${visit.date.slice(0, 4)}`, {
-        className: "map-tooltip",
-        direction: "top",
-        offset: [0, -8]
-      });
-      marker.on("click", () => {
-        setActiveMarker(marker);
-        openCity(visit);
-      });
-      marker.addTo(markerLayer);
-      return { marker, visit };
-    });
-
-    setMapView("world");
-    document.querySelectorAll(".map-switch-button").forEach((button) => {
-      button.addEventListener("click", () => setMapView(button.dataset.view));
-    });
   }
 
   function loadAmap() {
@@ -617,73 +581,6 @@
     )));
   }
 
-  function fitLeafletView(view) {
-    if (!travelMap) return;
-    const visitedBounds = L.latLngBounds(visits.map((visit) => [visit.coord[1], visit.coord[0]])).pad(.16);
-    travelMap.invalidateSize(false);
-    travelMap.fitBounds(view === "china" ? chinaBounds : visitedBounds, {
-      padding: [18, 18],
-      animate: !window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    });
-  }
-
-  function showChinaFallback(message) {
-    document.querySelector("#world-map").hidden = false;
-    document.querySelector("#china-map").hidden = true;
-    const status = document.querySelector("#china-map-status");
-    status.textContent = `${message} 暂时显示备用中国底图。`;
-    status.hidden = false;
-    fitLeafletView("china");
-  }
-
-  async function setMapView(view) {
-    if (!travelMap) return;
-    activeMapView = view === "china" ? "china" : "world";
-    document.querySelectorAll(".map-switch-button").forEach((button) => {
-      const active = button.dataset.view === activeMapView;
-      button.classList.toggle("active", active);
-      button.setAttribute("aria-pressed", String(active));
-    });
-    const worldCanvas = document.querySelector("#world-map");
-    const chinaCanvas = document.querySelector("#china-map");
-    const status = document.querySelector("#china-map-status");
-    const mapRoot = document.querySelector("#travel-map");
-    const caption = document.querySelector("#map-interaction-hint");
-    mapRoot.dataset.mapView = activeMapView;
-    caption.textContent = activeMapView === "china"
-      ? "中国足迹按市域填色，日本足迹以城市光点标记"
-      : "点击光点查看旅行记忆";
-    if (activeMapView === "world") {
-      worldCanvas.hidden = false;
-      chinaCanvas.hidden = true;
-      status.hidden = true;
-      fitLeafletView("world");
-      const selected = activeCity && markers.find((entry) => entry.visit.name === activeCity.name);
-      if (selected) setActiveMarker(selected.marker);
-      return;
-    }
-    if (!window.AMAP_MAP_CONFIG?.jsApiKey) {
-      showChinaFallback("高德 Web端（JS API）Key 尚未配置。");
-      return;
-    }
-    worldCanvas.hidden = true;
-    chinaCanvas.hidden = false;
-    status.textContent = "正在载入高德中国地图…";
-    status.hidden = false;
-    try {
-      await initializeChinaMap();
-      if (activeMapView !== "china") return;
-      chinaMap.resize();
-      const domesticMarkers = chinaMarkers.filter((entry) => entry.visit.country === "中国").map((entry) => entry.marker);
-      chinaMap.setFitView(domesticMarkers, false, [24, 24, 24, 24], 7);
-      const selected = activeCity && chinaMarkers.find((entry) => entry.visit.name === activeCity.name);
-      if (selected) setActiveMarker(selected.marker);
-      status.hidden = true;
-    } catch (error) {
-      if (activeMapView === "china") showChinaFallback(error.message || "高德地图暂时无法载入。");
-    }
-  }
-
   function setActiveMarker(marker) {
     if (activeMarker) {
       const previousElement = activeMarker.getElement?.() || activeMarker.getContent?.();
@@ -713,8 +610,7 @@
 
   async function openCity(visit, { updateUrl = true } = {}) {
     activeCity = visit;
-    const markerEntry = (activeMapView === "china" ? chinaMarkers : markers).find((entry) => entry.visit.name === visit.name)
-      || markers.find((entry) => entry.visit.name === visit.name);
+    const markerEntry = chinaMarkers.find((entry) => entry.visit.name === visit.name);
     if (markerEntry && markerEntry.marker !== activeMarker) setActiveMarker(markerEntry.marker);
     else refreshChinaDistrictStyles();
     document.querySelector("#dialog-country").textContent = visit.country;
@@ -747,8 +643,7 @@
     const visit = visits.find((entry) => entry.name === cityName);
     syncingHistory = true;
     if (visit) {
-      const markerEntry = (activeMapView === "china" ? chinaMarkers : markers).find((entry) => entry.visit.name === visit.name)
-        || markers.find((entry) => entry.visit.name === visit.name);
+      const markerEntry = chinaMarkers.find((entry) => entry.visit.name === visit.name);
       if (markerEntry) setActiveMarker(markerEntry.marker);
       openCity(visit, { updateUrl: false });
     } else if (cityDialog.open) {

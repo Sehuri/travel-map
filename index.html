@@ -11,10 +11,7 @@
   <meta property="og:url" content="https://sehuri.github.io/travel-map/">
   <meta property="og:locale" content="zh_CN">
   <link rel="canonical" href="https://sehuri.github.io/travel-map/">
-  <link rel="preconnect" href="https://unpkg.com">
-  <link rel="preconnect" href="https://basemaps.cartocdn.com">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="./assets/styles.css?v=20260908.2">
+  <link rel="stylesheet" href="./assets/styles.css?v=20260908.3">
   <title>Sehuri 的旅行足迹｜52 座城市与旅行记忆</title>
 </head>
 <body>
@@ -76,21 +73,16 @@
           <p class="eyebrow">01 / EXPLORE</p>
           <h2 id="map-title">把旅程摊开来看</h2>
         </div>
-        <div class="map-switch" role="group" aria-label="地图范围">
-          <button class="map-switch-button active" type="button" data-view="world" aria-controls="world-map" aria-pressed="true">世界</button>
-          <button class="map-switch-button" type="button" data-view="china" aria-controls="china-map" aria-pressed="false">中国</button>
-        </div>
       </div>
       <div class="map-frame">
         <div id="travel-map" role="application" aria-label="旅行城市互动地图">
-          <div class="map-canvas" id="world-map" aria-label="世界足迹地图"></div>
-          <div class="map-canvas" id="china-map" aria-label="中国与日本足迹高德地图" hidden></div>
+          <div class="map-canvas" id="china-map" aria-label="完整旅行足迹高德地图"></div>
           <p class="map-load-status" id="china-map-status" role="status" hidden></p>
         </div>
         <div class="map-caption">
           <span><i class="legend-dot visited"></i> 已到访</span>
           <span><i class="legend-dot selected"></i> 当前城市</span>
-          <p id="map-interaction-hint">点击光点查看旅行记忆</p>
+          <p id="map-interaction-hint">中国足迹按市域填色，日本足迹以城市光点标记</p>
         </div>
       </div>
       <section class="footprint-extremes" aria-labelledby="extremes-title">
@@ -274,7 +266,6 @@
     <img id="lightbox-image" alt="">
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
   <script src="./assets/data.js?v=20260907.1"></script>
   <script src="./assets/photos.js"></script>
@@ -283,6 +274,6 @@
   <script src="./assets/map-engine.js?v=20260908.1"></script>
   <script src="./assets/content.js?v=20260907.2"></script>
   <script src="./assets/community.js?v=20260901.1"></script>
-  <script src="./assets/app.js?v=20260908.2"></script>
+  <script src="./assets/app.js?v=20260908.3"></script>
 </body>
 </html>
