@@ -41,6 +41,7 @@
   let markers = [];
   let chinaMap;
   let chinaMarkers = [];
+  let chinaDistrictLayer;
   let chinaMapPromise;
   let amapLoadPromise;
   let activeMapView = "world";
@@ -467,7 +468,7 @@
     amapLoadPromise = new Promise((resolve, reject) => {
       const script = document.createElement("script");
       const timeout = window.setTimeout(() => reject(new Error("高德地图载入超时。")), 15000);
-      script.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(config.jsApiKey)}&plugin=AMap.ToolBar`;
+      script.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(config.jsApiKey)}&plugin=AMap.ToolBar,AMap.DistrictLayer`;
       script.referrerPolicy = "strict-origin-when-cross-origin";
       script.onload = () => {
         window.clearTimeout(timeout);
@@ -522,8 +523,31 @@
         resizeEnable: true
       });
       chinaMap.addControl(new AMap.ToolBar({ position: "LT" }));
+      const mapEngine = window.TRAVEL_MAP_ENGINE || {};
+      const normalizeDistrictName = mapEngine.normalizeChinaDistrictName || ((name) => String(name || "").replace(/市$/u, ""));
+      const chinaVisits = visits.filter((visit) => visit.country === "中国");
+      const visitsByDistrict = new Map(chinaVisits.map((visit) => [normalizeDistrictName(visit.name), visit]));
+      const getDistrictVisit = (properties) => visitsByDistrict.get(normalizeDistrictName(properties?.NAME_CHN)) || null;
+      const getDistrictEventVisit = (event) => {
+        const properties = event?.properties || event?.props || event?.rawData || event?.data || event?.feature?.properties;
+        return getDistrictVisit(properties);
+      };
+
+      chinaDistrictLayer = new AMap.DistrictLayer.Country({
+        SOC: "CHN",
+        depth: 2,
+        zIndex: 12,
+        zooms: [3, 10]
+      });
+      chinaDistrictLayer.setStyles(createChinaDistrictStyles(getDistrictVisit));
+      chinaMap.add(chinaDistrictLayer);
+      chinaDistrictLayer.on?.("click", (event) => {
+        const visit = getDistrictEventVisit(event);
+        if (visit) openCity(visit);
+      });
+
       const converter = window.TRAVEL_MAP_ENGINE?.wgs84ToGcj02 || ((coord) => coord);
-      chinaMarkers = visits.filter((visit) => visit.country === "中国").map((visit) => {
+      chinaMarkers = chinaVisits.map((visit) => {
         const content = document.createElement("button");
         content.type = "button";
         content.className = "amap-marker-button";
@@ -541,7 +565,6 @@
           zIndex: 110
         });
         content.addEventListener("click", () => {
-          setActiveMarker(marker);
           openCity(visit);
         });
         marker.setMap(chinaMap);
@@ -553,6 +576,35 @@
       throw error;
     });
     return chinaMapPromise;
+  }
+
+  function createChinaDistrictStyles(getDistrictVisit) {
+    const selectedName = activeCity?.country === "中国" ? activeCity.name : "";
+    return {
+      "stroke-width": 1,
+      "nation-stroke": "rgba(15, 78, 96, .78)",
+      "coastline-stroke": "rgba(15, 119, 143, .72)",
+      "province-stroke": "rgba(39, 91, 106, .48)",
+      "city-stroke": "rgba(21, 139, 158, .32)",
+      fill(properties) {
+        const visit = getDistrictVisit(properties);
+        if (!visit) return "rgba(255, 255, 255, 0)";
+        return visit.name === selectedName
+          ? "rgba(255, 142, 76, .68)"
+          : "rgba(14, 183, 199, .52)";
+      }
+    };
+  }
+
+  function refreshChinaDistrictStyles() {
+    if (!chinaDistrictLayer?.setStyles) return;
+    const mapEngine = window.TRAVEL_MAP_ENGINE || {};
+    const findVisit = mapEngine.findVisitByDistrictName || ((items, name) => (
+      items.find((visit) => visit.country === "中国" && visit.name === String(name || "").replace(/市$/u, ""))
+    ));
+    chinaDistrictLayer.setStyles(createChinaDistrictStyles((properties) => (
+      findVisit(visits, properties?.NAME_CHN)
+    )));
   }
 
   function fitLeafletView(view) {
@@ -585,6 +637,12 @@
     const worldCanvas = document.querySelector("#world-map");
     const chinaCanvas = document.querySelector("#china-map");
     const status = document.querySelector("#china-map-status");
+    const mapRoot = document.querySelector("#travel-map");
+    const caption = document.querySelector("#map-interaction-hint");
+    mapRoot.dataset.mapView = activeMapView;
+    caption.textContent = activeMapView === "china"
+      ? "青蓝填色代表已到访城市，点击小标记查看旅行记忆"
+      : "点击光点查看旅行记忆";
     if (activeMapView === "world") {
       worldCanvas.hidden = false;
       chinaCanvas.hidden = true;
@@ -625,6 +683,7 @@
     const element = activeMarker.getElement?.() || activeMarker.getContent?.();
     const dot = element?.matches?.(".travel-marker") ? element : element?.querySelector?.(".travel-marker");
     dot?.classList.add("active");
+    refreshChinaDistrictStyles();
   }
 
   function getCityUrl(cityName) {
@@ -643,6 +702,10 @@
 
   async function openCity(visit, { updateUrl = true } = {}) {
     activeCity = visit;
+    const markerEntry = (activeMapView === "china" ? chinaMarkers : markers).find((entry) => entry.visit.name === visit.name)
+      || markers.find((entry) => entry.visit.name === visit.name);
+    if (markerEntry && markerEntry.marker !== activeMarker) setActiveMarker(markerEntry.marker);
+    else refreshChinaDistrictStyles();
     document.querySelector("#dialog-country").textContent = visit.country;
     document.querySelector("#dialog-region").textContent = getRegion(visit).replace(`${visit.country} · `, "");
     document.querySelector("#dialog-date").dateTime = visit.date;

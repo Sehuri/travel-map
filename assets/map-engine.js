@@ -37,7 +37,21 @@
     return [lng + dLng, lat + dLat];
   }
 
-  const api = { outsideChina, wgs84ToGcj02 };
+  function normalizeChinaDistrictName(name) {
+    return String(name || "")
+      .trim()
+      .replace(/(?:特别行政区|壮族自治区|回族自治区|维吾尔自治区|自治区|自治州|地区|盟|市)$/u, "");
+  }
+
+  function findVisitByDistrictName(visits, districtName) {
+    const normalized = normalizeChinaDistrictName(districtName);
+    if (!normalized) return null;
+    return (visits || []).find((visit) => (
+      visit?.country === "中国" && normalizeChinaDistrictName(visit.name) === normalized
+    )) || null;
+  }
+
+  const api = { outsideChina, wgs84ToGcj02, normalizeChinaDistrictName, findVisitByDistrictName };
   if (typeof module === "object" && module.exports) module.exports = api;
   else root.TRAVEL_MAP_ENGINE = api;
 })(typeof window !== "undefined" ? window : globalThis);

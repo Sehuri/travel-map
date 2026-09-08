@@ -267,9 +267,12 @@ h1 em { color: var(--accent); font-weight: 400; }
   text-align: center;
 }
 .amap-container { font-family: var(--sans); }
-.amap-marker-button { display: block; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.amap-marker-button { display: grid; width: 28px; height: 28px; padding: 0; place-items: center; border: 0; background: transparent; cursor: pointer; }
 .amap-marker-button:focus-visible { outline: 2px solid var(--accent-warm); outline-offset: 5px; border-radius: 50%; }
-.amap-marker-button .travel-marker { display: grid; }
+.amap-marker-button .travel-marker { display: grid; width: 8px; height: 8px; border: 1px solid rgba(5,69,82,.92); background: #0b91a0; box-shadow: 0 0 0 2px rgba(14,183,199,.16), 0 1px 4px rgba(3,44,54,.38); }
+.amap-marker-button .travel-marker::after { width: 2px; height: 2px; background: #efffff; }
+.amap-marker-button .travel-marker.active { width: 14px; height: 14px; border: 2px solid rgba(125,58,20,.92); background: #ff8e4c; box-shadow: 0 0 0 4px rgba(255,142,76,.24), 0 1px 6px rgba(61,24,4,.46); }
+.amap-marker-button .travel-marker.active::after { width: 4px; height: 4px; background: #fff8ed; }
 .amap-logo, .amap-copyright { opacity: .82 !important; }
 .map-caption {
   display: flex;
@@ -285,6 +288,7 @@ h1 em { color: var(--accent); font-weight: 400; }
 .map-caption p { margin: 0 0 0 auto; }
 .legend-dot { width: .65rem; height: .65rem; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px rgba(228,255,117,.5); }
 .legend-dot.selected { background: var(--accent-warm); }
+#travel-map[data-map-view="china"] + .map-caption .legend-dot.visited { border-radius: .18rem; background: #0eb7c7; box-shadow: 0 0 10px rgba(14,183,199,.5); }
 .leaflet-container { font-family: var(--sans); }
 .leaflet-control-attribution { color: #68736e !important; background: rgba(7,17,31,.8) !important; }
 .leaflet-control-attribution a { color: #aab6ad !important; }
