@@ -526,6 +526,7 @@
       const mapEngine = window.TRAVEL_MAP_ENGINE || {};
       const normalizeDistrictName = mapEngine.normalizeChinaDistrictName || ((name) => String(name || "").replace(/市$/u, ""));
       const chinaVisits = visits.filter((visit) => visit.country === "中国");
+      const eastAsiaVisits = visits.filter((visit) => visit.country === "中国" || visit.country === "日本");
       const visitsByDistrict = new Map(chinaVisits.map((visit) => [normalizeDistrictName(visit.name), visit]));
       const getDistrictVisit = (properties) => visitsByDistrict.get(normalizeDistrictName(properties?.NAME_CHN)) || null;
       const getDistrictEventVisit = (event) => {
@@ -547,16 +548,25 @@
       });
 
       const converter = window.TRAVEL_MAP_ENGINE?.wgs84ToGcj02 || ((coord) => coord);
-      chinaMarkers = chinaVisits.map((visit) => {
+      chinaMarkers = eastAsiaVisits.map((visit) => {
         const content = document.createElement("button");
         content.type = "button";
         content.className = "amap-marker-button";
+        content.dataset.city = visit.name;
         content.title = `${visit.name} · ${visit.date.slice(0, 4)}`;
         content.setAttribute("aria-label", `查看${visit.name}旅行详情`);
         const dot = document.createElement("span");
         dot.className = "travel-marker";
         dot.setAttribute("aria-hidden", "true");
         content.append(dot);
+        if (visit.country === "日本") {
+          content.classList.add("amap-japan-marker-button");
+          const label = document.createElement("span");
+          label.className = "amap-japan-marker-label";
+          label.setAttribute("aria-hidden", "true");
+          label.textContent = visit.name;
+          content.append(label);
+        }
         const marker = new AMap.Marker({
           position: converter(visit.coord),
           content,
@@ -641,7 +651,7 @@
     const caption = document.querySelector("#map-interaction-hint");
     mapRoot.dataset.mapView = activeMapView;
     caption.textContent = activeMapView === "china"
-      ? "青蓝填色代表已到访城市，点击小标记查看旅行记忆"
+      ? "中国足迹按市域填色，日本足迹以城市光点标记"
       : "点击光点查看旅行记忆";
     if (activeMapView === "world") {
       worldCanvas.hidden = false;
@@ -664,7 +674,8 @@
       await initializeChinaMap();
       if (activeMapView !== "china") return;
       chinaMap.resize();
-      chinaMap.setFitView(chinaMarkers.map((entry) => entry.marker), false, [24, 24, 24, 24], 7);
+      const domesticMarkers = chinaMarkers.filter((entry) => entry.visit.country === "中国").map((entry) => entry.marker);
+      chinaMap.setFitView(domesticMarkers, false, [24, 24, 24, 24], 7);
       const selected = activeCity && chinaMarkers.find((entry) => entry.visit.name === activeCity.name);
       if (selected) setActiveMarker(selected.marker);
       status.hidden = true;

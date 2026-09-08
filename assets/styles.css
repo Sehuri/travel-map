@@ -267,12 +267,17 @@ h1 em { color: var(--accent); font-weight: 400; }
   text-align: center;
 }
 .amap-container { font-family: var(--sans); }
-.amap-marker-button { display: grid; width: 28px; height: 28px; padding: 0; place-items: center; border: 0; background: transparent; cursor: pointer; }
+.amap-marker-button { position: relative; display: grid; width: 28px; height: 28px; padding: 0; place-items: center; border: 0; background: transparent; cursor: pointer; }
 .amap-marker-button:focus-visible { outline: 2px solid var(--accent-warm); outline-offset: 5px; border-radius: 50%; }
 .amap-marker-button .travel-marker { display: grid; width: 8px; height: 8px; border: 1px solid rgba(5,69,82,.92); background: #0b91a0; box-shadow: 0 0 0 2px rgba(14,183,199,.16), 0 1px 4px rgba(3,44,54,.38); }
 .amap-marker-button .travel-marker::after { width: 2px; height: 2px; background: #efffff; }
 .amap-marker-button .travel-marker.active { width: 14px; height: 14px; border: 2px solid rgba(125,58,20,.92); background: #ff8e4c; box-shadow: 0 0 0 4px rgba(255,142,76,.24), 0 1px 6px rgba(61,24,4,.46); }
 .amap-marker-button .travel-marker.active::after { width: 4px; height: 4px; background: #fff8ed; }
+.amap-japan-marker-button .travel-marker { position: relative; z-index: 1; width: 12px; height: 12px; border: 2px solid #075e70; background: #12bfd1; box-shadow: 0 0 0 4px rgba(18,191,209,.2), 0 1px 6px rgba(3,44,54,.42); }
+.amap-japan-marker-label { position: absolute; z-index: 0; left: 21px; top: -14px; padding: .16rem .38rem .16rem .52rem; border: 1px solid rgba(18,191,209,.55); border-radius: 999px; color: #efffff; background: rgba(5,53,65,.88); box-shadow: 0 3px 10px rgba(3,44,54,.2); font-size: .62rem; font-weight: 700; letter-spacing: .04em; line-height: 1.2; white-space: nowrap; }
+.amap-japan-marker-button[data-city="大阪"] .amap-japan-marker-label,
+.amap-japan-marker-button[data-city="镰仓"] .amap-japan-marker-label { right: 21px; bottom: -14px; left: auto; top: auto; padding-right: .52rem; padding-left: .38rem; }
+.amap-japan-marker-button:has(.travel-marker.active) .amap-japan-marker-label { border-color: rgba(255,142,76,.78); color: #fff8ed; background: rgba(105,47,16,.9); }
 .amap-logo, .amap-copyright { opacity: .82 !important; }
 .map-caption {
   display: flex;
