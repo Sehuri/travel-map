@@ -2,6 +2,7 @@
 const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const http = require('node:http');
 const fs = require('node:fs/promises');
+const os = require('node:os');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const root = path.resolve(__dirname,'..');
@@ -38,16 +39,16 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.jpg
     await page.locator('#again').click();
     await page.waitForFunction(()=>!document.querySelector('#draw').disabled);
     assert.notEqual(await page.locator('#result-title').innerText(),first);
-    await page.locator('#result').screenshot({path:'/private/tmp/travel-discover-result.png'});
+    await page.locator('#result').screenshot({path:path.join(os.tmpdir(),'travel-discover-result.png')});
     await page.evaluate(()=>window.scrollTo(0,0));
-    await page.screenshot({path:'/private/tmp/travel-discover-desktop.png'});
+    await page.screenshot({path:path.join(os.tmpdir(),'travel-discover-desktop.png')});
     await page.locator('#origin').fill('不存在的城市');
     await page.locator('#draw').click();assert.match(await page.locator('#draw-status').innerText(),/出发地/);
     await page.setViewportSize({width:390,height:844});
     await page.locator('#origin').fill('江苏省 · 南京');
     await page.evaluate(()=>window.scrollTo(0,0));
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
-    await page.screenshot({path:'/private/tmp/travel-discover-mobile.png'});
+    await page.screenshot({path:path.join(os.tmpdir(),'travel-discover-mobile.png')});
     // Mock a connected nationwide service including an uncurated county-level city.
     configEndpoint='https://resource.test/api';
     await page.route('https://resource.test/**',r=>{
