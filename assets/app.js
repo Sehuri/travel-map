@@ -52,10 +52,14 @@
   let ratingSummaries = new Map();
   let ratingsLoaded = false;
   let ratingsFailed = false;
+  const statAnimations = new WeakMap();
 
   function countUp(element, target) {
+    const previousAnimation = statAnimations.get(element);
+    if (previousAnimation) cancelAnimationFrame(previousAnimation);
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       element.textContent = target;
+      statAnimations.delete(element);
       return;
     }
     const duration = 900;
@@ -63,9 +67,10 @@
     function tick(now) {
       const progress = Math.min((now - started) / duration, 1);
       element.textContent = Math.round(target * (1 - Math.pow(1 - progress, 3)));
-      if (progress < 1) requestAnimationFrame(tick);
+      if (progress < 1) statAnimations.set(element, requestAnimationFrame(tick));
+      else statAnimations.delete(element);
     }
-    requestAnimationFrame(tick);
+    statAnimations.set(element, requestAnimationFrame(tick));
   }
 
   function updateTravelStats(items, animate = false) {
@@ -74,7 +79,12 @@
     const update = (selector, value) => {
       const element = document.querySelector(selector);
       if (animate) countUp(element, value);
-      else element.textContent = value;
+      else {
+        const animation = statAnimations.get(element);
+        if (animation) cancelAnimationFrame(animation);
+        statAnimations.delete(element);
+        element.textContent = value;
+      }
     };
     update("#city-count", items.length);
     update("#country-count", countries.size);
