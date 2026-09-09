@@ -37,11 +37,14 @@
   const lightbox = document.querySelector("#lightbox");
   let chinaMap;
   let chinaMarkers = [];
+  let wishlistMarkers = [];
   let chinaDistrictLayer;
   let chinaMapPromise;
   let amapLoadPromise;
   let activeMarker = null;
+  let activeWishlistMarker = null;
   let activeCity = null;
+  let mapMode = "journeys";
   let syncingHistory = false;
   let ratingSummaries = new Map();
   let ratingsLoaded = false;
@@ -408,12 +411,7 @@
     try {
       await initializeChinaMap();
       chinaMap.resize();
-      const domesticMarkers = chinaMarkers
-        .filter((entry) => entry.visit.country === "中国")
-        .map((entry) => entry.marker);
-      chinaMap.setFitView(domesticMarkers, false, [24, 24, 24, 24], 7);
-      const selected = activeCity && chinaMarkers.find((entry) => entry.visit.name === activeCity.name);
-      if (selected) setActiveMarker(selected.marker);
+      applyMapMode();
       status.hidden = true;
     } catch (error) {
       status.textContent = `${error.message || "高德地图暂时无法载入。"} 下方足迹列表仍可正常浏览。`;
@@ -507,6 +505,7 @@
       chinaDistrictLayer.setStyles(createChinaDistrictStyles(getDistrictVisit));
       chinaMap.add(chinaDistrictLayer);
       chinaDistrictLayer.on?.("click", (event) => {
+        if (mapMode !== "journeys") return;
         const visit = getDistrictEventVisit(event);
         if (visit) openCity(visit);
       });
@@ -544,6 +543,42 @@
         marker.setMap(chinaMap);
         return { marker, visit };
       });
+      const getWishlistMapLocation = mapEngine.getWishlistMapLocation || (() => null);
+      wishlistMarkers = wishlist.flatMap((destination, index) => {
+        const location = getWishlistMapLocation(destination);
+        if (!location) return [];
+        const content = document.createElement("button");
+        content.type = "button";
+        content.className = "amap-wishlist-marker-button";
+        content.dataset.destination = destination.name;
+        content.dataset.labelSide = index % 3 === 0 ? "left" : "right";
+        content.title = destination.name;
+        content.setAttribute("aria-label", `查看${destination.name}旅行攻略`);
+
+        const dot = document.createElement("span");
+        dot.className = "wishlist-marker";
+        dot.setAttribute("aria-hidden", "true");
+        const label = document.createElement("span");
+        label.className = "amap-wishlist-marker-label";
+        label.setAttribute("aria-hidden", "true");
+        label.textContent = location.label;
+        content.append(dot, label);
+
+        const position = location.country === "中国" ? converter(location.coord) : location.coord;
+        const marker = new AMap.Marker({
+          position,
+          content,
+          anchor: "center",
+          title: destination.name,
+          zIndex: 120
+        });
+        content.addEventListener("click", () => {
+          setActiveWishlistMarker(marker);
+          openGuide(destination);
+        });
+        marker.setMap(null);
+        return [{ marker, destination }];
+      });
       return chinaMap;
     }).catch((error) => {
       chinaMapPromise = null;
@@ -561,6 +596,7 @@
       "province-stroke": "rgba(39, 91, 106, .48)",
       "city-stroke": "rgba(21, 139, 158, .32)",
       fill(properties) {
+        if (mapMode !== "journeys") return "rgba(255, 255, 255, 0)";
         const visit = getDistrictVisit(properties);
         if (!visit) return "rgba(255, 255, 255, 0)";
         return visit.name === selectedName
@@ -592,6 +628,50 @@
     const dot = element?.matches?.(".travel-marker") ? element : element?.querySelector?.(".travel-marker");
     dot?.classList.add("active");
     refreshChinaDistrictStyles();
+  }
+
+  function setActiveWishlistMarker(marker) {
+    if (activeWishlistMarker) {
+      const previous = activeWishlistMarker.getElement?.() || activeWishlistMarker.getContent?.();
+      previous?.querySelector?.(".wishlist-marker")?.classList.remove("active");
+    }
+    activeWishlistMarker = marker;
+    const element = marker?.getElement?.() || marker?.getContent?.();
+    element?.querySelector?.(".wishlist-marker")?.classList.add("active");
+  }
+
+  function applyMapMode() {
+    const isWishlist = mapMode === "wishlist";
+    const mapRoot = document.querySelector("#travel-map");
+    mapRoot.dataset.mapMode = mapMode;
+    mapRoot.setAttribute("aria-label", isWishlist ? "想去目的地互动地图" : "旅行城市互动地图");
+    document.querySelector("#china-map").setAttribute("aria-label", isWishlist ? "想去目的地高德地图" : "完整旅行足迹高德地图");
+    document.querySelector("#map-title").textContent = isWishlist ? "把愿望放到地图上" : "把旅程摊开来看";
+    document.querySelector("#map-primary-label").textContent = isWishlist ? "想去目的地" : "已到访";
+    document.querySelector("#map-secondary-label").textContent = isWishlist ? "当前选择" : "当前城市";
+    document.querySelector("#map-primary-dot").className = `legend-dot ${isWishlist ? "wishlist" : "visited"}`;
+    document.querySelector("#map-interaction-hint").textContent = isWishlist
+      ? "地图展示愿望清单中的目的地，点击光点查看旅行攻略"
+      : "中国足迹按市域填色，日本足迹以城市光点标记";
+    document.querySelector("#footprint-extremes").hidden = isWishlist;
+    refreshChinaDistrictStyles();
+    if (!chinaMap) return;
+
+    chinaMarkers.forEach(({ marker }) => marker.setMap(isWishlist ? null : chinaMap));
+    wishlistMarkers.forEach(({ marker }) => marker.setMap(isWishlist ? chinaMap : null));
+    const visibleMarkers = (isWishlist ? wishlistMarkers : chinaMarkers).map(({ marker }) => marker);
+    if (visibleMarkers.length) {
+      chinaMap.setFitView(visibleMarkers, false, [54, 54, 54, 54], isWishlist ? 5 : 7);
+    }
+    if (!isWishlist && activeCity) {
+      const selected = chinaMarkers.find((entry) => entry.visit.name === activeCity.name);
+      if (selected) setActiveMarker(selected.marker);
+    }
+  }
+
+  function setMapMode(mode) {
+    mapMode = mode === "wishlist" ? "wishlist" : "journeys";
+    applyMapMode();
   }
 
   function getCityUrl(cityName) {
@@ -780,6 +860,7 @@
       Object.entries(panels).forEach(([panelName, panel]) => {
         panel.hidden = panelName !== name;
       });
+      setMapMode(name);
       if (scroll) {
         document.querySelector("#top").scrollIntoView({
           behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"
@@ -812,6 +893,8 @@
   }
 
   function openGuide(destination) {
+    const markerEntry = wishlistMarkers.find((entry) => entry.destination.name === destination.name);
+    if (markerEntry) setActiveWishlistMarker(markerEntry.marker);
     document.querySelector("#guide-title").textContent = destination.name;
     document.querySelector("#guide-description").textContent = destination.desc;
     const plannedTime = document.querySelector("#guide-planned-time");

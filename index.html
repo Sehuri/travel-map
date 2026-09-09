@@ -11,7 +11,7 @@
   <meta property="og:url" content="https://sehuri.github.io/travel-map/">
   <meta property="og:locale" content="zh_CN">
   <link rel="canonical" href="https://sehuri.github.io/travel-map/">
-  <link rel="stylesheet" href="./assets/styles.css?v=20260908.3">
+  <link rel="stylesheet" href="./assets/styles.css?v=20260909.1">
   <title>Sehuri 的旅行足迹｜52 座城市与旅行记忆</title>
 </head>
 <body>
@@ -75,17 +75,17 @@
         </div>
       </div>
       <div class="map-frame">
-        <div id="travel-map" role="application" aria-label="旅行城市互动地图">
+        <div id="travel-map" role="application" aria-label="旅行城市互动地图" data-map-mode="journeys">
           <div class="map-canvas" id="china-map" aria-label="完整旅行足迹高德地图"></div>
           <p class="map-load-status" id="china-map-status" role="status" hidden></p>
         </div>
         <div class="map-caption">
-          <span><i class="legend-dot visited"></i> 已到访</span>
-          <span><i class="legend-dot selected"></i> 当前城市</span>
+          <span><i class="legend-dot visited" id="map-primary-dot"></i><span id="map-primary-label">已到访</span></span>
+          <span><i class="legend-dot selected"></i><span id="map-secondary-label">当前城市</span></span>
           <p id="map-interaction-hint">中国足迹按市域填色，日本足迹以城市光点标记</p>
         </div>
       </div>
-      <section class="footprint-extremes" aria-labelledby="extremes-title">
+      <section class="footprint-extremes" id="footprint-extremes" aria-labelledby="extremes-title">
         <div class="extremes-heading">
           <p class="eyebrow">TRAVEL BOUNDS</p>
           <h3 id="extremes-title">足迹抵达的四方</h3>
@@ -271,9 +271,9 @@
   <script src="./assets/photos.js"></script>
   <script src="./assets/supabase-config.js"></script>
   <script src="./assets/amap-map-config.js?v=20260907.1"></script>
-  <script src="./assets/map-engine.js?v=20260908.1"></script>
+  <script src="./assets/map-engine.js?v=20260909.1"></script>
   <script src="./assets/content.js?v=20260907.2"></script>
   <script src="./assets/community.js?v=20260901.1"></script>
-  <script src="./assets/app.js?v=20260908.3"></script>
+  <script src="./assets/app.js?v=20260909.1"></script>
 </body>
 </html>

@@ -4,7 +4,9 @@ const {
   outsideChina,
   wgs84ToGcj02,
   normalizeChinaDistrictName,
-  findVisitByDistrictName
+  findVisitByDistrictName,
+  getWishlistMapLocation,
+  WISHLIST_MAP_LOCATIONS
 } = require('../assets/map-engine.js');
 
 test('coordinates outside China remain unchanged',()=>{
@@ -30,4 +32,42 @@ test('AMap district names match visited city names across administrative suffixe
   assert.equal(findVisitByDistrictName(visits,'北京市')?.name,'北京');
   assert.equal(findVisitByDistrictName(visits,'香港特别行政区')?.name,'香港');
   assert.equal(findVisitByDistrictName(visits,'东京都'),null);
+});
+
+test('every configured wishlist destination resolves to a valid map location',()=>{
+  assert.equal(Object.keys(WISHLIST_MAP_LOCATIONS).length,22);
+  Object.keys(WISHLIST_MAP_LOCATIONS).forEach((name)=>{
+    const location=getWishlistMapLocation({name});
+    assert.equal(location.coord.length,2);
+    assert(location.coord.every(Number.isFinite));
+    assert(location.label);
+  });
+});
+
+test('every built-in wishlist card has a map location',()=>{
+  const previousWindow=global.window;
+  global.window={};
+  delete require.cache[require.resolve('../assets/data.js')];
+  require('../assets/data.js');
+  const destinations=global.window.TRAVEL_DATA.wishlist;
+  global.window=previousWindow;
+  assert.equal(destinations.length,22);
+  assert.deepEqual(
+    destinations.filter((destination)=>!getWishlistMapLocation(destination)).map((destination)=>destination.name),
+    []
+  );
+});
+
+test('wishlist records can override their fallback map metadata',()=>{
+  assert.deepEqual(getWishlistMapLocation({
+    name:'新加坡',
+    country:'测试地区',
+    coord:[1,2],
+    mapLabel:'测试坐标'
+  }),{
+    country:'测试地区',
+    coord:[1,2],
+    label:'测试坐标'
+  });
+  assert.equal(getWishlistMapLocation({name:'未配置地点'}),null);
 });

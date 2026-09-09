@@ -267,6 +267,16 @@ h1 em { color: var(--accent); font-weight: 400; }
 .amap-japan-marker-button[data-city="大阪"] .amap-japan-marker-label,
 .amap-japan-marker-button[data-city="镰仓"] .amap-japan-marker-label { right: 21px; bottom: -14px; left: auto; top: auto; padding-right: .52rem; padding-left: .38rem; }
 .amap-japan-marker-button:has(.travel-marker.active) .amap-japan-marker-label { border-color: rgba(255,142,76,.78); color: #fff8ed; background: rgba(105,47,16,.9); }
+.amap-wishlist-marker-button { position: relative; display: grid; width: 34px; height: 34px; padding: 0; place-items: center; border: 0; background: transparent; cursor: pointer; }
+.amap-wishlist-marker-button:focus-visible { outline: 2px solid #dfff58; outline-offset: 4px; border-radius: 50%; }
+.wishlist-marker { position: relative; z-index: 2; display: block; width: 14px; height: 14px; border: 2px solid rgba(37,78,29,.92); border-radius: 50%; background: #dfff58; box-shadow: 0 0 0 5px rgba(223,255,88,.2), 0 3px 10px rgba(17,45,12,.45); transition: transform .18s ease, background .18s ease, box-shadow .18s ease; }
+.wishlist-marker::after { position: absolute; inset: 3px; border-radius: 50%; background: #fff; content: ""; }
+.amap-wishlist-marker-button:hover .wishlist-marker,
+.wishlist-marker.active { background: #ff8e4c; box-shadow: 0 0 0 6px rgba(255,142,76,.25), 0 3px 12px rgba(61,24,4,.45); transform: scale(1.16); }
+.amap-wishlist-marker-label { position: absolute; z-index: 1; left: 25px; top: 3px; padding: .2rem .46rem .2rem .58rem; border: 1px solid rgba(135,171,42,.72); border-radius: 999px; color: #f7ffd3; background: rgba(20,62,50,.9); box-shadow: 0 4px 14px rgba(4,34,28,.22); font-size: .62rem; font-weight: 700; letter-spacing: .03em; line-height: 1.25; white-space: nowrap; }
+.amap-wishlist-marker-button[data-label-side="left"] .amap-wishlist-marker-label { right: 25px; left: auto; padding-right: .58rem; padding-left: .46rem; }
+.amap-wishlist-marker-button:hover .amap-wishlist-marker-label,
+.amap-wishlist-marker-button:has(.wishlist-marker.active) .amap-wishlist-marker-label { border-color: rgba(255,142,76,.8); color: #fff7e7; background: rgba(105,47,16,.92); }
 .amap-logo, .amap-copyright { opacity: .82 !important; }
 .map-caption {
   display: flex;
@@ -283,6 +293,7 @@ h1 em { color: var(--accent); font-weight: 400; }
 .legend-dot { width: .65rem; height: .65rem; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px rgba(228,255,117,.5); }
 .legend-dot.selected { background: var(--accent-warm); }
 .map-caption .legend-dot.visited { border-radius: .18rem; background: #0eb7c7; box-shadow: 0 0 10px rgba(14,183,199,.5); }
+.map-caption .legend-dot.wishlist { background: #dfff58; box-shadow: 0 0 10px rgba(223,255,88,.62); }
 .travel-marker { display: grid; width: 21px; height: 21px; place-items: center; border: 1px solid rgba(228,255,117,.8); border-radius: 50%; background: rgba(228,255,117,.13); box-shadow: 0 0 0 4px rgba(228,255,117,.06); }
 .travel-marker::after { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); content: ""; }
 .travel-marker.active { border-color: var(--accent-warm); background: rgba(255,179,107,.2); }
