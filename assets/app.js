@@ -29,6 +29,7 @@
   const locationFilter = document.querySelector("#location-filter");
   const ratingFilter = document.querySelector("#rating-filter");
   const citySearch = document.querySelector("#city-search");
+  const clearFiltersButton = document.querySelector("#clear-filters");
   const filterSummary = document.querySelector("#filter-summary");
   const rankingList = document.querySelector("#ranking-list");
   const rankingStatus = document.querySelector("#ranking-status");
@@ -45,6 +46,8 @@
   let activeWishlistMarker = null;
   let activeCity = null;
   let mapMode = "journeys";
+  let visibleJourneyVisits = [];
+  let filtersActive = false;
   let syncingHistory = false;
   let ratingSummaries = new Map();
   let ratingsLoaded = false;
@@ -65,20 +68,31 @@
     requestAnimationFrame(tick);
   }
 
+  function updateTravelStats(items, animate = false) {
+    const countries = new Set(items.map((visit) => visit.country));
+    const years = new Set(items.map((visit) => visit.date.slice(0, 4)));
+    const update = (selector, value) => {
+      const element = document.querySelector(selector);
+      if (animate) countUp(element, value);
+      else element.textContent = value;
+    };
+    update("#city-count", items.length);
+    update("#country-count", countries.size);
+    update("#year-count", years.size);
+    update("#route-city-count", items.length);
+    update("#route-country-count", countries.size);
+  }
+
   function initializeStats() {
-    const countries = new Set(visits.map((visit) => visit.country));
-    const years = new Set(visits.map((visit) => visit.date.slice(0, 4)));
-    countUp(document.querySelector("#city-count"), visits.length);
-    countUp(document.querySelector("#country-count"), countries.size);
-    countUp(document.querySelector("#year-count"), years.size);
-    countUp(document.querySelector("#route-city-count"), visits.length);
-    countUp(document.querySelector("#route-country-count"), countries.size);
+    updateTravelStats(visits, true);
     document.querySelector("#current-year").textContent = new Date().getFullYear();
   }
 
-  function initializeExtremeFootprints() {
+  function initializeExtremeFootprints(items = visits) {
     const grid = document.querySelector("#extremes-grid");
-    const findExtreme = (axis, comparison) => visits.reduce((extreme, visit) => (
+    grid.replaceChildren();
+    if (!items.length) return;
+    const findExtreme = (axis, comparison) => items.reduce((extreme, visit) => (
       comparison(visit.coord[axis], extreme.coord[axis]) ? visit : extreme
     ));
     const extremes = [
@@ -160,6 +174,14 @@
     locationFilter.addEventListener("change", renderTimeline);
     ratingFilter.addEventListener("change", renderTimeline);
     citySearch.addEventListener("input", renderTimeline);
+    clearFiltersButton.addEventListener("click", () => {
+      citySearch.value = "";
+      yearFilter.value = "all";
+      locationFilter.value = "all";
+      ratingFilter.value = "all";
+      renderTimeline();
+      citySearch.focus();
+    });
   }
 
   function applyRatingState(state) {
@@ -246,6 +268,12 @@
       || locationFilter.value !== "all"
       || ratingFilter.value !== "all"
       || citySearch.value.trim();
+    filtersActive = Boolean(hasActiveFilters);
+    visibleJourneyVisits = filtered;
+    clearFiltersButton.hidden = !filtersActive;
+    updateTravelStats(filtered);
+    initializeExtremeFootprints(filtered);
+    applyMapMode();
     filterSummary.textContent = hasActiveFilters
       ? `找到 ${filtered.length} 座城市`
       : `共 ${visits.length} 座城市`;
@@ -275,10 +303,24 @@
       const heading = document.createElement("h3");
       heading.className = "year-label";
       heading.id = `year-${year}`;
-      heading.textContent = year;
 
       const cities = document.createElement("div");
       cities.className = "year-cities";
+      cities.id = `year-cities-${year}`;
+
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "year-toggle";
+      toggle.setAttribute("aria-expanded", "true");
+      toggle.setAttribute("aria-controls", cities.id);
+      toggle.innerHTML = `<span>${year}</span><span class="year-toggle-icon" aria-hidden="true">−</span>`;
+      toggle.addEventListener("click", () => {
+        const expanded = toggle.getAttribute("aria-expanded") === "true";
+        toggle.setAttribute("aria-expanded", String(!expanded));
+        toggle.querySelector(".year-toggle-icon").textContent = expanded ? "+" : "−";
+        cities.hidden = expanded;
+      });
+      heading.append(toggle);
 
       entries
         .slice()
@@ -507,10 +549,10 @@
       chinaDistrictLayer.on?.("click", (event) => {
         if (mapMode !== "journeys") return;
         const visit = getDistrictEventVisit(event);
-        if (visit) openCity(visit);
+        if (visit && visibleJourneyVisits.includes(visit)) openCity(visit);
       });
 
-      const converter = window.TRAVEL_MAP_ENGINE?.wgs84ToGcj02 || ((coord) => coord);
+      const getAmapCoordinate = mapEngine.getAmapCoordinate || ((place) => place.coord);
       chinaMarkers = eastAsiaVisits.map((visit) => {
         const content = document.createElement("button");
         content.type = "button";
@@ -531,7 +573,7 @@
           content.append(label);
         }
         const marker = new AMap.Marker({
-          position: converter(visit.coord),
+          position: getAmapCoordinate(visit),
           content,
           anchor: "center",
           title: visit.name,
@@ -564,7 +606,11 @@
         label.textContent = location.label;
         content.append(dot, label);
 
-        const position = location.country === "中国" ? converter(location.coord) : location.coord;
+        const position = getAmapCoordinate({
+          name: destination.name,
+          country: location.country,
+          coord: location.coord
+        });
         const marker = new AMap.Marker({
           position,
           content,
@@ -598,7 +644,7 @@
       fill(properties) {
         if (mapMode !== "journeys") return "rgba(255, 255, 255, 0)";
         const visit = getDistrictVisit(properties);
-        if (!visit) return "rgba(255, 255, 255, 0)";
+        if (!visit || !visibleJourneyVisits.includes(visit)) return "rgba(255, 255, 255, 0)";
         return visit.name === selectedName
           ? "rgba(255, 142, 76, .68)"
           : "rgba(14, 183, 199, .52)";
@@ -613,7 +659,7 @@
       items.find((visit) => visit.country === "中国" && visit.name === String(name || "").replace(/市$/u, ""))
     ));
     chinaDistrictLayer.setStyles(createChinaDistrictStyles((properties) => (
-      findVisit(visits, properties?.NAME_CHN)
+      findVisit(visibleJourneyVisits, properties?.NAME_CHN)
     )));
   }
 
@@ -647,19 +693,29 @@
     mapRoot.setAttribute("aria-label", isWishlist ? "想去目的地互动地图" : "旅行城市互动地图");
     document.querySelector("#china-map").setAttribute("aria-label", isWishlist ? "想去目的地高德地图" : "完整旅行足迹高德地图");
     document.querySelector("#map-title").textContent = isWishlist ? "把愿望放到地图上" : "把旅程摊开来看";
-    document.querySelector("#map-primary-label").textContent = isWishlist ? "想去目的地" : "已到访";
+    document.querySelector("#map-primary-label").textContent = isWishlist
+      ? "想去目的地"
+      : (filtersActive ? `筛选结果 ${visibleJourneyVisits.length}` : "已到访");
     document.querySelector("#map-secondary-label").textContent = isWishlist ? "当前选择" : "当前城市";
     document.querySelector("#map-primary-dot").className = `legend-dot ${isWishlist ? "wishlist" : "visited"}`;
     document.querySelector("#map-interaction-hint").textContent = isWishlist
       ? "地图展示愿望清单中的目的地，点击光点查看旅行攻略"
-      : "中国足迹按市域填色，日本足迹以城市光点标记";
-    document.querySelector("#footprint-extremes").hidden = isWishlist;
+      : (filtersActive
+          ? `地图已同步展示筛选后的 ${visibleJourneyVisits.length} 座城市`
+          : "中国足迹按市域填色，日本足迹以城市光点标记");
+    document.querySelector("#footprint-extremes").hidden = isWishlist || !visibleJourneyVisits.length;
     refreshChinaDistrictStyles();
     if (!chinaMap) return;
 
-    chinaMarkers.forEach(({ marker }) => marker.setMap(isWishlist ? null : chinaMap));
+    const visibleJourneyNames = new Set(visibleJourneyVisits.map((visit) => visit.name));
+    chinaMarkers.forEach(({ marker, visit }) => marker.setMap(
+      !isWishlist && visibleJourneyNames.has(visit.name) ? chinaMap : null
+    ));
     wishlistMarkers.forEach(({ marker }) => marker.setMap(isWishlist ? chinaMap : null));
-    const visibleMarkers = (isWishlist ? wishlistMarkers : chinaMarkers).map(({ marker }) => marker);
+    const visibleMarkers = (isWishlist
+      ? wishlistMarkers
+      : chinaMarkers.filter(({ visit }) => visibleJourneyNames.has(visit.name)))
+      .map(({ marker }) => marker);
     if (visibleMarkers.length) {
       chinaMap.setFitView(visibleMarkers, false, [54, 54, 54, 54], isWishlist ? 5 : 7);
     }
@@ -849,7 +905,7 @@
       wishlist: document.querySelector("#wishlist-panel")
     };
 
-    function activateTab(name, { focus = false, scroll = false } = {}) {
+    function activateTab(name, { focus = false, scroll = false, scrollTarget = "#top" } = {}) {
       if (!panels[name]) return;
       tabs.forEach((tab) => {
         const active = tab.dataset.homeTab === name;
@@ -862,7 +918,7 @@
       });
       setMapMode(name);
       if (scroll) {
-        document.querySelector("#top").scrollIntoView({
+        document.querySelector(scrollTarget)?.scrollIntoView({
           behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"
         });
       }
@@ -885,7 +941,10 @@
     document.querySelectorAll("[data-home-tab-target]").forEach((link) => {
       link.addEventListener("click", (event) => {
         event.preventDefault();
-        activateTab(link.dataset.homeTabTarget, { scroll: true });
+        activateTab(link.dataset.homeTabTarget, {
+          scroll: true,
+          scrollTarget: link.dataset.scrollTarget || "#top"
+        });
       });
     });
 

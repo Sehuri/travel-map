@@ -17,7 +17,9 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.jpg
   const base=`http://127.0.0.1:${server.address().port}`;
   let browser;
   try{
-    browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
+    const launchOptions={headless:true};
+    if(process.env.CHROME_PATH)launchOptions.executablePath=process.env.CHROME_PATH;
+    browser=await chromium.launch(launchOptions);
     const page=await browser.newPage({viewport:{width:1440,height:1000}});
     const errors=[];page.on('pageerror',e=>errors.push(e.message));
     let configEndpoint='';

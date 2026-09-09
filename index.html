@@ -11,7 +11,7 @@
   <meta property="og:url" content="https://sehuri.github.io/travel-map/">
   <meta property="og:locale" content="zh_CN">
   <link rel="canonical" href="https://sehuri.github.io/travel-map/">
-  <link rel="stylesheet" href="./assets/styles.css?v=20260909.1">
+  <link rel="stylesheet" href="./assets/styles.css?v=20260909.2">
   <title>Sehuri 的旅行足迹｜52 座城市与旅行记忆</title>
 </head>
 <body>
@@ -61,7 +61,10 @@
             <p class="eyebrow">NEXT STOPS / THE PLACES AHEAD</p>
             <h2>仍在期待的远方</h2>
           </div>
-          <p>愿望不是清单，是下一次出发的方向。</p>
+          <div class="hero-wishlist-actions">
+            <p>愿望不是清单，是下一次出发的方向。</p>
+            <a class="wishlist-map-link" href="#map-section">在地图上查看 <span aria-hidden="true">↓</span></a>
+          </div>
         </div>
         <div class="wish-grid" id="wish-grid"></div>
       </div>
@@ -125,6 +128,7 @@
               <option value="unrated">暂无评分</option>
             </select>
           </div>
+          <button class="clear-filters" id="clear-filters" type="button" hidden>清除筛选</button>
         </div>
       </div>
       <div class="route-overview" aria-label="旅行路线概览">
@@ -162,6 +166,13 @@
     </section>
 
   </main>
+
+  <nav class="mobile-dock" aria-label="手机快捷导航">
+    <a href="#top" data-home-tab-target="journeys">首页</a>
+    <a href="#map-section">地图</a>
+    <a href="#memories" data-home-tab-target="journeys" data-scroll-target="#memories">足迹</a>
+    <a href="#wishlist-panel" data-home-tab-target="wishlist">愿望</a>
+  </nav>
 
   <footer>
     <p>© <span id="current-year"></span> Sehuri · 用地图保存旅途，用记忆标记时间</p>
@@ -271,9 +282,9 @@
   <script src="./assets/photos.js"></script>
   <script src="./assets/supabase-config.js"></script>
   <script src="./assets/amap-map-config.js?v=20260907.1"></script>
-  <script src="./assets/map-engine.js?v=20260909.1"></script>
+  <script src="./assets/map-engine.js?v=20260909.2"></script>
   <script src="./assets/content.js?v=20260907.2"></script>
   <script src="./assets/community.js?v=20260901.1"></script>
-  <script src="./assets/app.js?v=20260909.1"></script>
+  <script src="./assets/app.js?v=20260909.2"></script>
 </body>
 </html>

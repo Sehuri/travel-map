@@ -61,6 +61,17 @@
     return [lng + dLng, lat + dLat];
   }
 
+  function isMainlandChina(place) {
+    if (place?.country !== "中国") return false;
+    return !/(?:台湾|香港|澳门)/u.test(String(place?.name || place?.label || ""));
+  }
+
+  function getAmapCoordinate(place) {
+    const coord = place?.coord;
+    if (!Array.isArray(coord) || coord.length !== 2 || !coord.every(Number.isFinite)) return coord;
+    return isMainlandChina(place) ? wgs84ToGcj02(coord) : [...coord];
+  }
+
   function normalizeChinaDistrictName(name) {
     return String(name || "")
       .trim()
@@ -89,6 +100,8 @@
   const api = {
     outsideChina,
     wgs84ToGcj02,
+    isMainlandChina,
+    getAmapCoordinate,
     normalizeChinaDistrictName,
     findVisitByDistrictName,
     getWishlistMapLocation,

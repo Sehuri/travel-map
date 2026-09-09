@@ -3,6 +3,8 @@ const assert = require('node:assert/strict');
 const {
   outsideChina,
   wgs84ToGcj02,
+  isMainlandChina,
+  getAmapCoordinate,
   normalizeChinaDistrictName,
   findVisitByDistrictName,
   getWishlistMapLocation,
@@ -18,6 +20,23 @@ test('mainland WGS84 coordinates convert to the AMap GCJ-02 system',()=>{
   const [lng,lat]=wgs84ToGcj02([116.404,39.915]);
   assert(Math.abs(lng-116.410244)<0.0001);
   assert(Math.abs(lat-39.916404)<0.0001);
+});
+
+test('only explicitly mainland Chinese places receive GCJ-02 conversion',()=>{
+  const mainland={name:'北京',country:'中国',coord:[116.404,39.915]};
+  const unchanged=[
+    {name:'大阪',country:'日本',coord:[135.50,34.69]},
+    {name:'釜山',country:'韩国',coord:[129.08,35.18]},
+    {name:'台湾 · 本岛',country:'中国',coord:[120.96,23.70]},
+    {name:'香港',country:'中国',coord:[114.17,22.28]},
+    {name:'澳门',country:'中国',coord:[113.54,22.20]}
+  ];
+  assert.equal(isMainlandChina(mainland),true);
+  assert.notDeepEqual(getAmapCoordinate(mainland),mainland.coord);
+  unchanged.forEach((place)=>{
+    assert.equal(isMainlandChina(place),false,place.name);
+    assert.deepEqual(getAmapCoordinate(place),place.coord,place.name);
+  });
 });
 
 test('AMap district names match visited city names across administrative suffixes',()=>{
