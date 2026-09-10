@@ -125,7 +125,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       contentType: 'text/javascript',
       body: `${dataSource}\nwindow.TRAVEL_DATA.guideDocuments = [
         { placeType: 'visited', placeName: '日照', title: '日照海滨攻略', fileType: 'pdf', fileUrl: 'https://example.com/rizhao-guide.pdf' },
-        { placeType: 'wishlist', placeName: '新加坡', title: '新加坡自由行', fileType: 'html', fileUrl: 'https://example.com/singapore-guide.html' }
+        { placeType: 'wishlist', placeName: '新加坡', title: '新加坡自由行', fileType: 'html', fileUrl: 'https://dbmuozbkzkxgigblsgmz.supabase.co/storage/v1/object/public/travel-guides/wishlist/test-guide.html' }
       ];`
     }));
     await page.reload({ waitUntil: 'networkidle' });
@@ -138,7 +138,19 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     await page.getByRole('button', { name: '查看新加坡旅行笔记' }).click();
     const wishlistGuide = page.locator('#wishlist-guide-documents a');
     assert.match(await wishlistGuide.innerText(), /HTML\s+新加坡自由行/);
-    assert.equal(await wishlistGuide.getAttribute('href'), 'https://example.com/singapore-guide.html');
+    const viewerHref = await wishlistGuide.getAttribute('href');
+    const viewerUrl = new URL(viewerHref);
+    assert.equal(viewerUrl.pathname, '/guide-viewer.html');
+    assert.equal(viewerUrl.searchParams.get('title'), '新加坡自由行');
+    assert.match(viewerUrl.searchParams.get('src'), /\/travel-guides\/wishlist\/test-guide\.html$/);
+
+    await page.route('https://dbmuozbkzkxgigblsgmz.supabase.co/storage/v1/object/public/travel-guides/wishlist/test-guide.html', (route) => route.fulfill({
+      contentType: 'text/plain',
+      body: '<!doctype html><html><head><meta charset="utf-8"><title>测试</title></head><body><h1>安全阅读器测试攻略</h1></body></html>'
+    }));
+    await page.goto(viewerHref, { waitUntil: 'networkidle' });
+    await page.frameLocator('#guide-frame').getByText('安全阅读器测试攻略').waitFor();
+    assert.equal(await page.locator('#viewer-title').innerText(), '新加坡自由行');
 
     assert.deepEqual(errors, []);
     console.log('Homepage browser checks passed: filters, maps, local wishes, mobile navigation, and visited/wishlist guide links.');

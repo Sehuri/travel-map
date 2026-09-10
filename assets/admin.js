@@ -434,6 +434,14 @@
     return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
   }
 
+  function guideHref(guide) {
+    if (guide.file_type !== "html") return guide.file_url;
+    const viewer = new URL("./guide-viewer.html", window.location.href);
+    viewer.searchParams.set("src", guide.file_url);
+    viewer.searchParams.set("title", guide.title);
+    return viewer.toString();
+  }
+
   function renderGuideRows() {
     if (!elements.guide_admin_list) return;
     const placeType = elements.guide_place_type.value;
@@ -463,7 +471,7 @@
       const actions = document.createElement("div");
       actions.className = "guide-admin-actions";
       const open = document.createElement("a");
-      open.href = guide.file_url;
+      open.href = guideHref(guide);
       open.target = "_blank";
       open.rel = "noopener noreferrer";
       open.textContent = "查看 ↗";

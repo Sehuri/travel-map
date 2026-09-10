@@ -759,6 +759,14 @@
     return guideDocuments.filter((guide) => guide.placeType === placeType && guide.placeName === placeName);
   }
 
+  function guideHref(guide) {
+    if (guide.fileType !== "html") return guide.fileUrl;
+    const viewer = new URL("./guide-viewer.html", window.location.href);
+    viewer.searchParams.set("src", guide.fileUrl);
+    viewer.searchParams.set("title", guide.title);
+    return viewer.toString();
+  }
+
   function renderGuideLinks(container, guides, emptyMessage = "这座城市还没有上传攻略文件。") {
     container.replaceChildren();
     if (!guides.length) {
@@ -770,7 +778,7 @@
     }
     guides.forEach((guide) => {
       const anchor = document.createElement("a");
-      anchor.href = guide.fileUrl;
+      anchor.href = guideHref(guide);
       anchor.target = "_blank";
       anchor.rel = "noopener noreferrer";
       anchor.className = "guide-document-link";

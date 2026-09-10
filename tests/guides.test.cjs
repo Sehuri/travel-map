@@ -22,10 +22,15 @@ test('admin and public pages expose guide upload and viewing surfaces', () => {
   const homepage = read('index.html');
   const adminScript = read('assets/admin.js');
   const contentScript = read('assets/content.js');
+  const viewer = read('assets/guide-viewer.js');
+  const viewerPage = read('guide-viewer.html');
   assert.match(admin, /accept="\.html,\.htm,\.pdf/);
   assert.match(adminScript, /storage\.from\("travel-guides"\)\.upload/);
   assert.match(adminScript, /file\.size > 20 \* 1024 \* 1024/);
   assert.match(homepage, /id="city-guide-documents"/);
   assert.match(homepage, /id="wishlist-guide-documents"/);
   assert.match(contentScript, /from\("travel_guides"\)/);
+  assert.match(viewer, /storage\/v1\/object\/public\/travel-guides/);
+  assert.match(viewer, /frame\.srcdoc = withBase/);
+  assert.match(viewerPage, /sandbox="allow-scripts allow-forms allow-popups allow-modals allow-downloads"/);
 });

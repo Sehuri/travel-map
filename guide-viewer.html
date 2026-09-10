@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#07111f">
+  <title>旅行攻略｜Sehuri 的旅行足迹</title>
+  <link rel="stylesheet" href="./assets/guide-viewer.css?v=20260910.1">
+</head>
+<body>
+  <header class="viewer-header">
+    <a href="./" aria-label="返回旅行地图">← 返回旅行地图</a>
+    <div>
+      <p>SEHURI / TRAVEL GUIDE</p>
+      <h1 id="viewer-title">正在打开攻略…</h1>
+    </div>
+    <a id="raw-file-link" href="#" target="_blank" rel="noopener noreferrer" hidden>查看原文件 ↗</a>
+  </header>
+  <main>
+    <p class="viewer-status" id="viewer-status" role="status">正在载入 HTML 攻略…</p>
+    <iframe
+      id="guide-frame"
+      title="旅行攻略内容"
+      sandbox="allow-scripts allow-forms allow-popups allow-modals allow-downloads"
+      hidden></iframe>
+  </main>
+  <script src="./assets/supabase-config.js"></script>
+  <script src="./assets/guide-viewer.js?v=20260910.1"></script>
+</body>
+</html>
