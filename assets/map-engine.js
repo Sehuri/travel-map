@@ -69,6 +69,7 @@
   function getAmapCoordinate(place) {
     const coord = place?.coord;
     if (!Array.isArray(coord) || coord.length !== 2 || !coord.every(Number.isFinite)) return coord;
+    if (place?.coordinateSystem === "GCJ-02") return [...coord];
     return isMainlandChina(place) ? wgs84ToGcj02(coord) : [...coord];
   }
 
@@ -93,7 +94,8 @@
     return {
       country: destination?.country || configured?.country || "",
       coord: [...coord],
-      label: destination?.mapLabel || configured?.label || destination.name
+      label: destination?.mapLabel || configured?.label || destination.name,
+      coordinateSystem: destination?.coordinateSystem || "WGS84"
     };
   }
 

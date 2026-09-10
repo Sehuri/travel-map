@@ -38,6 +38,17 @@ test('draw does not repeat until all candidates used; empty pool is safe',()=>{
   assert.equal(engine.draw(pool,seen,()=>0).id,'a');
   assert.equal(engine.draw([],seen),null);
 });
+test('three-way draw stays unique and budget, visited, month metadata are applied',()=>{
+  const origin={id:'a',coord:[120,30]};
+  const cities=[origin,{id:'b',name:'近城',province:'浙江省',coord:[120.2,30.2]},{id:'c',name:'去过市',province:'海南省',coord:[120.4,30.4]},{id:'d',name:'远城',province:'新疆维吾尔自治区',coord:[126,36]},{id:'e',name:'备选城',province:'江苏省',coord:[121,31]}];
+  const pool=engine.candidates(cities,{origin,days:3,radius:'Infinity',budgetMax:3000,month:'1',exclude:['c']});
+  assert(!pool.some(c=>c.id==='c'));
+  assert(pool.every(c=>c.budget.typical<=3000));
+  assert(pool.every(c=>c.season.score>=1&&c.season.score<=5));
+  const group=engine.drawMany(pool,new Set(),3,()=>0);
+  assert.equal(new Set(group.map(c=>c.id)).size,group.length);
+  assert.equal(engine.estimateRoutes(500).estimated,true);
+});
 test('all curated entries have unique ids, valid locations and linked sources',()=>{
   assert.equal(data.cities.length,18);
   assert.equal(new Set(data.cities.map(c=>c.id)).size,18);
@@ -56,6 +67,8 @@ function server({key='test-only-key',budget=true,providerError=false}={}){
       if(providerError) return Response.json({status:'0',infocode:'10001'});
       if(u.pathname.includes('district')) return Response.json({status:'1',districts:[city('江苏省','320000','province',dataset)]});
       if(u.pathname.includes('staticmap')) return new Response(new Uint8Array([1,2]),{headers:{'content-type':'image/png'}});
+      if(u.pathname.includes('direction/driving')) return Response.json({status:'1',route:{paths:[{distance:'300000',cost:{duration:'14400',tolls:'80'}}]}});
+      if(u.pathname.includes('direction/transit')) return Response.json({status:'1',route:{transits:[{duration:'10800',cost:'180',segments:[{railway:{type:'2011',trip:'G1'}}]}]}});
       return Response.json({status:'1',pois:[{id:'good',name:'亭林园',location:'120.95,31.39',adcode:'320583',type:'风景名胜',adname:'昆山市',address:'测试地址'},{id:'wrong',name:'外地景点',location:'121,31',adcode:'320508'}]});
     }
   });
@@ -69,6 +82,8 @@ test('server returns nationwide directory, caches it, and validates county-city 
   await s.call({action:'catalogue'}); assert.equal(s.calls(),1);
   const b=await s.call({action:'places',city:'320583',interests:'culture'}); assert.equal(b.status,200); assert.equal((await b.json()).places.length,1);
   const image=await s.call({action:'map',city:'320583',interests:'culture',limit:1}); assert.equal(image.headers.get('content-type'),'image/png');
+  const route=await s.call({action:'route',from:'320100',to:'320583'}); assert.equal(route.status,200);
+  const routeBody=await route.json(); assert.equal(routeBody.driving.durationMinutes,240); assert.equal(routeBody.rail.trip,'G1');
 });
 test('provider key stays server-side; missing key and exceeded budget fail closed',async()=>{
   let s=server({key:''}); let r=await s.call({action:'catalogue'});assert.equal(r.status,503);assert.equal(s.calls(),0);
@@ -80,6 +95,7 @@ test('server rejects arbitrary requests, origins and too many interests',async()
   assert.equal((await s.call({action:'proxy',url:'https://example.com'})).status,400);
   assert.equal((await s.call({action:'places',city:'320583',interests:'nature,culture,city,food'})).status,400);
   assert.equal((await s.call({action:'places',city:'invalid'})).status,400);
+  assert.equal((await s.call({action:'route',from:'320100',to:'invalid'})).status,400);
   assert.equal((await s.handler(new Request('https://test?action=catalogue',{headers:{origin:'https://evil.example'}}))).status,403);
   assert.equal(s.calls(),0);
 });

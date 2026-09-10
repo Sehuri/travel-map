@@ -15,6 +15,32 @@
     return Boolean(window.supabase?.createClient && config.url && config.publishableKey);
   }
 
+  function localWishlist() {
+    try {
+      const value = JSON.parse(localStorage.getItem("sehuri.travelWishlist.v1") || "[]");
+      return Array.isArray(value) ? value.filter((item) => (
+        item && typeof item.name === "string" && item.name.trim()
+      )) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function mergeLocalWishlist(items) {
+    const wishes = new Map(items.map((item) => [item.name, { ...item }]));
+    localWishlist().forEach((item, index) => {
+      wishes.set(item.name, {
+        icon: "签",
+        desc: "从随机旅行工具保存的目的地",
+        guide: "出发前请重新核对交通、天气和开放信息。",
+        ...wishes.get(item.name),
+        ...item,
+        sortOrder: Number(item.sortOrder ?? items.length + index)
+      });
+    });
+    return [...wishes.values()].sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0));
+  }
+
   function mergeCities(rows) {
     const cities = new Map(baseData.visits.map((visit) => [visit.name, { ...visit }]));
     (rows || []).forEach((row) => {
@@ -92,7 +118,7 @@
       if (hasError) return state;
       state = {
         visits: mergeCities(cities.data),
-        wishlist: mergeWishlist(wishes.data),
+        wishlist: mergeLocalWishlist(mergeWishlist(wishes.data)),
         photoManifest: mergePhotos(photos.data),
         connected: true
       };
@@ -102,6 +128,7 @@
     }
   }
 
+  state.wishlist = mergeLocalWishlist(state.wishlist);
   const ready = load();
   window.TRAVEL_CONTENT = {
     ready,

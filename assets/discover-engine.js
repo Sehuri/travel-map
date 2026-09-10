@@ -8,14 +8,67 @@
     return 6371 * 2 * Math.asin(Math.sqrt(Math.min(1, h)));
   }
   const radiusForDays = days => days <= 2 ? 350 : days <= 4 ? 800 : days <= 7 ? 1600 : Infinity;
+  function estimateRoutes(distanceKm) {
+    const roadDistanceKm = Math.max(1, distanceKm * (distanceKm < 120 ? 1.28 : 1.18));
+    const drivingMinutes = Math.round((roadDistanceKm / (distanceKm < 120 ? 58 : 82)) * 60 + 18);
+    const railMinutes = Math.round(55 + distanceKm / (distanceKm < 220 ? 145 : 245) * 60);
+    return {
+      estimated: true,
+      driving: { durationMinutes: drivingMinutes, distanceKm: Math.round(roadDistanceKm), tolls: null },
+      rail: distanceKm >= 70 ? { durationMinutes: railMinutes, cost: Math.round(distanceKm * 0.46), trip: "高铁/动车参考" } : null
+    };
+  }
+  function estimateBudget(distanceKm, days, routes = estimateRoutes(distanceKm)) {
+    const railCost = Number(routes?.rail?.cost);
+    const roundTripTransport = Number.isFinite(railCost) && railCost > 0 ? railCost * 2 : distanceKm * 0.92;
+    const min = Math.ceil((days * 260 + roundTripTransport * 0.8) / 100) * 100;
+    const max = Math.ceil((days * 650 + roundTripTransport * 1.3) / 100) * 100;
+    return { min, max, typical: Math.round((min + max) / 200) * 100 };
+  }
+  function seasonSuitability(city, month) {
+    const selected = Number(month);
+    if (!Number.isInteger(selected) || selected < 1 || selected > 12) {
+      return { score: 3, label: "月份不限", note: "选择月份后显示季节启发值" };
+    }
+    const province = String(city?.province || "");
+    const inMonths = values => values.includes(selected);
+    if (/海南|广东|广西|福建/.test(province)) {
+      if (inMonths([10, 11, 12, 1, 2, 3, 4])) return { score: 5, label: "很合拍", note: "气温通常更适合城市与户外游览" };
+      if (inMonths([5, 9])) return { score: 4, label: "较合拍", note: "留意降雨与偏热天气" };
+      return { score: 3, label: "可安排", note: "偏热多雨，海岛行程关注台风信息" };
+    }
+    if (/黑龙江|吉林|辽宁/.test(province)) {
+      if (inMonths([12, 1, 2])) return { score: 5, label: "特色季", note: "适合冰雪主题，注意严寒与日照时间" };
+      if (inMonths([6, 7, 8, 9])) return { score: 4, label: "较合拍", note: "适合避暑、森林与城市漫游" };
+      return { score: 3, label: "可安排", note: "换季温差较大，关注当周天气" };
+    }
+    if (/新疆|西藏|青海|内蒙古|甘肃|宁夏/.test(province)) {
+      if (inMonths([5, 6, 7, 8, 9, 10])) return { score: 5, label: "很合拍", note: "户外可达性通常更好，昼夜温差仍较大" };
+      return { score: 2, label: "需准备", note: "寒冷或道路天气风险较高，预留机动时间" };
+    }
+    if (/云南|贵州|四川|重庆/.test(province)) {
+      if (inMonths([3, 4, 5, 9, 10, 11])) return { score: 5, label: "很合拍", note: "温度与降雨通常更利于综合游览" };
+      if (inMonths([6, 7, 8])) return { score: 4, label: "较合拍", note: "山地行程关注降雨和地质预警" };
+      return { score: 3, label: "可安排", note: "山区与高海拔地点注意低温" };
+    }
+    if (inMonths([3, 4, 5, 9, 10, 11])) return { score: 5, label: "很合拍", note: "春秋通常适合城市与户外组合" };
+    if (inMonths([6, 7, 8])) return { score: 3, label: "可安排", note: "注意高温、强降雨与防晒" };
+    return { score: 3, label: "可安排", note: "注意低温、短日照与节假日开放安排" };
+  }
   function candidates(cities, options) {
-    const { origin, days, radius = "auto", province = "", exclude = [] } = options;
+    const { origin, days, radius = "auto", province = "", exclude = [], budgetMax = Infinity, month = "" } = options;
     if (!origin || !validCoord(origin.coord)) throw new Error("请从城市列表选择出发地。");
     if (!Number.isInteger(days) || days < 1 || days > 14) throw new Error("游玩天数请填写 1—14 的整数。");
     const limit = radius === "auto" ? radiusForDays(days) : Number(radius);
     if (!(limit > 0)) throw new Error("请选择有效的距离范围。");
+    const maximumBudget = Number(budgetMax);
+    if (!(maximumBudget > 0)) throw new Error("请选择有效的预算范围。");
     return cities.filter(c => c.id !== origin.id && validCoord(c.coord) && (!province || c.province === province) && !exclude.includes(c.id))
-      .map(c => ({ ...c, distance: distance(origin.coord, c.coord) })).filter(c => c.distance <= limit);
+      .map(c => {
+        const km = distance(origin.coord, c.coord);
+        return { ...c, distance: km, budget: estimateBudget(km, days), season: seasonSuitability(c, month) };
+      })
+      .filter(c => c.distance <= limit && c.budget.typical <= maximumBudget);
   }
   function draw(pool, seen = new Set(), rng = Math.random) {
     if (!pool.length) return null;
@@ -24,6 +77,21 @@
     const city = available[Math.min(available.length - 1, Math.floor(Math.max(0, rng()) * available.length))];
     seen.add(city.id);
     return city;
+  }
+  function drawMany(pool, seen = new Set(), count = 3, rng = Math.random) {
+    const selected = [];
+    while (selected.length < Math.min(count, pool.length)) {
+      let available = pool.filter(c => !seen.has(c.id) && !selected.some(item => item.id === c.id));
+      if (!available.length) {
+        seen.clear();
+        selected.forEach(item => seen.add(item.id));
+        available = pool.filter(c => !selected.some(item => item.id === c.id));
+      }
+      const city = draw(available, seen, rng);
+      if (!city) break;
+      selected.push(city);
+    }
+    return selected;
   }
   // Only named cities are included, not ordinary counties, districts or subdistricts.
   // Municipalities live at province level; province-administered county cities may live at city level.
@@ -44,7 +112,7 @@
     for (const root of roots || []) walk(root);
     return [...result.values()].sort((a, b) => a.id.localeCompare(b.id));
   }
-  const api = { distance, radiusForDays, candidates, draw, flattenDistricts, validCoord };
+  const api = { distance, radiusForDays, estimateRoutes, estimateBudget, seasonSuitability, candidates, draw, drawMany, flattenDistricts, validCoord };
   if (typeof module === "object" && module.exports) module.exports = api;
   else root.TRAVEL_DISCOVER_ENGINE = api;
 })(typeof window !== "undefined" ? window : globalThis);

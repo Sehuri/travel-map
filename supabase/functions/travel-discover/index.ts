@@ -1,5 +1,5 @@
 // Deploy as a public function (JWT verification off); provider access is constrained
-// to catalogue/POI/static-map requests with a persistent, atomic 500-call/day budget.
+// to catalogue/POI/static-map/route requests with a persistent, atomic 500-call/day budget.
 import "../../../assets/discover-engine.js";
 const engine = (globalThis as any).TRAVEL_DISCOVER_ENGINE;
 const allowed = (Deno.env.get("DISCOVER_ALLOWED_ORIGINS") || "https://sehuri.github.io,http://127.0.0.1:4173,http://localhost:4173").split(",").map(s=>s.trim());
@@ -69,6 +69,55 @@ async function places(city:any, interests:string[]) {
     return {places:[...unique.values()].slice(0,10),source:"高德地点搜索",retrievedAt:new Date().toISOString()};
   });
 }
+function firstPath(data:any) {
+  const paths = Array.isArray(data?.route?.paths) ? data.route.paths : [];
+  return paths[0] || null;
+}
+function railwayParts(transit:any) {
+  return (Array.isArray(transit?.segments) ? transit.segments : []).flatMap((segment:any) => {
+    const railway = segment?.railway;
+    if (!railway || typeof railway !== "object") return [];
+    return Array.isArray(railway) ? railway : [railway];
+  });
+}
+function fastRailTransit(data:any) {
+  const fastTypes = new Set(["2011","2012","2013"]);
+  return (Array.isArray(data?.route?.transits) ? data.route.transits : [])
+    .map((transit:any) => ({ transit, railways: railwayParts(transit) }))
+    .filter(({railways}:any) => railways.some((rail:any) => fastTypes.has(String(rail.type)) || /^[GDC]\d/i.test(String(rail.trip || rail.name || ""))))
+    .sort((a:any,b:any) => Number(a.transit.duration || Infinity) - Number(b.transit.duration || Infinity))[0] || null;
+}
+async function routes(origin:any, destination:any) {
+  return cached(`routes:${origin.id}:${destination.id}`,3600000,async()=>{
+    const coords = (city:any) => city.coord.map((value:number)=>Number(value).toFixed(6)).join(",");
+    const [drivingResult, transitResult] = await Promise.allSettled([
+      amap("v5/direction/driving",{origin:coords(origin),destination:coords(destination),strategy:"32",show_fields:"cost"}),
+      amap("v3/direction/transit/integrated",{origin:coords(origin),destination:coords(destination),city:origin.name,cityd:destination.name,strategy:"0",extensions:"base"})
+    ]);
+    const drivingPath = drivingResult.status === "fulfilled" ? firstPath(drivingResult.value) : null;
+    const railChoice = transitResult.status === "fulfilled" ? fastRailTransit(transitResult.value) : null;
+    const drivingDuration = Number(drivingPath?.cost?.duration ?? drivingPath?.duration);
+    const drivingDistance = Number(drivingPath?.distance);
+    const tolls = Number(drivingPath?.cost?.tolls ?? drivingPath?.tolls);
+    const transitDuration = Number(railChoice?.transit?.duration);
+    const transitCost = Number(railChoice?.transit?.cost);
+    const firstRail = railChoice?.railways?.[0];
+    return {
+      driving: Number.isFinite(drivingDuration) && drivingDuration > 0 ? {
+        durationMinutes: Math.round(drivingDuration / 60),
+        distanceKm: Number.isFinite(drivingDistance) ? Math.round(drivingDistance / 1000) : null,
+        tolls: Number.isFinite(tolls) ? tolls : null
+      } : null,
+      rail: Number.isFinite(transitDuration) && transitDuration > 0 ? {
+        durationMinutes: Math.round(transitDuration / 60),
+        cost: Number.isFinite(transitCost) ? transitCost : null,
+        trip: String(firstRail?.trip || firstRail?.name || "高铁/动车方案")
+      } : null,
+      source:"高德路线规划",
+      retrievedAt:new Date().toISOString()
+    };
+  });
+}
 Deno.serve(async req=>{
   const origin = req.headers.get("origin") || "";
   const headers:Record<string,string> = {"Vary":"Origin","Cache-Control":"no-store","X-Content-Type-Options":"nosniff"};
@@ -79,8 +128,16 @@ Deno.serve(async req=>{
   if (req.method !== "GET") return json({error:"仅支持读取旅行资源。"},405);
   try {
     const url = new URL(req.url), action = url.searchParams.get("action");
-    if (!["catalogue","places","map"].includes(action || "")) return json({error:"无效操作。"},400);
+    if (!["catalogue","places","map","route"].includes(action || "")) return json({error:"无效操作。"},400);
     if (action === "catalogue") return json(await catalogue());
+    if (action === "route") {
+      const from = url.searchParams.get("from") || "", to = url.searchParams.get("to") || "";
+      if (!/^\d{6}$/.test(from) || !/^\d{6}$/.test(to) || from === to) return json({error:"交通起终点参数无效。"},400);
+      const cities = (await catalogue()).cities;
+      const origin = cities.find((city:any)=>city.id === from), destination = cities.find((city:any)=>city.id === to);
+      if (!origin || !destination) return json({error:"交通起终点不在当前目录中。"},404);
+      return json(await routes(origin,destination));
+    }
     const id = url.searchParams.get("city") || "";
     const interests = [...new Set((url.searchParams.get("interests") || "").split(",").filter(Boolean))].sort();
     if (!/^\d{6}$/.test(id) || interests.length > 3 || interests.some(i=>!Object.hasOwn(keywords,i))) return json({error:"城市或旅行喜好参数无效。"},400);

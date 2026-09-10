@@ -38,6 +38,10 @@ test('only explicitly mainland Chinese places receive GCJ-02 conversion',()=>{
     assert.deepEqual(getAmapCoordinate(place),place.coord,place.name);
   });
 });
+test('coordinates already supplied by AMap are not converted twice',()=>{
+  const coord=[120.585,30.004];
+  assert.deepEqual(getAmapCoordinate({name:'绍兴市',country:'中国',coord,coordinateSystem:'GCJ-02'}),coord);
+});
 
 test('AMap district names match visited city names across administrative suffixes',()=>{
   assert.equal(normalizeChinaDistrictName('北京市'),'北京');
@@ -86,7 +90,8 @@ test('wishlist records can override their fallback map metadata',()=>{
   }),{
     country:'测试地区',
     coord:[1,2],
-    label:'测试坐标'
+    label:'测试坐标',
+    coordinateSystem:'WGS84'
   });
   assert.equal(getWishlistMapLocation({name:'未配置地点'}),null);
 });

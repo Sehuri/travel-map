@@ -14,6 +14,9 @@
 .field-grid { display:grid; grid-template-columns:2fr 1fr 1.4fr; gap:1.2rem; }
 .field-grid label { display:flex; flex-direction:column; gap:.5rem; font-size:.85rem; font-weight:600; min-width:0; }
 .field-grid input,.field-grid select { width:100%; padding:.8rem; border:1px solid #9abcb3; border-radius:10px; background:rgba(255,255,255,.8); color:#193f40; }
+.field-grid .exclude-field { align-self:end; display:grid; grid-template-columns:auto 1fr; align-items:center; gap:.35rem .65rem; min-height:48px; padding:.72rem .85rem; border:1px solid #9abcb3; border-radius:10px; background:rgba(255,255,255,.56); cursor:pointer; }
+.field-grid .exclude-field input { width:1rem; height:1rem; margin:0; accent-color:#236651; }
+.field-grid .exclude-field .small { grid-column:2; }
 .discover-page fieldset { border:0; padding:0; margin:1.7rem 0; }
 .discover-page legend { margin-bottom:.8rem; }
 .interest-chip { display:inline-flex; align-items:center; gap:.4rem; padding:.6rem .85rem; margin:.3rem .4rem .3rem 0; border:1px solid #a5c2b7; border-radius:30px; cursor:pointer; background:#ffffff60; font-size:.85rem; }
@@ -25,12 +28,30 @@
 .draw-bar { display:flex; align-items:center; justify-content:space-between; gap:1rem; border-top:1px dashed #a9c2b9; padding-top:1.2rem; }
 .discover-page #draw { background:#265d51; color:#f6ffdd; min-width:220px; }
 #draw-status:not(:empty) { padding:1rem; border-radius:10px; background:#214d4b; color:white; }
+.comparison-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.2rem; }
+.comparison-heading h2 { margin:.2rem 0; font-size:clamp(2rem,4vw,3.4rem); }
+.candidate-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; }
+.candidate-card { display:flex; flex-direction:column; min-width:0; padding:1.25rem; border:1px solid #a9c3b6; border-radius:18px; background:rgba(255,255,255,.66); box-shadow:0 10px 25px rgba(22,77,67,.08); }
+.candidate-card.is-season-best { border-color:#779845; box-shadow:inset 0 3px 0 #dfff58,0 10px 25px rgba(22,77,67,.08); }
+.candidate-index { margin:0 0 .5rem; color:#55766c; font:italic 1rem Georgia,serif; letter-spacing:.08em; }
+.candidate-card h3 { margin:0; font-size:1.65rem; }
+.candidate-region { min-height:2.6em; margin:.25rem 0 1rem; color:#527168; font-size:.82rem; }
+.candidate-metrics { display:grid; grid-template-columns:1fr 1fr; gap:.55rem; margin:0 0 1rem; }
+.candidate-metrics div { min-width:0; padding:.65rem; border-radius:10px; background:#e7f2eb; }
+.candidate-metrics dt { color:#5a776e; font-size:.68rem; letter-spacing:.05em; }
+.candidate-metrics dd { margin:.25rem 0 0; font-size:.9rem; font-weight:700; overflow-wrap:anywhere; }
+.candidate-note { flex:1; margin:.2rem 0 1rem; color:#456865; font-size:.78rem; line-height:1.6; }
+.candidate-card .choose-candidate { width:100%; background:#265d51; color:#f6ffdd; }
 .result-top { display:flex; justify-content:space-between; align-items:center; gap:1rem; }
 .result-panel .eyebrow { color:#496c39; }
 .result-panel h2 { font-size:clamp(2.4rem,5vw,4.5rem); margin:.1rem 0 1rem; }
 .result-panel h3 { font-size:1.4rem; margin:.5rem 0; }
 .result-stamp { border:2px solid #81a18b; border-radius:50%; padding:1.5rem; min-width:120px; text-align:center; transform:rotate(7deg); font-weight:600; white-space:pre-line; }
 .result-reason { border-left:3px solid #709c66; padding:.8rem 1rem; background:#c9e5cc60; }
+.trip-facts { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.75rem; margin:0 0 1.2rem; }
+.trip-facts div { padding:.8rem; border:1px solid #b9cdbf; border-radius:12px; background:#ffffff70; }
+.trip-facts dt { color:#59756d; font-size:.7rem; }
+.trip-facts dd { margin:.3rem 0 0; font-weight:700; }
 .resource-heading,.result-actions { display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-top:1.5rem; }
 .resource-heading a { font-size:.85rem; text-decoration:underline; }
 #resource-map { height:420px; border-radius:16px; overflow:hidden; background:#dce8db; border:1px solid #b0c8bd; }
@@ -44,4 +65,5 @@
 .place-number { font:italic 1.7rem Georgia,serif; color:#578366; }
 .result-actions { justify-content:flex-start; }
 .discover-page [hidden] { display:none!important; }
-@media(max-width:700px) { .discover-shell { width:92vw; margin-top:.5rem; } .discover-header { padding:1rem 4vw; } .discover-header .brand { font-size:.65rem; } .discover-panel { padding:1.2rem; border-radius:18px; } .field-grid { grid-template-columns:1fr 1fr; } .field-grid label:first-child { grid-column:1/-1; } .draw-bar { align-items:stretch; flex-direction:column; } .place-grid { grid-template-columns:1fr; } #resource-map { height:300px; } .result-stamp { font-size:.8rem; min-width:95px; padding:1rem; } }
+@media(max-width:900px) { .candidate-grid { grid-template-columns:1fr; } .candidate-region { min-height:0; } .trip-facts { grid-template-columns:1fr 1fr; } }
+@media(max-width:700px) { .discover-shell { width:92vw; margin-top:.5rem; } .discover-header { padding:1rem 4vw; } .discover-header .brand { font-size:.65rem; } .discover-panel { padding:1.2rem; border-radius:18px; } .field-grid { grid-template-columns:1fr 1fr; } .field-grid label:first-child,.field-grid .exclude-field { grid-column:1/-1; } .draw-bar,.comparison-heading { align-items:stretch; flex-direction:column; } .comparison-heading button { align-self:flex-start; } .place-grid { grid-template-columns:1fr; } #resource-map { height:300px; } .result-stamp { font-size:.8rem; min-width:95px; padding:1rem; } }

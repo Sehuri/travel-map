@@ -110,8 +110,18 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await firstYearToggle.getAttribute('aria-expanded'), 'true');
     assert(await page.locator(`#${controlledId}`).isVisible());
 
+    await page.evaluate(() => localStorage.setItem('sehuri.travelWishlist.v1', JSON.stringify([{
+      name: '江苏省 · 昆山市', icon: '签', desc: '随机旅行候选', guide: '测试愿望',
+      country: '中国', coord: [120.98, 31.38], coordinateSystem: 'GCJ-02', mapLabel: '昆山市'
+    }])));
+    await page.reload({ waitUntil: 'networkidle' });
+    assert.equal(await page.locator('#wishlist-count').innerText(), '23');
+    await page.getByRole('tab', { name: /仍在期待/ }).click();
+    assert.equal(await page.locator('.amap-wishlist-marker-button').count(), 23);
+    assert(await page.locator('[data-destination="江苏省 · 昆山市"]').count());
+
     assert.deepEqual(errors, []);
-    console.log('Homepage browser checks passed: filter-map sync, reset, wishlist map, mobile navigation, overflow, and year collapse.');
+    console.log('Homepage browser checks passed: filter-map sync, reset, wishlist map, locally saved wishes, mobile navigation, overflow, and year collapse.');
   } finally {
     await browser?.close();
     await new Promise((resolve) => server.close(resolve));

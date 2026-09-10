@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#246a70">
   <title>下一站去哪｜Sehuri 的旅行灵感</title>
   <link rel="stylesheet" href="./assets/styles.css?v=20260904.1">
-  <link rel="stylesheet" href="./assets/discover.css?v=20260905.1">
+  <link rel="stylesheet" href="./assets/discover.css?v=20260910.1">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body class="discover-page">
@@ -20,28 +20,37 @@
       <div class="field-grid">
         <label>01 / 从哪里出发<input id="origin" list="origin-list" placeholder="输入城市，选择完整归属" autocomplete="off" required disabled><datalist id="origin-list"></datalist></label>
         <label>02 / 游玩天数<input id="days" type="number" min="1" max="14" step="1" value="3" required><span class="small">不含往返交通，1—14 天</span></label>
-        <label>03 / 距离范围<select id="radius"><option value="auto">按天数建议</option><option value="350">直线 350 公里内</option><option value="800">直线 800 公里内</option><option value="1600">直线 1600 公里内</option><option value="Infinity">全国不限距离</option></select></label>
+        <label>03 / 探索范围<select id="radius"><option value="auto">按天数建议</option><option value="350">直线 350 公里内</option><option value="800">直线 800 公里内</option><option value="1600">直线 1600 公里内</option><option value="Infinity">全国不限距离</option></select></label>
+        <label>04 / 出行月份<select id="month"><option value="">月份不限</option><option value="1">1 月</option><option value="2">2 月</option><option value="3">3 月</option><option value="4">4 月</option><option value="5">5 月</option><option value="6">6 月</option><option value="7">7 月</option><option value="8">8 月</option><option value="9">9 月</option><option value="10">10 月</option><option value="11">11 月</option><option value="12">12 月</option></select></label>
+        <label>05 / 人均总预算<select id="budget"><option value="Infinity">预算不限</option><option value="1500">约 ¥1,500 内</option><option value="3000">约 ¥3,000 内</option><option value="5000">约 ¥5,000 内</option><option value="8000">约 ¥8,000 内</option></select><span class="small">含往返交通与住宿餐饮的启发估算</span></label>
         <label>目的地省份<select id="province"><option value="">全部省份</option></select></label>
         <label>旅行节奏<select id="pace"><option value="relaxed">慢慢逛 · 每天 1 个重点</option><option value="balanced" selected>适中 · 每天最多 2 个重点</option></select></label>
+        <label class="exclude-field"><input id="exclude-visited" type="checkbox" checked><span>排除已经去过的城市</span><span class="small" id="exclude-summary"></span></label>
       </div>
-      <fieldset id="interests"><legend>04 / 想遇见什么 <span class="small">最多选 3 项，任一喜好匹配；不选则随缘</span></legend></fieldset>
-      <div class="draw-bar"><p id="candidate-status" class="small">目录连接后即可抽取。</p><button id="draw" type="submit" disabled>为我选一座城市 <span aria-hidden="true">↗</span></button></div>
-      <p class="small">“按天数建议”：1—2 天约 350 km 内，3—4 天约 800 km 内，5—7 天约 1600 km 内，8 天起不限。仅为探索范围，不是车程或交通可达性判断。</p>
+      <fieldset id="interests"><legend>06 / 想遇见什么 <span class="small">最多选 3 项，任一喜好匹配；不选则随缘</span></legend></fieldset>
+      <div class="draw-bar"><p id="candidate-status" class="small">目录连接后即可抽取。</p><button id="draw" type="submit" disabled>给我 3 个候选 <span aria-hidden="true">↗</span></button></div>
+      <p class="small">先按天数、距离与预算筛选，再比较 3 座城市。联网模式的驾车与高铁时间来自高德路线规划；示例模式或接口暂不可用时会明确显示为估算。</p>
     </form>
     <p id="draw-status" role="status" aria-live="polite"></p>
+    <section id="comparison" class="discover-panel comparison-panel" aria-labelledby="comparison-title" hidden tabindex="-1">
+      <div class="comparison-heading"><div><p class="eyebrow">THREE WAYS FORWARD / 三个方向</p><h2 id="comparison-title">先比较，再决定。</h2></div><button id="compare-again" type="button">换一组 ↻</button></div>
+      <div id="candidate-grid" class="candidate-grid"></div>
+      <p class="small">季节适宜度是基于月份与区域气候的启发提示，不代替天气预报；交通时间为路线规划预计或明确标注的参考估算，出发前请再核对班次与路况。</p>
+    </section>
     <section id="result" class="discover-panel result-panel" aria-labelledby="result-title" hidden tabindex="-1">
       <div class="result-top"><div><p class="eyebrow">YOUR NEXT STOP / 这次去这里</p><p id="result-region"></p><h2 id="result-title"></h2></div><div class="result-stamp" id="result-distance"></div></div>
+      <dl class="trip-facts" id="trip-facts"></dl>
       <p id="result-intro"></p><p id="result-reason" class="result-reason"></p><p id="result-tip" class="small"></p>
       <div class="resource-heading"><h3>把旅游资源摊开来看</h3><a id="city-map-link" target="_blank" rel="noopener noreferrer">打开城市互动地图 ↗</a></div>
       <p class="small" id="map-caption"></p><div id="resource-map" aria-label="旅游资源地图"></div><p id="map-status" role="status"></p>
       <ol id="places" class="place-grid"></ol>
-      <div class="result-actions"><button id="again" type="button">换一座，继续探索 ↻</button><button id="copy-result" type="button">复制旅行灵感</button><a id="memory-link" hidden>看看我的旅行记录 ↗</a></div>
+      <div class="result-actions"><button id="again" type="button">换一组，继续探索 ↻</button><button id="save-wishlist" type="button">保存到愿望清单 ☆</button><button id="copy-result" type="button">复制旅行灵感</button><a id="memory-link" hidden>看看我的旅行记录 ↗</a></div>
       <p class="small">这是旅行灵感，不是已核实的完整行程。营业、预约、门票、季节与实际路程请出发前向景区确认；地图保留来源署名。</p>
     </section>
     <noscript>请启用 JavaScript 使用随机推荐；现有旅行地图不受影响。</noscript>
   </main>
-  <script src="./assets/discover-data.js"></script><script src="./assets/discover-engine.js"></script><script src="./assets/discover-config.js"></script>
-  <script src="./assets/data.js"></script><script src="./assets/discover.js?v=20260905.1"></script>
+  <script src="./assets/discover-data.js"></script><script src="./assets/discover-engine.js?v=20260910.1"></script><script src="./assets/discover-config.js"></script>
+  <script src="./assets/data.js"></script><script src="./assets/discover.js?v=20260910.1"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 </body>
 </html>

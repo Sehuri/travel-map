@@ -619,7 +619,8 @@
         const position = getAmapCoordinate({
           name: destination.name,
           country: location.country,
-          coord: location.coord
+          coord: location.coord,
+          coordinateSystem: location.coordinateSystem
         });
         const marker = new AMap.Marker({
           position,
