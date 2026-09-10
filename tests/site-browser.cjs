@@ -120,8 +120,28 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('.amap-wishlist-marker-button').count(), 23);
     assert(await page.locator('[data-destination="江苏省 · 昆山市"]').count());
 
+    const dataSource = await fs.readFile(path.join(root, 'assets/data.js'), 'utf8');
+    await page.route('**/assets/data.js*', (route) => route.fulfill({
+      contentType: 'text/javascript',
+      body: `${dataSource}\nwindow.TRAVEL_DATA.guideDocuments = [
+        { placeType: 'visited', placeName: '日照', title: '日照海滨攻略', fileType: 'pdf', fileUrl: 'https://example.com/rizhao-guide.pdf' },
+        { placeType: 'wishlist', placeName: '新加坡', title: '新加坡自由行', fileType: 'html', fileUrl: 'https://example.com/singapore-guide.html' }
+      ];`
+    }));
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.locator('.city-card[aria-label="查看日照旅行详情"]').click();
+    const visitedGuide = page.locator('#city-guide-documents a');
+    assert.equal(await visitedGuide.innerText(), 'PDF\n日照海滨攻略\n↗');
+    assert.equal(await visitedGuide.getAttribute('href'), 'https://example.com/rizhao-guide.pdf');
+    await page.locator('#dialog-close').click();
+    await page.getByRole('tab', { name: /仍在期待/ }).click();
+    await page.getByRole('button', { name: '查看新加坡旅行笔记' }).click();
+    const wishlistGuide = page.locator('#wishlist-guide-documents a');
+    assert.match(await wishlistGuide.innerText(), /HTML\s+新加坡自由行/);
+    assert.equal(await wishlistGuide.getAttribute('href'), 'https://example.com/singapore-guide.html');
+
     assert.deepEqual(errors, []);
-    console.log('Homepage browser checks passed: filter-map sync, reset, wishlist map, locally saved wishes, mobile navigation, overflow, and year collapse.');
+    console.log('Homepage browser checks passed: filters, maps, local wishes, mobile navigation, and visited/wishlist guide links.');
   } finally {
     await browser?.close();
     await new Promise((resolve) => server.close(resolve));

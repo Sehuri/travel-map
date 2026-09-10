@@ -458,6 +458,7 @@ h1 em { color: var(--accent); font-weight: 400; }
 .city-card p { margin: 0; color: var(--muted); font-size: .78rem; }
 .city-card-coordinate { display: block; margin-top: .45rem; color: var(--faint); font-family: "SFMono-Regular", Consolas, monospace; font-size: .56rem; letter-spacing: .07em; }
 .city-card-score { display: inline-flex; margin-top: .75rem; color: var(--accent); font-size: .68rem; letter-spacing: .04em; }
+.guide-count-badge { display: inline-flex; width: fit-content; margin-top: .6rem; padding: .25rem .48rem; border: 1px solid rgba(228,255,117,.35); color: var(--accent); background: rgba(228,255,117,.06); font-size: .56rem; font-weight: 750; letter-spacing: .08em; }
 .city-card .arrow { position: absolute; right: 1.4rem; top: 1.4rem; color: var(--accent); font-size: 1.1rem; }
 .empty-state { padding: 3rem 0; color: var(--muted); }
 
@@ -637,6 +638,15 @@ dialog h2 { margin: 1rem 0; font-size: clamp(2.8rem, 7vw, 5rem); letter-spacing:
 .photo-grid button { aspect-ratio: 1; padding: 0; overflow: hidden; border: 0; border-radius: .4rem; background: #15232f; cursor: zoom-in; }
 .photo-grid img { width: 100%; height: 100%; object-fit: cover; }
 .guide-copy { margin: 2rem 0; padding: 1.4rem; border-left: 2px solid var(--accent); color: var(--ink); background: rgba(228,255,117,.04); }
+.guide-documents-panel { display: grid; gap: 1rem; margin: 1.5rem 0 0; padding: 1.15rem; border: 1px solid var(--line); background: rgba(228,255,117,.025); }
+.guide-documents-panel h3 { margin: .25rem 0 0; font-family: var(--display); font-size: 1.35rem; font-weight: 400; }
+.guide-document-list { display: grid; gap: .55rem; }
+.guide-document-link { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .75rem; padding: .75rem .8rem; border: 1px solid var(--line); color: var(--ink); text-decoration: none; }
+.guide-document-link:hover { border-color: var(--accent); background: rgba(228,255,117,.07); }
+.guide-document-link span:first-child { min-width: 3.15rem; color: var(--accent); font-size: .58rem; font-weight: 800; letter-spacing: .12em; }
+.guide-document-link strong { overflow: hidden; font-size: .76rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.guide-document-link span:last-child { color: var(--accent); }
+.guide-document-empty { margin: 0; color: var(--faint); font-size: .7rem; }
 .guide-planned-time { width: fit-content; margin: 1rem 0 0; padding: .42rem .7rem; border: 1px solid rgba(228,255,117,.45); border-radius: 999px; color: var(--accent); background: rgba(228,255,117,.06); font-size: .72rem; }
 .guide-links { display: flex; flex-wrap: wrap; gap: .7rem; }
 .guide-links a { padding: .55rem .85rem; border: 1px solid var(--line); color: var(--muted); text-decoration: none; font-size: .72rem; }

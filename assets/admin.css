@@ -65,6 +65,19 @@ aside option { padding: .55rem; }
 .photo-card-actions { display: flex; flex-wrap: wrap; gap: .35rem; }
 .photo-card-actions button { padding: .35rem .5rem; border-color: var(--line); color: var(--muted); background: transparent; font-size: .65rem; }
 .photo-card-actions button:hover { color: var(--accent); border-color: var(--accent); }
+.guide-upload-form { display: grid; grid-template-columns: minmax(140px, .75fr) minmax(190px, 1fr) minmax(220px, 1.4fr) minmax(240px, 1.4fr) auto; align-items: end; gap: .75rem; }
+.guide-upload-form > button { min-height: 43px; padding: .75rem 1rem; font-weight: 750; }
+.guide-admin-list { display: grid; gap: .65rem; margin-top: 1.2rem; }
+.guide-admin-card { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border: 1px solid var(--line); background: var(--panel-soft); }
+.guide-admin-card > div:first-child { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: .35rem .75rem; min-width: 0; }
+.guide-admin-card strong { overflow: hidden; color: var(--ink); font-size: .84rem; text-overflow: ellipsis; white-space: nowrap; }
+.guide-admin-card p { grid-column: 2; margin: 0; color: var(--faint); font-size: .66rem; }
+.guide-file-type { min-width: 3.4rem; padding: .3rem .45rem; border: 1px solid rgba(228,255,117,.38); color: var(--accent); font-size: .58rem; font-weight: 800; letter-spacing: .1em; text-align: center; }
+.guide-file-type.pdf { border-color: rgba(255,173,102,.45); color: var(--warm); }
+.guide-admin-actions { display: flex; flex: 0 0 auto; gap: .4rem; }
+.guide-admin-actions a, .guide-admin-actions button { padding: .48rem .68rem; border: 1px solid var(--line); color: var(--muted); background: transparent; font-size: .68rem; text-decoration: none; }
+.guide-admin-actions a:hover { color: var(--accent); border-color: var(--accent); }
+.guide-admin-actions button { color: var(--warm); border-color: rgba(255,173,102,.4); }
 .compact-field { display: grid; grid-template-columns: auto minmax(150px, 210px); align-items: center; gap: .6rem; }
 .table-scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: .75rem; }
@@ -79,13 +92,15 @@ td button { padding: .35rem .55rem; border-color: rgba(255,173,102,.4); color: v
   .field-grid { grid-template-columns: repeat(2, 1fr); }
   .photo-toolbar { grid-template-columns: 1fr 1fr; }
   .admin-photo-grid { grid-template-columns: repeat(2, 1fr); }
+  .guide-upload-form { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 640px) {
   .admin-header { align-items: flex-start; }
   .admin-header > div { justify-content: flex-end; flex-wrap: wrap; }
-  .inline-row, .workspace-grid, .field-grid, .photo-toolbar { grid-template-columns: 1fr; }
+  .inline-row, .workspace-grid, .field-grid, .photo-toolbar, .guide-upload-form { grid-template-columns: 1fr; }
   aside select { min-height: 190px; }
   .section-title { align-items: flex-start; flex-direction: column; }
   .admin-photo-grid { grid-template-columns: 1fr; }
   .compact-field { width: 100%; grid-template-columns: auto 1fr; }
+  .guide-admin-card { align-items: flex-start; flex-direction: column; }
 }

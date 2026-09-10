@@ -4,6 +4,7 @@
   let visits = [];
   let wishlist = [];
   let photoManifest = {};
+  let guideDocuments = [];
   const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
     year: "numeric",
     month: "long",
@@ -382,7 +383,13 @@
       ? `★ ${Number(rating.averageScore).toFixed(1)} · ${rating.ratingCount} 人`
       : "暂无评分";
 
-    button.append(number, routeNode, arrow, name, meta, coordinate, score);
+    const guideCount = guidesFor("visited", visit.name).length;
+    const guideBadge = document.createElement("span");
+    guideBadge.className = "guide-count-badge";
+    guideBadge.textContent = guideCount ? `攻略 ${guideCount}` : "";
+    guideBadge.hidden = !guideCount;
+
+    button.append(number, routeNode, arrow, name, meta, coordinate, score, guideBadge);
     button.addEventListener("click", () => openCity(visit));
     return button;
   }
@@ -748,6 +755,37 @@
     return url;
   }
 
+  function guidesFor(placeType, placeName) {
+    return guideDocuments.filter((guide) => guide.placeType === placeType && guide.placeName === placeName);
+  }
+
+  function renderGuideLinks(container, guides, emptyMessage = "这座城市还没有上传攻略文件。") {
+    container.replaceChildren();
+    if (!guides.length) {
+      const empty = document.createElement("p");
+      empty.className = "guide-document-empty";
+      empty.textContent = emptyMessage;
+      container.append(empty);
+      return;
+    }
+    guides.forEach((guide) => {
+      const anchor = document.createElement("a");
+      anchor.href = guide.fileUrl;
+      anchor.target = "_blank";
+      anchor.rel = "noopener noreferrer";
+      anchor.className = "guide-document-link";
+      const type = document.createElement("span");
+      type.textContent = guide.fileType.toUpperCase();
+      const title = document.createElement("strong");
+      title.textContent = guide.title;
+      const arrow = document.createElement("span");
+      arrow.setAttribute("aria-hidden", "true");
+      arrow.textContent = "↗";
+      anchor.append(type, title, arrow);
+      container.append(anchor);
+    });
+  }
+
   function updateCityUrl(visit) {
     const currentName = new URL(window.location.href).searchParams.get("city");
     if (currentName !== visit.name) {
@@ -776,6 +814,7 @@
       cover.alt = "";
     }
     document.querySelector("#share-status").textContent = "";
+    renderGuideLinks(document.querySelector("#city-guide-documents"), guidesFor("visited", visit.name));
     document.querySelector("#photo-grid").replaceChildren();
     document.querySelector("#photo-status").textContent = "正在寻找这座城市的旅行照片…";
     if (!cityDialog.open) cityDialog.showModal();
@@ -896,6 +935,12 @@
       const description = document.createElement("p");
       description.textContent = destination.desc;
 
+      const guideCount = guidesFor("wishlist", destination.name).length;
+      const guideBadge = document.createElement("span");
+      guideBadge.className = "guide-count-badge";
+      guideBadge.textContent = guideCount ? `攻略 ${guideCount}` : "";
+      guideBadge.hidden = !guideCount;
+
       button.append(icon, arrow);
       if (destination.plannedTime) {
         const plannedTime = document.createElement("span");
@@ -903,7 +948,7 @@
         plannedTime.textContent = `计划 · ${destination.plannedTime}`;
         button.append(plannedTime);
       }
-      button.append(name, description);
+      button.append(name, description, guideBadge);
       button.addEventListener("click", () => openGuide(destination));
       grid.append(button);
     });
@@ -974,6 +1019,12 @@
     const links = document.querySelector("#guide-links");
     links.replaceChildren();
 
+    renderGuideLinks(
+      document.querySelector("#wishlist-guide-documents"),
+      guidesFor("wishlist", destination.name),
+      "这个目的地还没有上传攻略文件。"
+    );
+
     const sources = [
       ["小红书", `https://www.xiaohongshu.com/search_result?keyword=${encodeURIComponent(destination.name)}`],
       ["马蜂窝", `https://www.mafengwo.cn/search/s.php?q=${encodeURIComponent(destination.name)}`],
@@ -1043,6 +1094,7 @@
     visits = content.visits;
     wishlist = content.wishlist;
     photoManifest = content.photoManifest;
+    guideDocuments = content.guideDocuments || [];
     initializeStats();
     initializeExtremeFootprints();
     initializeFilters();

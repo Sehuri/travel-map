@@ -14,7 +14,8 @@
     "remove-city-override", "photo-city", "photo-files", "upload-photos", "import-photos", "photo-admin-status",
     "admin-photo-grid", "wish-picker", "wish-form", "wish-name", "wish-icon", "wish-order", "wish-description",
     "wish-guide", "wish-planned-time", "wish-hidden", "wish-status", "new-wish", "remove-wish-override", "rating-city-filter",
-    "rating-admin-status", "ratings-table"
+    "guide-upload-form", "guide-place-type", "guide-place-name", "guide-title", "guide-file", "upload-guide",
+    "guide-admin-status", "guide-admin-list", "rating-admin-status", "ratings-table"
   ].map((id) => [id.replaceAll("-", "_"), document.getElementById(id)]));
 
   let client = null;
@@ -22,6 +23,7 @@
   let cityRows = new Map();
   let wishRows = new Map();
   let ratingRows = [];
+  let guideRows = [];
   let currentCityName = "";
   let currentWishName = "";
   let creatingCity = false;
@@ -107,6 +109,7 @@
     elements.rating_city_filter.replaceChildren(new Option("全部城市", "all"));
     names.forEach((name) => elements.rating_city_filter.append(new Option(name, name)));
     if (["all", ...names].includes(ratingValue)) elements.rating_city_filter.value = ratingValue;
+    populateGuidePlaces();
   }
 
   function renderCityForm(name) {
@@ -406,6 +409,155 @@
       .sort((a, b) => effectiveWish(a).sortOrder - effectiveWish(b).sortOrder || a.localeCompare(b, "zh-CN"));
     if (!currentWishName || !names.includes(currentWishName)) currentWishName = names[0] || "";
     refillSelect(elements.wish_picker, names, currentWishName, (name) => `${effectiveWish(name).hidden ? "[已隐藏] " : ""}${name}`);
+    populateGuidePlaces();
+  }
+
+  function guidePlaceNames() {
+    if (elements.guide_place_type.value === "wishlist") {
+      return [...new Set([...baseWishMap.keys(), ...wishRows.keys()])]
+        .filter((name) => !effectiveWish(name)?.hidden)
+        .sort((a, b) => a.localeCompare(b, "zh-CN"));
+    }
+    return cityNames().filter((name) => !effectiveCity(name)?.hidden);
+  }
+
+  function populateGuidePlaces() {
+    if (!elements.guide_place_name) return;
+    const previous = elements.guide_place_name.value;
+    const names = guidePlaceNames();
+    refillSelect(elements.guide_place_name, names, names.includes(previous) ? previous : names[0]);
+    renderGuideRows();
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  }
+
+  function renderGuideRows() {
+    if (!elements.guide_admin_list) return;
+    const placeType = elements.guide_place_type.value;
+    const placeName = elements.guide_place_name.value;
+    const rows = guideRows.filter((row) => row.place_type === placeType && row.place_name === placeName && !row.is_hidden);
+    elements.guide_admin_list.replaceChildren();
+    if (!placeName) {
+      elements.guide_admin_list.append(emptyCopy("当前分类下没有可关联的目的地。"));
+      return;
+    }
+    if (!rows.length) {
+      elements.guide_admin_list.append(emptyCopy(`${placeName}还没有上传攻略。`));
+      return;
+    }
+    rows.forEach((guide) => {
+      const card = document.createElement("article");
+      card.className = "guide-admin-card";
+      const copy = document.createElement("div");
+      const type = document.createElement("span");
+      type.className = `guide-file-type ${guide.file_type}`;
+      type.textContent = guide.file_type.toUpperCase();
+      const title = document.createElement("strong");
+      title.textContent = guide.title;
+      const meta = document.createElement("p");
+      meta.textContent = `${formatFileSize(Number(guide.file_size))} · ${new Intl.DateTimeFormat("zh-CN", { dateStyle: "medium" }).format(new Date(guide.created_at))}`;
+      copy.append(type, title, meta);
+      const actions = document.createElement("div");
+      actions.className = "guide-admin-actions";
+      const open = document.createElement("a");
+      open.href = guide.file_url;
+      open.target = "_blank";
+      open.rel = "noopener noreferrer";
+      open.textContent = "查看 ↗";
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "删除";
+      remove.addEventListener("click", () => deleteGuide(guide));
+      actions.append(open, remove);
+      card.append(copy, actions);
+      elements.guide_admin_list.append(card);
+    });
+  }
+
+  function guideFileDetails(file) {
+    const extension = (file.name.split(".").pop() || "").toLowerCase();
+    if (["html", "htm"].includes(extension)) return { fileType: "html", extension, contentType: "text/html" };
+    if (extension === "pdf") return { fileType: "pdf", extension, contentType: "application/pdf" };
+    throw new Error("只支持 HTML、HTM 或 PDF 文件。");
+  }
+
+  async function uploadGuide(event) {
+    event.preventDefault();
+    const placeType = elements.guide_place_type.value;
+    const placeName = elements.guide_place_name.value;
+    const file = elements.guide_file.files[0];
+    if (!placeName || !file) {
+      status(elements.guide_admin_status, "请选择目的地和攻略文件。", true);
+      return;
+    }
+    if (file.size < 1 || file.size > 20 * 1024 * 1024) {
+      status(elements.guide_admin_status, "攻略文件必须小于 20 MB。", true);
+      return;
+    }
+    let details;
+    try {
+      details = guideFileDetails(file);
+    } catch (error) {
+      status(elements.guide_admin_status, error.message, true);
+      return;
+    }
+    const title = elements.guide_title.value.trim() || file.name.replace(/\.[^.]+$/, "");
+    const path = `${placeType}/${crypto.randomUUID()}.${details.extension}`;
+    setBusy(elements.guide_upload_form, true);
+    status(elements.guide_admin_status, `正在上传 ${file.name}…`);
+    try {
+      const upload = await client.storage.from("travel-guides").upload(path, file, {
+        upsert: false,
+        contentType: details.contentType,
+        cacheControl: "3600"
+      });
+      if (upload.error) throw upload.error;
+      const fileUrl = client.storage.from("travel-guides").getPublicUrl(path).data.publicUrl;
+      const insert = await client.from("travel_guides").insert({
+        place_type: placeType,
+        place_name: placeName,
+        title,
+        file_type: details.fileType,
+        file_url: fileUrl,
+        storage_path: path,
+        file_size: file.size,
+        created_by: user.id
+      }).select().single();
+      if (insert.error) {
+        await client.storage.from("travel-guides").remove([path]);
+        throw insert.error;
+      }
+      guideRows.unshift(insert.data);
+      elements.guide_title.value = "";
+      elements.guide_file.value = "";
+      renderGuideRows();
+      status(elements.guide_admin_status, `${title}上传完成，公开网站刷新后即可查看。`);
+    } catch (error) {
+      status(elements.guide_admin_status, `上传失败：${error.message}`, true);
+    } finally {
+      setBusy(elements.guide_upload_form, false);
+    }
+  }
+
+  async function deleteGuide(guide) {
+    if (!window.confirm(`确定删除攻略“${guide.title}”吗？文件删除后无法恢复。`)) return;
+    status(elements.guide_admin_status, "正在删除攻略…");
+    const removed = await client.storage.from("travel-guides").remove([guide.storage_path]);
+    if (removed.error) {
+      status(elements.guide_admin_status, `文件删除失败：${removed.error.message}`, true);
+      return;
+    }
+    const result = await client.from("travel_guides").delete().eq("id", guide.id);
+    if (result.error) {
+      status(elements.guide_admin_status, `记录删除失败：${result.error.message}`, true);
+      return;
+    }
+    guideRows = guideRows.filter((row) => row.id !== guide.id);
+    renderGuideRows();
+    status(elements.guide_admin_status, "攻略已删除。" );
   }
 
   function renderWishForm(name) {
@@ -528,10 +680,11 @@
 
   async function loadAdminData() {
     status(elements.city_status, "正在载入后台数据…");
-    const [cities, wishes, ratings] = await Promise.all([
+    const [cities, wishes, ratings, guides] = await Promise.all([
       client.from("travel_cities").select("*").order("visit_date", { ascending: false }),
       client.from("travel_wishlist").select("*").order("sort_order", { ascending: true }),
-      client.from("city_ratings").select("city_name,user_id,score,created_at,updated_at").order("updated_at", { ascending: false })
+      client.from("city_ratings").select("city_name,user_id,score,created_at,updated_at").order("updated_at", { ascending: false }),
+      client.from("travel_guides").select("*").order("created_at", { ascending: false })
     ]);
     const migrationError = cities.error || wishes.error;
     if (migrationError) {
@@ -544,11 +697,19 @@
     cityRows = new Map((cities.data || []).map((row) => [row.name, row]));
     wishRows = new Map((wishes.data || []).map((row) => [row.name, row]));
     ratingRows = ratings.error ? [] : (ratings.data || []);
+    guideRows = guides.error ? [] : (guides.data || []);
     populateCityPickers();
     populateWishPicker();
     if (currentCityName) renderCityForm(currentCityName);
     if (currentWishName) renderWishForm(currentWishName);
     renderRatings();
+    renderGuideRows();
+    if (guides.error) {
+      setBusy(elements.guide_upload_form, true);
+      status(elements.guide_admin_status, "攻略数据库尚未启用。请先运行 supabase/guide_documents.sql。", true);
+    } else {
+      status(elements.guide_admin_status, "选择目的地后，可以上传新的 HTML 或 PDF 攻略。" );
+    }
     await loadPhotos(elements.photo_city.value);
   }
 
@@ -607,6 +768,9 @@
     elements.wish_form.addEventListener("submit", saveWish);
     elements.new_wish.addEventListener("click", startNewWish);
     elements.remove_wish_override.addEventListener("click", removeWishOverride);
+    elements.guide_place_type.addEventListener("change", populateGuidePlaces);
+    elements.guide_place_name.addEventListener("change", renderGuideRows);
+    elements.guide_upload_form.addEventListener("submit", uploadGuide);
     elements.rating_city_filter.addEventListener("change", renderRatings);
   }
 

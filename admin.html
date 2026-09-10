@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#07111f">
   <meta name="robots" content="noindex,nofollow">
   <title>站主管理｜Sehuri 的旅行足迹</title>
-  <link rel="stylesheet" href="./assets/admin.css?v=20260901.1">
+  <link rel="stylesheet" href="./assets/admin.css?v=20260910.2">
 </head>
 <body>
   <header class="admin-header">
@@ -42,6 +42,7 @@
           <a href="#cities">城市</a>
           <a href="#photos">照片</a>
           <a href="#wishes">愿望清单</a>
+          <a href="#guides">攻略文件</a>
           <a href="#ratings-admin">评分</a>
         </nav>
       </section>
@@ -121,9 +122,32 @@
         </div>
       </section>
 
+      <section class="admin-section" id="guides">
+        <div class="section-title">
+          <div><p class="eyebrow">04 / GUIDES</p><h2>攻略文件</h2></div>
+        </div>
+        <form class="guide-upload-form" id="guide-upload-form">
+          <label>目的地类型
+            <select id="guide-place-type">
+              <option value="visited">已经去过</option>
+              <option value="wishlist">想去的地方</option>
+            </select>
+          </label>
+          <label>关联目的地<select id="guide-place-name" required></select></label>
+          <label>攻略标题<input id="guide-title" maxlength="160" placeholder="留空则使用文件名"></label>
+          <label class="file-field">选择攻略文件
+            <input id="guide-file" type="file" accept=".html,.htm,.pdf,text/html,application/xhtml+xml,application/pdf" required>
+          </label>
+          <button id="upload-guide" type="submit">上传攻略</button>
+        </form>
+        <p class="hint">支持 HTML、HTM 和 PDF，单个文件不超过 20 MB。HTML 会按原样公开，请只上传自己制作或信任的文件。</p>
+        <p class="status" id="guide-admin-status" aria-live="polite"></p>
+        <div class="guide-admin-list" id="guide-admin-list"></div>
+      </section>
+
       <section class="admin-section" id="ratings-admin">
         <div class="section-title">
-          <div><p class="eyebrow">04 / RATINGS</p><h2>评分管理</h2></div>
+          <div><p class="eyebrow">05 / RATINGS</p><h2>评分管理</h2></div>
           <label class="compact-field">筛选城市<select id="rating-city-filter"><option value="all">全部城市</option></select></label>
         </div>
         <p class="hint">删除明显异常的评分后，城市平均分会自动重新计算。用户编号仅显示前 8 位。</p>
@@ -142,6 +166,6 @@
   <script src="./assets/data.js?v=20260907.1"></script>
   <script src="./assets/photos.js"></script>
   <script src="./assets/supabase-config.js"></script>
-  <script src="./assets/admin.js?v=20260907.1"></script>
+  <script src="./assets/admin.js?v=20260910.2"></script>
 </body>
 </html>

@@ -38,10 +38,16 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.jpg
     assert.match(await page.locator('.candidate-card').first().innerText(),/高铁|动车/);
     const firstGroup=await page.locator('.candidate-card h3').allTextContents();
     await page.locator('#comparison').screenshot({path:path.join(os.tmpdir(),'travel-discover-comparison.png')});
-    const saveableIndex=await page.locator('.candidate-card').evaluateAll(cards=>{
+    const findSaveable=()=>page.locator('.candidate-card').evaluateAll(cards=>{
       const builtIn=new Set(window.TRAVEL_DATA.wishlist.map(item=>(item.mapLabel||item.name.split(' · ').at(-1)).replace(/市$/,'')));
       return cards.findIndex(card=>!builtIn.has(card.querySelector('h3').textContent.replace(/市$/,'')));
     });
+    let saveableIndex=await findSaveable();
+    for(let attempt=0;saveableIndex<0&&attempt<3;attempt++){
+      await page.locator('#compare-again').click();
+      await page.waitForFunction(()=>!document.querySelector('#draw').disabled);
+      saveableIndex=await findSaveable();
+    }
     assert(saveableIndex>=0);
     await page.locator('.choose-candidate').nth(saveableIndex).click();
     await page.waitForFunction(()=>!document.querySelector('#result').hidden);

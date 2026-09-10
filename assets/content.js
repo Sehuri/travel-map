@@ -8,6 +8,7 @@
     visits: [...baseData.visits],
     wishlist: [...baseData.wishlist],
     photoManifest: { ...basePhotos },
+    guideDocuments: [...(baseData.guideDocuments || [])],
     connected: false
   };
 
@@ -103,16 +104,32 @@
     return result;
   }
 
+  function mergeGuides(rows) {
+    return (rows || [])
+      .filter((row) => !row.is_hidden && ["visited", "wishlist"].includes(row.place_type))
+      .map((row) => ({
+        id: row.id,
+        placeType: row.place_type,
+        placeName: row.place_name,
+        title: row.title,
+        fileType: row.file_type,
+        fileUrl: row.file_url,
+        fileSize: Number(row.file_size || 0),
+        createdAt: row.created_at
+      }));
+  }
+
   async function load() {
     if (!configured()) return state;
     const client = window.supabase.createClient(config.url, config.publishableKey, {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
     });
     try {
-      const [cities, wishes, photos] = await Promise.all([
+      const [cities, wishes, photos, guides] = await Promise.all([
         client.from("travel_cities").select("name,country,region,visit_date,longitude,latitude,description,cover_url,is_hidden"),
         client.from("travel_wishlist").select("name,icon,description,guide,planned_time,sort_order,is_hidden"),
-        client.from("city_photos").select("city_name,image_url,sort_order,created_at,is_hidden")
+        client.from("city_photos").select("city_name,image_url,sort_order,created_at,is_hidden"),
+        client.from("travel_guides").select("id,place_type,place_name,title,file_type,file_url,file_size,created_at,is_hidden")
       ]);
       const hasError = cities.error || wishes.error || photos.error;
       if (hasError) return state;
@@ -120,6 +137,7 @@
         visits: mergeCities(cities.data),
         wishlist: mergeLocalWishlist(mergeWishlist(wishes.data)),
         photoManifest: mergePhotos(photos.data),
+        guideDocuments: guides.error ? [] : mergeGuides(guides.data),
         connected: true
       };
       return state;

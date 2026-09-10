@@ -72,3 +72,14 @@ Publishable Key 设计上可以出现在浏览器代码中，真正的权限由 
 如果管理后台在此前已经启用，只需在 SQL Editor 运行一次 [`supabase/wishlist_planned_time.sql`](./supabase/wishlist_planned_time.sql)，即可增加计划时间字段并清理已经拆分的“成都 · 重庆”旧记录。
 
 照片会上传到公开的 `city-photos` Storage bucket。Bucket 只允许站主写入，访客只能读取；每张图片限制为 15 MB。
+
+## 6. 启用攻略文件上传
+
+在已经启用管理后台的项目中，再到 Supabase Dashboard 的 SQL Editor 运行一次
+[`supabase/guide_documents.sql`](./supabase/guide_documents.sql)。这个迁移不会修改站主邮箱或现有旅行资料，只会新增：
+
+- `travel_guides` 攻略记录表
+- `travel-guides` 文件存储桶
+- 仅站主可写、所有访客可读取已发布攻略的权限策略
+
+完成后，打开管理后台的“攻略文件”区域，即可为“已经去过”或“想去的地方”选择目的地并上传 HTML、HTM 或 PDF。单个文件限制为 20 MB；HTML 会在 Supabase Storage 的独立域名中按原样打开，因此只应上传自己制作或信任的网页文件。
