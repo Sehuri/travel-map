@@ -41,6 +41,15 @@ create table if not exists public.city_photos (
   unique (city_name, image_url)
 );
 
+create table if not exists public.travel_city_visits (
+  id uuid primary key default gen_random_uuid(),
+  city_name text not null,
+  visit_date date not null,
+  created_by uuid references auth.users(id),
+  created_at timestamptz not null default now(),
+  unique (city_name, visit_date)
+);
+
 create table if not exists public.travel_guides (
   id uuid primary key default gen_random_uuid(),
   place_type text not null check (place_type in ('visited', 'wishlist')),
@@ -58,6 +67,8 @@ create table if not exists public.travel_guides (
 
 create index if not exists city_photos_city_sort_idx
   on public.city_photos (city_name, sort_order, created_at);
+create index if not exists travel_city_visits_city_date_idx
+  on public.travel_city_visits (city_name, visit_date desc);
 alter table public.city_photos add column if not exists is_hidden boolean not null default false;
 create index if not exists travel_wishlist_sort_idx
   on public.travel_wishlist (sort_order, name);
@@ -67,6 +78,7 @@ create index if not exists travel_guides_place_idx
 alter table public.travel_cities enable row level security;
 alter table public.travel_wishlist enable row level security;
 alter table public.city_photos enable row level security;
+alter table public.travel_city_visits enable row level security;
 alter table public.travel_guides enable row level security;
 
 drop policy if exists travel_cities_public_read on public.travel_cities;
@@ -120,6 +132,19 @@ to authenticated
 using (public.is_current_user_owner())
 with check (public.is_current_user_owner() and (select auth.uid()) = created_by);
 
+drop policy if exists travel_city_visits_public_read on public.travel_city_visits;
+create policy travel_city_visits_public_read
+on public.travel_city_visits for select
+to anon, authenticated
+using (true);
+
+drop policy if exists travel_city_visits_owner_all on public.travel_city_visits;
+create policy travel_city_visits_owner_all
+on public.travel_city_visits for all
+to authenticated
+using (public.is_current_user_owner())
+with check (public.is_current_user_owner() and (select auth.uid()) = created_by);
+
 drop policy if exists travel_guides_public_read on public.travel_guides;
 create policy travel_guides_public_read
 on public.travel_guides for select
@@ -167,9 +192,10 @@ using (public.is_current_user_owner());
 revoke all on public.travel_cities from anon, authenticated;
 revoke all on public.travel_wishlist from anon, authenticated;
 revoke all on public.city_photos from anon, authenticated;
+revoke all on public.travel_city_visits from anon, authenticated;
 revoke all on public.travel_guides from anon, authenticated;
-grant select on public.travel_cities, public.travel_wishlist, public.city_photos, public.travel_guides to anon, authenticated;
-grant insert, update, delete on public.travel_cities, public.travel_wishlist, public.city_photos, public.travel_guides to authenticated;
+grant select on public.travel_cities, public.travel_city_visits, public.travel_wishlist, public.city_photos, public.travel_guides to anon, authenticated;
+grant insert, update, delete on public.travel_cities, public.travel_city_visits, public.travel_wishlist, public.city_photos, public.travel_guides to authenticated;
 grant delete on public.city_ratings to authenticated;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

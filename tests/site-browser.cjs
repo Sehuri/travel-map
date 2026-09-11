@@ -126,10 +126,20 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       body: `${dataSource}\nwindow.TRAVEL_DATA.guideDocuments = [
         { placeType: 'visited', placeName: '日照', title: '日照海滨攻略', fileType: 'pdf', fileUrl: 'https://example.com/rizhao-guide.pdf' },
         { placeType: 'wishlist', placeName: '新加坡', title: '新加坡自由行', fileType: 'html', fileUrl: 'https://dbmuozbkzkxgigblsgmz.supabase.co/storage/v1/object/public/travel-guides/wishlist/test-guide.html' }
-      ];`
+      ];
+      window.TRAVEL_DATA.visits.push({ ...window.TRAVEL_DATA.visits.find((visit) => visit.name === '南京'), date: '2026-09-11' });`
     }));
     await page.reload({ waitUntil: 'networkidle' });
-    await page.locator('.city-card[aria-label="查看日照旅行详情"]').click();
+    assert.equal(await page.locator('.city-card').count(), 53);
+    assert.equal(await page.locator('.amap-marker-button').count(), 52);
+    assert.equal(await page.locator('#city-count').innerText(), '52');
+    assert.equal(await page.locator('#route-city-count').innerText(), '53');
+    assert.match(await page.locator('#filter-summary').innerText(), /53 次到访 · 52 座城市/);
+    await page.locator('.city-card[aria-label="查看南京2026-09-11旅行详情"]').click();
+    assert.match(await page.locator('#dialog-date').innerText(), /2026年9月11日/);
+    assert.match(await page.locator('#dialog-description').innerText(), /六朝古都/);
+    await page.locator('#dialog-close').click();
+    await page.locator('.city-card[aria-label^="查看日照"]').click();
     const visitedGuide = page.locator('#city-guide-documents a');
     assert.equal(await visitedGuide.innerText(), 'PDF\n日照海滨攻略\n↗');
     assert.equal(await visitedGuide.getAttribute('href'), 'https://example.com/rizhao-guide.pdf');

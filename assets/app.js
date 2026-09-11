@@ -74,7 +74,24 @@
     statAnimations.set(element, requestAnimationFrame(tick));
   }
 
+  function uniqueCityVisits(items) {
+    if (window.TRAVEL_VISIT_ENGINE?.uniqueCities) return window.TRAVEL_VISIT_ENGINE.uniqueCities(items);
+    return [...new Map(items.map((visit) => [visit.name, visit])).values()];
+  }
+
+  function visitKey(visit) {
+    return visit.visitId || `${visit.name}:${visit.date}`;
+  }
+
+  function formatResultCount(items) {
+    const cityTotal = uniqueCityVisits(items).length;
+    return items.length === cityTotal
+      ? `${cityTotal} 座城市`
+      : `${items.length} 次到访 · ${cityTotal} 座城市`;
+  }
+
   function updateTravelStats(items, animate = false) {
+    const cityTotal = uniqueCityVisits(items).length;
     const countries = new Set(items.map((visit) => visit.country));
     const years = new Set(items.map((visit) => visit.date.slice(0, 4)));
     const update = (selector, value) => {
@@ -87,7 +104,7 @@
         element.textContent = value;
       }
     };
-    update("#city-count", items.length);
+    update("#city-count", cityTotal);
     update("#country-count", countries.size);
     update("#year-count", years.size);
     update("#route-city-count", items.length);
@@ -273,7 +290,7 @@
       visits
         .slice()
         .sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name, "zh-CN"))
-        .map((visit, index) => [visit.name, index + 1])
+        .map((visit, index) => [visitKey(visit), index + 1])
     );
     const hasActiveFilters = yearFilter.value !== "all"
       || locationFilter.value !== "all"
@@ -286,8 +303,8 @@
     initializeExtremeFootprints(filtered);
     applyMapMode();
     filterSummary.textContent = hasActiveFilters
-      ? `找到 ${filtered.length} 座城市`
-      : `共 ${visits.length} 座城市`;
+      ? `找到 ${formatResultCount(filtered)}`
+      : `共 ${formatResultCount(visits)}`;
 
     if (!filtered.length) {
       const empty = document.createElement("p");
@@ -336,7 +353,7 @@
       entries
         .slice()
         .sort((a, b) => a.date.localeCompare(b.date))
-        .forEach((visit) => cities.append(createCityCard(visit, routeOrder.get(visit.name))));
+        .forEach((visit) => cities.append(createCityCard(visit, routeOrder.get(visitKey(visit)))));
 
       group.append(heading, cities);
       timeline.append(group);
@@ -351,7 +368,7 @@
     const button = document.createElement("button");
     button.type = "button";
     button.className = "city-card";
-    button.setAttribute("aria-label", `查看${visit.name}旅行详情`);
+    button.setAttribute("aria-label", `查看${visit.name}${visit.date}旅行详情`);
 
     const number = document.createElement("span");
     number.className = "index";
@@ -405,7 +422,7 @@
       return;
     }
 
-    const ranked = visits
+    const ranked = uniqueCityVisits(visits)
       .map((visit) => ({ visit, rating: ratingSummaries.get(visit.name) }))
       .filter(({ rating }) => rating?.ratingCount > 0)
       .sort((a, b) => Number(b.rating.averageScore) - Number(a.rating.averageScore)
@@ -546,8 +563,9 @@
       chinaMap.addControl(new AMap.ToolBar({ position: "LT" }));
       const mapEngine = window.TRAVEL_MAP_ENGINE || {};
       const normalizeDistrictName = mapEngine.normalizeChinaDistrictName || ((name) => String(name || "").replace(/市$/u, ""));
-      const chinaVisits = visits.filter((visit) => visit.country === "中国");
-      const eastAsiaVisits = visits.filter((visit) => visit.country === "中国" || visit.country === "日本");
+      const uniqueVisits = uniqueCityVisits(visits);
+      const chinaVisits = uniqueVisits.filter((visit) => visit.country === "中国");
+      const eastAsiaVisits = uniqueVisits.filter((visit) => visit.country === "中国" || visit.country === "日本");
       const visitsByDistrict = new Map(chinaVisits.map((visit) => [normalizeDistrictName(visit.name), visit]));
       const getDistrictVisit = (properties) => visitsByDistrict.get(normalizeDistrictName(properties?.NAME_CHN)) || null;
       const getDistrictEventVisit = (event) => {
@@ -566,7 +584,9 @@
       chinaDistrictLayer.on?.("click", (event) => {
         if (mapMode !== "journeys") return;
         const visit = getDistrictEventVisit(event);
-        if (visit && visibleJourneyVisits.includes(visit)) openCity(visit);
+        if (visit && visibleJourneyVisits.some((visible) => visible.name === visit.name)) {
+          openCity(visibleJourneyVisits.find((visible) => visible.name === visit.name) || visit);
+        }
       });
 
       const getAmapCoordinate = mapEngine.getAmapCoordinate || ((place) => place.coord);
@@ -662,7 +682,7 @@
       fill(properties) {
         if (mapMode !== "journeys") return "rgba(255, 255, 255, 0)";
         const visit = getDistrictVisit(properties);
-        if (!visit || !visibleJourneyVisits.includes(visit)) return "rgba(255, 255, 255, 0)";
+        if (!visit || !visibleJourneyVisits.some((visible) => visible.name === visit.name)) return "rgba(255, 255, 255, 0)";
         return visit.name === selectedName
           ? "rgba(255, 142, 76, .68)"
           : "rgba(14, 183, 199, .52)";
@@ -713,13 +733,13 @@
     document.querySelector("#map-title").textContent = isWishlist ? "把愿望放到地图上" : "把旅程摊开来看";
     document.querySelector("#map-primary-label").textContent = isWishlist
       ? "想去目的地"
-      : (filtersActive ? `筛选结果 ${visibleJourneyVisits.length}` : "已到访");
+      : (filtersActive ? `筛选结果 ${uniqueCityVisits(visibleJourneyVisits).length}` : "已到访");
     document.querySelector("#map-secondary-label").textContent = isWishlist ? "当前选择" : "当前城市";
     document.querySelector("#map-primary-dot").className = `legend-dot ${isWishlist ? "wishlist" : "visited"}`;
     document.querySelector("#map-interaction-hint").textContent = isWishlist
       ? "地图展示愿望清单中的目的地，点击光点查看旅行攻略"
       : (filtersActive
-          ? `地图已同步展示筛选后的 ${visibleJourneyVisits.length} 座城市`
+          ? `地图已同步展示筛选后的 ${uniqueCityVisits(visibleJourneyVisits).length} 座城市`
           : "中国足迹按市域填色，日本足迹以城市光点标记");
     document.querySelector("#footprint-extremes").hidden = isWishlist || !visibleJourneyVisits.length;
     refreshChinaDistrictStyles();
@@ -748,9 +768,11 @@
     applyMapMode();
   }
 
-  function getCityUrl(cityName) {
+  function getCityUrl(cityName, visitDate = "") {
     const url = new URL(window.location.href);
     url.searchParams.set("city", cityName);
+    if (visitDate) url.searchParams.set("visit", visitDate);
+    else url.searchParams.delete("visit");
     url.hash = "";
     return url;
   }
@@ -795,9 +817,9 @@
   }
 
   function updateCityUrl(visit) {
-    const currentName = new URL(window.location.href).searchParams.get("city");
-    if (currentName !== visit.name) {
-      history.pushState({ travelCity: visit.name }, "", getCityUrl(visit.name));
+    const currentUrl = new URL(window.location.href);
+    if (currentUrl.searchParams.get("city") !== visit.name || currentUrl.searchParams.get("visit") !== visit.date) {
+      history.pushState({ travelCity: visit.name, visitDate: visit.date }, "", getCityUrl(visit.name, visit.date));
     }
   }
 
@@ -833,8 +855,10 @@
   }
 
   function syncCityFromUrl() {
-    const cityName = new URL(window.location.href).searchParams.get("city");
-    const visit = visits.find((entry) => entry.name === cityName);
+    const url = new URL(window.location.href);
+    const cityName = url.searchParams.get("city");
+    const visitDate = url.searchParams.get("visit");
+    const visit = visits.find((entry) => entry.name === cityName && (!visitDate || entry.date === visitDate));
     syncingHistory = true;
     if (visit) {
       const markerEntry = chinaMarkers.find((entry) => entry.visit.name === visit.name);
@@ -850,6 +874,7 @@
     const url = new URL(window.location.href);
     if (!url.searchParams.has("city")) return;
     url.searchParams.delete("city");
+    url.searchParams.delete("visit");
     history.replaceState(null, "", url);
   }
 
@@ -863,7 +888,7 @@
 
   async function copyCityLink() {
     if (!activeCity) return;
-    const url = getCityUrl(activeCity.name).toString();
+    const url = getCityUrl(activeCity.name, activeCity.date).toString();
     try {
       await navigator.clipboard.writeText(url);
       setShareStatus("链接已复制");
@@ -886,7 +911,7 @@
     const shareData = {
       title: `${activeCity.name}｜Sehuri 的旅行足迹`,
       text: `看看 Sehuri 在${activeCity.name}的旅行记忆`,
-      url: getCityUrl(activeCity.name).toString()
+      url: getCityUrl(activeCity.name, activeCity.date).toString()
     };
     if (navigator.share) {
       try {

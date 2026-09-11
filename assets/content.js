@@ -42,29 +42,6 @@
     return [...wishes.values()].sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0));
   }
 
-  function mergeCities(rows) {
-    const cities = new Map(baseData.visits.map((visit) => [visit.name, { ...visit }]));
-    (rows || []).forEach((row) => {
-      if (row.is_hidden) {
-        cities.delete(row.name);
-        return;
-      }
-      const current = cities.get(row.name) || {};
-      if (!row.country || !row.visit_date || row.longitude === null || row.latitude === null) return;
-      cities.set(row.name, {
-        ...current,
-        name: row.name,
-        country: row.country,
-        region: row.region || current.region || "",
-        date: row.visit_date,
-        coord: [Number(row.longitude), Number(row.latitude)],
-        desc: row.description ?? current.desc ?? "",
-        coverUrl: row.cover_url || ""
-      });
-    });
-    return [...cities.values()].sort((a, b) => a.date.localeCompare(b.date));
-  }
-
   function mergeWishlist(rows) {
     const wishes = new Map(baseData.wishlist.map((item, index) => [item.name, { ...item, sortOrder: index }]));
     (rows || []).forEach((row) => {
@@ -125,8 +102,9 @@
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
     });
     try {
-      const [cities, wishes, photos, guides] = await Promise.all([
+      const [cities, visitDates, wishes, photos, guides] = await Promise.all([
         client.from("travel_cities").select("name,country,region,visit_date,longitude,latitude,description,cover_url,is_hidden"),
+        client.from("travel_city_visits").select("id,city_name,visit_date"),
         client.from("travel_wishlist").select("name,icon,description,guide,planned_time,sort_order,is_hidden"),
         client.from("city_photos").select("city_name,image_url,sort_order,created_at,is_hidden"),
         client.from("travel_guides").select("id,place_type,place_name,title,file_type,file_url,file_size,created_at,is_hidden")
@@ -134,7 +112,7 @@
       const hasError = cities.error || wishes.error || photos.error;
       if (hasError) return state;
       state = {
-        visits: mergeCities(cities.data),
+        visits: window.TRAVEL_VISIT_ENGINE.mergeCityVisits(baseData.visits, cities.data, visitDates.error ? [] : visitDates.data),
         wishlist: mergeLocalWishlist(mergeWishlist(wishes.data)),
         photoManifest: mergePhotos(photos.data),
         guideDocuments: guides.error ? [] : mergeGuides(guides.data),

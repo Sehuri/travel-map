@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#07111f">
   <meta name="robots" content="noindex,nofollow">
   <title>站主管理｜Sehuri 的旅行足迹</title>
-  <link rel="stylesheet" href="./assets/admin.css?v=20260910.2">
+  <link rel="stylesheet" href="./assets/admin.css?v=20260911.1">
 </head>
 <body>
   <header class="admin-header">
@@ -62,12 +62,24 @@
               <label>城市名称<input id="city-name" required maxlength="80"></label>
               <label>国家或地区<input id="city-country" required maxlength="80"></label>
               <label>区域<input id="city-region" maxlength="80" placeholder="例如：中国 · 华东"></label>
-              <label>到访日期<input id="city-date" type="date" required></label>
+              <label>首次到访日期<input id="city-date" type="date" required></label>
               <label>经度<input id="city-longitude" type="number" min="-180" max="180" step="0.000001" required></label>
               <label>纬度<input id="city-latitude" type="number" min="-90" max="90" step="0.000001" required></label>
             </div>
             <label>城市描述<textarea id="city-description" rows="4" maxlength="1200" required></textarea></label>
             <label>封面图地址<input id="city-cover" type="text" placeholder="可在照片管理中一键设为封面"></label>
+            <section class="visit-record-editor" id="visit-record-editor" aria-labelledby="visit-record-title">
+              <div>
+                <h3 id="visit-record-title">到访记录</h3>
+                <p>同一城市可以记录多个到访日期；城市简介、评分、照片和游玩天数会自动共用。</p>
+              </div>
+              <div class="visit-record-list" id="visit-record-list"></div>
+              <div class="visit-add-row">
+                <label>新增一次到访<input id="visit-record-date" type="date"></label>
+                <button id="add-visit-record" type="button">添加到时间线</button>
+              </div>
+              <p class="status" id="visit-record-status" aria-live="polite"></p>
+            </section>
             <label class="check-row"><input id="city-hidden" type="checkbox"> 暂不在公开网站展示这座城市</label>
             <div class="form-actions">
               <button type="submit">保存城市</button>
@@ -166,6 +178,6 @@
   <script src="./assets/data.js?v=20260907.1"></script>
   <script src="./assets/photos.js"></script>
   <script src="./assets/supabase-config.js"></script>
-  <script src="./assets/admin.js?v=20260910.3"></script>
+  <script src="./assets/admin.js?v=20260911.1"></script>
 </body>
 </html>

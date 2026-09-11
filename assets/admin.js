@@ -11,6 +11,7 @@
     "login-panel", "login-form", "login-email", "login-status", "admin-app", "session-label", "sign-out",
     "city-picker", "city-form", "city-name", "city-country", "city-region", "city-date", "city-longitude",
     "city-latitude", "city-description", "city-cover", "city-hidden", "city-status", "new-city",
+    "visit-record-editor", "visit-record-list", "visit-record-date", "add-visit-record", "visit-record-status",
     "remove-city-override", "photo-city", "photo-files", "upload-photos", "import-photos", "photo-admin-status",
     "admin-photo-grid", "wish-picker", "wish-form", "wish-name", "wish-icon", "wish-order", "wish-description",
     "wish-guide", "wish-planned-time", "wish-hidden", "wish-status", "new-wish", "remove-wish-override", "rating-city-filter",
@@ -21,6 +22,8 @@
   let client = null;
   let user = null;
   let cityRows = new Map();
+  let visitRows = [];
+  let visitRecordsAvailable = true;
   let wishRows = new Map();
   let ratingRows = [];
   let guideRows = [];
@@ -130,6 +133,7 @@
     elements.remove_city_override.hidden = !cityRows.has(name) && Boolean(baseVisitMap.has(name));
     elements.remove_city_override.textContent = baseVisitMap.has(name) ? "恢复代码版本" : "永久删除新增城市";
     status(elements.city_status, cityRows.has(name) ? "当前显示后台保存的版本。" : "当前使用代码中的备用版本。");
+    renderVisitRecords(name);
   }
 
   function startNewCity() {
@@ -140,7 +144,98 @@
     elements.city_hidden.checked = false;
     elements.remove_city_override.hidden = true;
     status(elements.city_status, "填写后保存，新城市会直接出现在公开网站。" );
+    renderVisitRecords("");
     elements.city_name.focus();
+  }
+
+  function visitDatesFor(name) {
+    const city = effectiveCity(name);
+    if (!city) return [];
+    const seen = new Set();
+    return [
+      { id: "", city_name: name, visit_date: city.date, primary: true },
+      ...visitRows.filter((row) => row.city_name === name).map((row) => ({ ...row, primary: false }))
+    ].filter((row) => row.visit_date && !seen.has(row.visit_date) && seen.add(row.visit_date))
+      .sort((a, b) => b.visit_date.localeCompare(a.visit_date));
+  }
+
+  function renderVisitRecords(name) {
+    elements.visit_record_list.replaceChildren();
+    elements.visit_record_date.value = "";
+    const canEdit = Boolean(name && !creatingCity && visitRecordsAvailable);
+    elements.visit_record_date.disabled = !canEdit;
+    elements.add_visit_record.disabled = !canEdit;
+    if (!visitRecordsAvailable) {
+      status(elements.visit_record_status, "请先运行 supabase/city_visits.sql，启用多次到访记录。", true);
+      return;
+    }
+    if (!canEdit) {
+      status(elements.visit_record_status, "请先保存城市资料，再添加其他到访日期。");
+      return;
+    }
+    const dates = visitDatesFor(name);
+    dates.forEach((row) => {
+      const item = document.createElement("div");
+      item.className = "visit-record-item";
+      const copy = document.createElement("div");
+      const time = document.createElement("time");
+      time.dateTime = row.visit_date;
+      time.textContent = new Intl.DateTimeFormat("zh-CN", { dateStyle: "long" })
+        .format(new Date(`${row.visit_date}T00:00:00`));
+      const label = document.createElement("span");
+      label.textContent = row.primary ? "首次到访" : "再次到访";
+      copy.append(time, label);
+      item.append(copy);
+      if (!row.primary) {
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.textContent = "删除";
+        remove.addEventListener("click", () => deleteVisitRecord(row));
+        item.append(remove);
+      }
+      elements.visit_record_list.append(item);
+    });
+    status(elements.visit_record_status, dates.length > 1
+      ? `共记录 ${dates.length} 次到访，公开时间线会分别展示。`
+      : "目前记录 1 次到访，可以继续添加日期。");
+  }
+
+  async function addVisitRecord() {
+    const name = currentCityName;
+    const visitDate = elements.visit_record_date.value;
+    if (!name || !visitDate) {
+      status(elements.visit_record_status, "请先选择到访日期。", true);
+      return;
+    }
+    if (visitDatesFor(name).some((row) => row.visit_date === visitDate)) {
+      status(elements.visit_record_status, "这个日期已经记录过了。", true);
+      return;
+    }
+    elements.add_visit_record.disabled = true;
+    status(elements.visit_record_status, "正在添加到访记录…");
+    const { data, error } = await client.from("travel_city_visits").insert({
+      city_name: name,
+      visit_date: visitDate,
+      created_by: user.id
+    }).select().single();
+    elements.add_visit_record.disabled = false;
+    if (error) {
+      status(elements.visit_record_status, `添加失败：${error.message}`, true);
+      return;
+    }
+    visitRows.push(data);
+    renderVisitRecords(name);
+  }
+
+  async function deleteVisitRecord(row) {
+    if (!window.confirm(`确定删除 ${row.visit_date} 的到访记录吗？城市资料不会被删除。`)) return;
+    const { error } = await client.from("travel_city_visits").delete().eq("id", row.id);
+    if (error) {
+      status(elements.visit_record_status, `删除失败：${error.message}`, true);
+      return;
+    }
+    visitRows = visitRows.filter((item) => item.id !== row.id);
+    renderVisitRecords(currentCityName);
   }
 
   function cityPayload(name) {
@@ -195,6 +290,10 @@
       return;
     }
     cityRows.delete(name);
+    if (!baseVisitMap.has(name) && visitRecordsAvailable) {
+      await client.from("travel_city_visits").delete().eq("city_name", name);
+      visitRows = visitRows.filter((row) => row.city_name !== name);
+    }
     populateCityPickers();
     if (baseVisitMap.has(name)) renderCityForm(name);
     else if (cityNames().length) renderCityForm(cityNames()[0]);
@@ -688,8 +787,9 @@
 
   async function loadAdminData() {
     status(elements.city_status, "正在载入后台数据…");
-    const [cities, wishes, ratings, guides] = await Promise.all([
+    const [cities, visitDates, wishes, ratings, guides] = await Promise.all([
       client.from("travel_cities").select("*").order("visit_date", { ascending: false }),
+      client.from("travel_city_visits").select("*").order("visit_date", { ascending: false }),
       client.from("travel_wishlist").select("*").order("sort_order", { ascending: true }),
       client.from("city_ratings").select("city_name,user_id,score,created_at,updated_at").order("updated_at", { ascending: false }),
       client.from("travel_guides").select("*").order("created_at", { ascending: false })
@@ -703,6 +803,8 @@
       return;
     }
     cityRows = new Map((cities.data || []).map((row) => [row.name, row]));
+    visitRows = visitDates.error ? [] : (visitDates.data || []);
+    visitRecordsAvailable = !visitDates.error;
     wishRows = new Map((wishes.data || []).map((row) => [row.name, row]));
     ratingRows = ratings.error ? [] : (ratings.data || []);
     guideRows = guides.error ? [] : (guides.data || []);
@@ -762,6 +864,7 @@
     elements.city_form.addEventListener("submit", saveCity);
     elements.new_city.addEventListener("click", startNewCity);
     elements.remove_city_override.addEventListener("click", removeCityOverride);
+    elements.add_visit_record.addEventListener("click", addVisitRecord);
     elements.photo_city.addEventListener("change", () => loadPhotos(elements.photo_city.value));
     elements.import_photos.addEventListener("click", async () => {
       try {

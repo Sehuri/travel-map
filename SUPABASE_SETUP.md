@@ -71,6 +71,9 @@ Publishable Key 设计上可以出现在浏览器代码中，真正的权限由 
 
 如果管理后台在此前已经启用，只需在 SQL Editor 运行一次 [`supabase/wishlist_planned_time.sql`](./supabase/wishlist_planned_time.sql)，即可增加计划时间字段并清理已经拆分的“成都 · 重庆”旧记录。
 
+如果需要让同一城市在不同日期重复出现在时间线上，再运行一次
+[`supabase/city_visits.sql`](./supabase/city_visits.sql)。完成后，后台“城市资料”的“到访记录”区域可以继续添加或删除再次到访日期。首次到访日期仍保存在城市资料中；额外日期单独保存，但简介、坐标、封面、照片、攻略、评分和适合游玩天数始终按城市名共用一份。
+
 照片会上传到公开的 `city-photos` Storage bucket。Bucket 只允许站主写入，访客只能读取；每张图片限制为 15 MB。
 
 ## 6. 启用攻略文件上传
