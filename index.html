@@ -11,7 +11,7 @@
   <meta property="og:url" content="https://sehuri.github.io/travel-map/">
   <meta property="og:locale" content="zh_CN">
   <link rel="canonical" href="https://sehuri.github.io/travel-map/">
-  <link rel="stylesheet" href="./assets/styles.css?v=20260910.2">
+  <link rel="stylesheet" href="./assets/styles.css?v=20260911.1">
   <title>Sehuri 的旅行足迹｜53 座城市与旅行记忆</title>
 </head>
 <body>
@@ -25,6 +25,7 @@
     <div class="header-actions">
       <nav>
         <a href="#map-section">地图</a>
+        <a href="#journey-stats">统计</a>
         <a href="#memories">足迹</a>
         <a href="#ratings">排行</a>
         <a href="./discover.html">随机旅行</a>
@@ -98,10 +99,71 @@
       <noscript><p class="noscript">地图需要启用 JavaScript。下方城市列表仍可正常浏览。</p></noscript>
     </section>
 
+    <section class="journey-stats section-shell" id="journey-stats" aria-labelledby="journey-stats-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">02 / TRAVEL DATA</p>
+          <h2 id="journey-stats-title">我的旅行数字档案</h2>
+        </div>
+        <p class="section-note">累计天数从首次足迹计至今天；相邻到访间隔不超过 5 天视为同一程，里程按南京往返的直线距离估算。</p>
+      </div>
+      <div class="travel-insight-grid">
+        <article class="travel-insight-card travel-insight-card--feature">
+          <span class="travel-insight-index">01</span>
+          <p>累计旅行天数</p>
+          <strong><span id="stat-travel-days">0</span><small> 天</small></strong>
+          <span id="stat-trip-count" class="travel-insight-detail">从第一次出发记录至今</span>
+        </article>
+        <article class="travel-insight-card travel-insight-card--feature">
+          <span class="travel-insight-index">02</span>
+          <p>南京往返估算里程</p>
+          <strong><span id="stat-distance">0</span><small> 公里</small></strong>
+          <span class="travel-insight-detail">按每段旅程的城市顺序直线串联</span>
+        </article>
+        <article class="travel-insight-card">
+          <span class="travel-insight-index">03</span>
+          <p>省级地区覆盖</p>
+          <strong><span id="stat-province-count">0</span><small> / 34</small></strong>
+          <div class="coverage-track" aria-hidden="true"><i id="stat-province-progress"></i></div>
+          <span id="stat-province-percent" class="travel-insight-detail">0% 中国省级地区</span>
+        </article>
+        <article class="travel-insight-card">
+          <span class="travel-insight-index">04</span>
+          <p>国家和地区覆盖</p>
+          <strong><span id="stat-country-count">0</span><small> / 195</small></strong>
+          <div class="coverage-track" aria-hidden="true"><i id="stat-country-progress"></i></div>
+          <span id="stat-country-percent" class="travel-insight-detail">0% 全球国家和地区</span>
+        </article>
+        <article class="travel-insight-card">
+          <span class="travel-insight-index">05</span>
+          <p>重复到访最多</p>
+          <strong id="stat-repeat-city" class="travel-insight-city">暂无</strong>
+          <span id="stat-repeat-count" class="travel-insight-detail">目前每座城市 1 次</span>
+        </article>
+        <article class="travel-insight-card">
+          <span class="travel-insight-index">06</span>
+          <p>旅行照片收藏</p>
+          <strong><span id="stat-photo-count">0</span><small> 张</small></strong>
+          <span id="stat-photo-cities" class="travel-insight-detail">0 座城市留有影像</span>
+        </article>
+      </div>
+      <div class="month-heatmap-panel">
+        <div class="month-heatmap-heading">
+          <div>
+            <p class="eyebrow">MONTHLY RHYTHM</p>
+            <h3>旅行月份热力图</h3>
+          </div>
+          <p id="month-heatmap-summary">按每次城市到访日期统计</p>
+        </div>
+        <div class="month-heatmap" id="month-heatmap" aria-label="各月份旅行次数"></div>
+        <div class="heatmap-legend" aria-hidden="true"><span>少</span><i></i><i></i><i></i><i></i><i></i><span>多</span></div>
+      </div>
+    </section>
+
     <section class="memories section-shell" id="memories" aria-labelledby="memories-title">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">02 / MEMORIES</p>
+          <p class="eyebrow">03 / MEMORIES</p>
           <h2 id="memories-title">沿时间，重走一遍</h2>
         </div>
         <div class="city-controls" aria-label="筛选旅行城市">
@@ -156,7 +218,7 @@
     <section class="ratings-section section-shell" id="ratings" aria-labelledby="ratings-title">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">03 / COMMUNITY RANKING</p>
+          <p class="eyebrow">04 / COMMUNITY RANKING</p>
           <h2 id="ratings-title">旅行城市评分排行</h2>
         </div>
         <p class="section-note">按平均分排序；同分时，评分人数更多的城市优先。</p>
@@ -170,6 +232,7 @@
   <nav class="mobile-dock" aria-label="手机快捷导航">
     <a href="#top" data-home-tab-target="journeys">首页</a>
     <a href="#map-section">地图</a>
+    <a href="#journey-stats">统计</a>
     <a href="#memories" data-home-tab-target="journeys" data-scroll-target="#memories">足迹</a>
     <a href="#wishlist-panel" data-home-tab-target="wishlist">愿望</a>
   </nav>
@@ -298,8 +361,9 @@
   <script src="./assets/amap-map-config.js?v=20260907.1"></script>
   <script src="./assets/map-engine.js?v=20260910.1"></script>
   <script src="./assets/visit-engine.js?v=20260911.1"></script>
+  <script src="./assets/stats-engine.js?v=20260911.1"></script>
   <script src="./assets/content.js?v=20260911.1"></script>
   <script src="./assets/community.js?v=20260901.1"></script>
-  <script src="./assets/app.js?v=20260911.2"></script>
+  <script src="./assets/app.js?v=20260911.3"></script>
 </body>
 </html>

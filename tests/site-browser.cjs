@@ -76,6 +76,13 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     await page.goto(`${base}/index.html?qa=site-browser`, { waitUntil: 'networkidle' });
     assert.equal(await page.locator('.amap-marker-button').count(), 53);
     assert.equal(await page.locator('.amap-wishlist-marker-button').count(), 0);
+    assert(Number((await page.locator('#stat-travel-days').innerText()).replace(/,/g, '')) >= 4813);
+    assert.match(await page.locator('#stat-trip-count').innerText(), /首站日照.*2013年7月9日.*今天/);
+    assert.equal(await page.locator('#stat-distance').innerText(), '36,900');
+    assert.equal(await page.locator('#stat-province-count').innerText(), '19');
+    assert.equal(await page.locator('#stat-country-count').innerText(), '2');
+    assert.equal(await page.locator('#stat-photo-count').innerText(), '67');
+    assert.equal(await page.locator('.month-heat-cell').count(), 12);
 
     await page.locator('#year-filter').selectOption('2026');
     assert.equal(await page.locator('.amap-marker-button').count(), 11);
@@ -135,6 +142,8 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('#city-count').innerText(), '53');
     assert.equal(await page.locator('#route-city-count').innerText(), '54');
     assert.match(await page.locator('#filter-summary').innerText(), /54 次到访 · 53 座城市/);
+    assert.equal(await page.locator('#stat-repeat-city').innerText(), '南京');
+    assert.match(await page.locator('#stat-repeat-count').innerText(), /到访 2 次/);
     await page.locator('.city-card[aria-label="查看南京2026-09-11旅行详情"]').click();
     assert.match(await page.locator('#dialog-date').innerText(), /2026年9月11日/);
     assert.match(await page.locator('#dialog-description').innerText(), /六朝古都/);

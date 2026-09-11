@@ -116,6 +116,69 @@
     document.querySelector("#current-year").textContent = new Date().getFullYear();
   }
 
+  function initializePersonalStats() {
+    const engine = window.TRAVEL_STATS_ENGINE;
+    if (!engine?.buildTravelStats) return;
+    const stats = engine.buildTravelStats(visits, photoManifest);
+    const number = new Intl.NumberFormat("zh-CN");
+    const setText = (selector, value) => {
+      const element = document.querySelector(selector);
+      if (element) element.textContent = value;
+    };
+
+    setText("#stat-travel-days", number.format(stats.elapsedDays));
+    const firstVisitLabel = stats.firstVisitDate
+      ? dateFormatter.format(new Date(`${stats.firstVisitDate}T00:00:00`))
+      : "第一次出发";
+    setText("#stat-trip-count", `${stats.firstVisitName ? `首站${stats.firstVisitName} · ` : ""}从 ${firstVisitLabel} 计至今天`);
+    setText("#stat-distance", number.format(stats.distanceKm));
+    setText("#stat-province-count", stats.provinceCount);
+    setText("#stat-province-percent", `${stats.provincePercent}% 中国省级地区`);
+    setText("#stat-country-count", stats.countryCount);
+    setText("#stat-country-percent", `${stats.countryPercent}% 全球国家和地区`);
+    setText("#stat-photo-count", number.format(stats.photoCount));
+    setText("#stat-photo-cities", `${stats.photoCityCount} 座城市留有影像`);
+
+    const provinceProgress = document.querySelector("#stat-province-progress");
+    const countryProgress = document.querySelector("#stat-country-progress");
+    if (provinceProgress) provinceProgress.style.width = `${stats.provincePercent}%`;
+    if (countryProgress) countryProgress.style.width = `${stats.countryPercent}%`;
+
+    if (stats.repeatCities.length) {
+      const highestCount = stats.repeatCities[0][1];
+      const leaders = stats.repeatCities
+        .filter(([, count]) => count === highestCount)
+        .map(([city]) => city);
+      const visibleLeaders = leaders.slice(0, 2).join("、") + (leaders.length > 2 ? "等" : "");
+      setText("#stat-repeat-city", visibleLeaders);
+      setText("#stat-repeat-count", `各到访 ${highestCount} 次${stats.repeatCities.length > leaders.length ? ` · 共 ${stats.repeatCities.length} 座城市曾重游` : ""}`);
+    }
+
+    const heatmap = document.querySelector("#month-heatmap");
+    if (!heatmap) return;
+    heatmap.replaceChildren();
+    const maxCount = Math.max(...stats.monthCounts, 1);
+    stats.monthCounts.forEach((count, index) => {
+      const cell = document.createElement("div");
+      cell.className = "month-heat-cell";
+      cell.style.setProperty("--heat", count ? String(.16 + count / maxCount * .84) : "0");
+      cell.setAttribute("aria-label", `${index + 1}月，${count}次到访`);
+      const month = document.createElement("span");
+      month.textContent = `${String(index + 1).padStart(2, "0")} 月`;
+      const value = document.createElement("strong");
+      value.textContent = count;
+      cell.append(month, value);
+      heatmap.append(cell);
+    });
+
+    const busiest = Math.max(...stats.monthCounts);
+    const busiestMonths = stats.monthCounts
+      .map((count, index) => count === busiest ? `${index + 1} 月` : "")
+      .filter(Boolean)
+      .join("、");
+    setText("#month-heatmap-summary", busiest ? `${busiestMonths}最常出发 · ${busiest} 次城市到访` : "按每次城市到访日期统计");
+  }
+
   function initializeExtremeFootprints(items = visits) {
     const grid = document.querySelector("#extremes-grid");
     grid.replaceChildren();
@@ -1129,6 +1192,7 @@
     photoManifest = content.photoManifest;
     guideDocuments = content.guideDocuments || [];
     initializeStats();
+    initializePersonalStats();
     initializeExtremeFootprints();
     initializeFilters();
     initializeRatings();
