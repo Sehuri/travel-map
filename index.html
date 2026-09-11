@@ -11,7 +11,7 @@
   <meta property="og:url" content="https://sehuri.github.io/travel-map/">
   <meta property="og:locale" content="zh_CN">
   <link rel="canonical" href="https://sehuri.github.io/travel-map/">
-  <link rel="stylesheet" href="./assets/styles.css?v=20260911.3">
+  <link rel="stylesheet" href="./assets/styles.css?v=20260911.4">
   <title>Sehuri 的旅行足迹｜53 座城市与旅行记忆</title>
 </head>
 <body>
@@ -27,6 +27,7 @@
         <a href="#map-section">地图</a>
         <a href="#journey-stats">统计</a>
         <a href="#journey-archive">旅程</a>
+        <a href="#memory-rewind">今日</a>
         <a href="#memories">足迹</a>
         <a href="#ratings">排行</a>
         <a href="./discover.html">随机旅行</a>
@@ -176,10 +177,67 @@
       <div class="journey-card-grid" id="journey-card-grid" aria-live="polite"></div>
     </section>
 
+    <section class="memory-rewind section-shell" id="memory-rewind" aria-labelledby="memory-rewind-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">04 / MEMORY REWIND</p>
+          <h2 id="memory-rewind-title">今天，地图又翻开一页</h2>
+        </div>
+        <p class="section-note" id="memory-today-label">正在读取今天的旅行记忆…</p>
+      </div>
+      <div class="memory-rewind-grid" aria-live="polite">
+        <article class="memory-rewind-card memory-rewind-card--today">
+          <span class="memory-card-index">01 / ON THIS DAY</span>
+          <h3 id="memory-today-title">往年今天，我在哪里</h3>
+          <p id="memory-today-copy"></p>
+          <div class="memory-chip-list" id="memory-today-list"></div>
+        </article>
+        <article class="memory-rewind-card memory-rewind-card--journey">
+          <span class="memory-card-index">02 / DAYS SINCE</span>
+          <p class="memory-card-label">距离这趟旅行</p>
+          <h3 id="memory-journey-title">旅程正在读取</h3>
+          <strong id="memory-journey-days">—</strong>
+          <a id="memory-journey-link" href="#journey-archive">打开旅程档案 ↗</a>
+        </article>
+        <article class="memory-rewind-card memory-rewind-card--month">
+          <span class="memory-card-index">03 / THIS MONTH</span>
+          <h3 id="memory-month-title">本月历史旅行</h3>
+          <p id="memory-month-copy"></p>
+          <div class="memory-month-list" id="memory-month-list"></div>
+        </article>
+        <article class="memory-rewind-card memory-rewind-card--random">
+          <div class="memory-random-copy">
+            <span class="memory-card-index">04 / RANDOM MEMORY</span>
+            <p class="memory-card-label">随机回忆一座城市</p>
+            <h3 id="memory-random-city">—</h3>
+            <p id="memory-random-description"></p>
+            <small id="memory-random-meta"></small>
+            <div class="memory-card-actions">
+              <button id="memory-random-open" type="button">打开城市记忆 ↗</button>
+              <button class="memory-secondary-button" id="memory-random-refresh" type="button">换一座</button>
+            </div>
+          </div>
+          <img id="memory-random-image" alt="" hidden>
+        </article>
+        <article class="memory-rewind-card memory-rewind-card--return">
+          <span class="memory-card-index">05 / RETURN</span>
+          <div class="memory-return-heading">
+            <div><p class="memory-card-label">第一次与最近一次到访</p><h3 id="memory-return-city">等待下一次重逢</h3></div>
+            <strong id="memory-return-count"></strong>
+          </div>
+          <div class="memory-return-comparison" id="memory-return-comparison"></div>
+          <div class="memory-card-actions">
+            <button id="memory-return-open" type="button">打开最近一次记忆 ↗</button>
+            <button class="memory-secondary-button" id="memory-return-next" type="button">查看下一座</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
     <section class="memories section-shell" id="memories" aria-labelledby="memories-title">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">04 / MEMORIES</p>
+          <p class="eyebrow">05 / MEMORIES</p>
           <h2 id="memories-title">沿时间，重走一遍</h2>
         </div>
         <div class="city-controls" aria-label="筛选旅行城市">
@@ -234,7 +292,7 @@
     <section class="ratings-section section-shell" id="ratings" aria-labelledby="ratings-title">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">05 / COMMUNITY RANKING</p>
+          <p class="eyebrow">06 / COMMUNITY RANKING</p>
           <h2 id="ratings-title">旅行城市评分排行</h2>
         </div>
         <p class="section-note">按平均分排序；同分时，评分人数更多的城市优先。</p>
@@ -247,7 +305,7 @@
 
   <nav class="mobile-dock" aria-label="手机快捷导航">
     <a href="#map-section">地图</a>
-    <a href="#journey-stats">统计</a>
+    <a href="#memory-rewind">回忆</a>
     <a href="#journey-archive">旅程</a>
     <a href="#memories" data-home-tab-target="journeys" data-scroll-target="#memories">足迹</a>
     <a href="#wishlist-panel" data-home-tab-target="wishlist">愿望</a>
@@ -397,9 +455,10 @@
   <script src="./assets/map-engine.js?v=20260910.1"></script>
   <script src="./assets/visit-engine.js?v=20260911.1"></script>
   <script src="./assets/journey-engine.js?v=20260911.1"></script>
+  <script src="./assets/memory-engine.js?v=20260911.1"></script>
   <script src="./assets/stats-engine.js?v=20260911.2"></script>
   <script src="./assets/content.js?v=20260911.3"></script>
   <script src="./assets/community.js?v=20260901.1"></script>
-  <script src="./assets/app.js?v=20260911.6"></script>
+  <script src="./assets/app.js?v=20260911.7"></script>
 </body>
 </html>

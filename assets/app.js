@@ -8,6 +8,9 @@
   let guideDocuments = [];
   let journeys = [];
   let personalStats = null;
+  let memorySnapshot = null;
+  let randomMemory = null;
+  let repeatMemoryIndex = 0;
   const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
     year: "numeric",
     month: "long",
@@ -1147,6 +1150,161 @@
     });
   }
 
+  function visitButton(visit, label) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.addEventListener("click", () => openCity(visit));
+    return button;
+  }
+
+  function renderRandomMemory(next = false) {
+    const engine = window.TRAVEL_MEMORY_ENGINE;
+    if (!engine) return;
+    if (next || !randomMemory) {
+      randomMemory = engine.randomCityMemory(visits, Math.random, next ? randomMemory?.name : "");
+    }
+    const openButton = document.querySelector("#memory-random-open");
+    const refreshButton = document.querySelector("#memory-random-refresh");
+    if (!randomMemory) {
+      document.querySelector("#memory-random-image").closest(".memory-rewind-card--random").classList.add("is-text-only");
+      document.querySelector("#memory-random-city").textContent = "还没有城市记忆";
+      document.querySelector("#memory-random-description").textContent = "时间线加入第一座城市后，这里会为你随机翻开一页。";
+      document.querySelector("#memory-random-meta").textContent = "";
+      openButton.disabled = true;
+      refreshButton.disabled = true;
+      return;
+    }
+    const latest = randomMemory.latest;
+    document.querySelector("#memory-random-city").textContent = randomMemory.name;
+    document.querySelector("#memory-random-description").textContent = latest.desc || "这座城市的故事仍在继续。";
+    document.querySelector("#memory-random-meta").textContent = randomMemory.count > 1
+      ? `${randomMemory.count} 次到访 · ${randomMemory.first.date} — ${latest.date}`
+      : `到访于 ${latest.date}`;
+    const image = document.querySelector("#memory-random-image");
+    const imageUrl = latest.coverUrl || photoManifest[randomMemory.name]?.[0] || "";
+    image.closest(".memory-rewind-card--random").classList.toggle("is-text-only", !imageUrl);
+    image.hidden = !imageUrl;
+    if (imageUrl) {
+      image.src = imageUrl;
+      image.alt = `${randomMemory.name}旅行回忆`;
+    } else {
+      image.removeAttribute("src");
+      image.alt = "";
+    }
+    openButton.disabled = false;
+    refreshButton.disabled = memorySnapshot?.cities.length < 2;
+    openButton.onclick = () => openCity(latest);
+  }
+
+  function renderRepeatMemory() {
+    const repeats = memorySnapshot?.repeatCities || [];
+    const comparison = document.querySelector("#memory-return-comparison");
+    const openButton = document.querySelector("#memory-return-open");
+    const nextButton = document.querySelector("#memory-return-next");
+    comparison.replaceChildren();
+    if (!repeats.length) {
+      document.querySelector("#memory-return-city").textContent = "等待下一次重逢";
+      document.querySelector("#memory-return-count").textContent = "";
+      const empty = document.createElement("p");
+      empty.className = "memory-return-empty";
+      empty.textContent = "目前每座城市只记录了一次到访；增加再次到访日期后，这里会自动生成今昔对比。";
+      comparison.append(empty);
+      openButton.disabled = true;
+      nextButton.disabled = true;
+      return;
+    }
+    repeatMemoryIndex %= repeats.length;
+    const memory = repeats[repeatMemoryIndex];
+    document.querySelector("#memory-return-city").textContent = memory.name;
+    document.querySelector("#memory-return-count").textContent = `${memory.count} 次`;
+    const moment = (kicker, text, visit) => {
+      const node = document.createElement("div");
+      node.className = "memory-return-moment";
+      const label = document.createElement("span");
+      label.textContent = kicker;
+      const title = document.createElement("strong");
+      title.textContent = text;
+      const time = document.createElement("time");
+      time.dateTime = visit.date;
+      time.textContent = dateFormatter.format(new Date(`${visit.date}T00:00:00`));
+      node.append(label, title, time);
+      return node;
+    };
+    const arrow = document.createElement("span");
+    arrow.className = "memory-return-arrow";
+    arrow.setAttribute("aria-hidden", "true");
+    arrow.textContent = "→";
+    comparison.append(
+      moment("FIRST ARRIVAL", `${memory.first.date.slice(0, 4)} 年第一次来到${memory.name}`, memory.first),
+      arrow,
+      moment("LATEST RETURN", `${memory.latest.date.slice(0, 4)} 年再次回到这里`, memory.latest)
+    );
+    openButton.disabled = false;
+    nextButton.disabled = repeats.length < 2;
+    openButton.onclick = () => openCity(memory.latest);
+  }
+
+  function renderMemoryRewind() {
+    const engine = window.TRAVEL_MEMORY_ENGINE;
+    if (!engine?.buildMemorySnapshot) return;
+    memorySnapshot = engine.buildMemorySnapshot(visits, journeys);
+    const today = new Intl.DateTimeFormat("zh-CN", {
+      year: "numeric", month: "long", day: "numeric", weekday: "long"
+    }).format(new Date(`${memorySnapshot.today}T00:00:00`));
+    document.querySelector("#memory-today-label").textContent = `${today} · 每次打开都会重新计算`;
+
+    const todayList = document.querySelector("#memory-today-list");
+    todayList.replaceChildren();
+    if (memorySnapshot.onThisDay.length) {
+      const cityNames = [...new Set(memorySnapshot.onThisDay.map((visit) => visit.name))];
+      document.querySelector("#memory-today-title").textContent = `往年今天，我在${cityNames.join("、")}`;
+      document.querySelector("#memory-today-copy").textContent = `找到 ${memorySnapshot.onThisDay.length} 段与今天月日相同的旅行记录。`;
+      memorySnapshot.onThisDay.forEach((visit) => {
+        todayList.append(visitButton(visit, `${visit.date.slice(0, 4)} · ${visit.name}`));
+      });
+    } else {
+      document.querySelector("#memory-today-title").textContent = "今天没有重合的坐标";
+      document.querySelector("#memory-today-copy").textContent = `不过在往年的 ${memorySnapshot.month} 月，我留下了 ${memorySnapshot.monthVisits.length} 次城市到访。`;
+    }
+
+    const journey = memorySnapshot.latestJourney;
+    const journeyLink = document.querySelector("#memory-journey-link");
+    if (journey) {
+      document.querySelector("#memory-journey-title").textContent = journey.title;
+      document.querySelector("#memory-journey-days").replaceChildren(
+        document.createTextNode(new Intl.NumberFormat("zh-CN").format(journey.daysSince)),
+        Object.assign(document.createElement("small"), { textContent: "天" })
+      );
+      journeyLink.href = journeyHref(journey.slug);
+      journeyLink.hidden = false;
+    } else {
+      document.querySelector("#memory-journey-title").textContent = "还没有已完成的正式旅程";
+      document.querySelector("#memory-journey-days").textContent = "—";
+      journeyLink.hidden = true;
+    }
+
+    const monthList = document.querySelector("#memory-month-list");
+    monthList.replaceChildren();
+    document.querySelector("#memory-month-title").textContent = `${memorySnapshot.month} 月的历史旅行`;
+    document.querySelector("#memory-month-copy").textContent = memorySnapshot.monthVisits.length
+      ? `跨越 ${new Set(memorySnapshot.monthVisits.map((visit) => visit.date.slice(0, 4))).size} 个年份，共找到 ${memorySnapshot.monthVisits.length} 次城市到访。`
+      : "这个月份还没有留下旅行记录。";
+    memorySnapshot.monthVisits.forEach((visit) => {
+      monthList.append(visitButton(visit, `${visit.date.slice(0, 4)} · ${visit.name}`));
+    });
+
+    randomMemory = null;
+    repeatMemoryIndex = 0;
+    renderRandomMemory();
+    renderRepeatMemory();
+    document.querySelector("#memory-random-refresh").onclick = () => renderRandomMemory(true);
+    document.querySelector("#memory-return-next").onclick = () => {
+      repeatMemoryIndex += 1;
+      renderRepeatMemory();
+    };
+  }
+
   function guideHref(guide) {
     if (guide.fileType !== "html") return guide.fileUrl;
     const viewer = new URL("./guide-viewer.html", window.location.href);
@@ -1513,6 +1671,7 @@
     initializePersonalStats();
     initializeStatsDetails();
     renderJourneyArchive();
+    renderMemoryRewind();
     initializeExtremeFootprints();
     initializeFilters();
     initializeRatings();

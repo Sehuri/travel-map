@@ -86,6 +86,13 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('.journey-card').count(), 1);
     assert.match(await page.locator('.journey-card').innerText(), /2026 日本关西关东之旅.*大阪 → 京都 → 东京 → 镰仓/s);
     assert.match(await page.locator('.journey-card').getAttribute('href'), /journey\.html\?slug=2026-japan-kansai-kanto/);
+    assert.equal(await page.locator('.memory-rewind-card').count(), 5);
+    assert.notEqual(await page.locator('#memory-random-city').innerText(), '—');
+    assert.match(await page.locator('#memory-journey-title').innerText(), /日本关西关东之旅/);
+    assert.match(await page.locator('#memory-journey-days').innerText(), /\d+\s*天/);
+    const randomCityBefore = await page.locator('#memory-random-city').innerText();
+    await page.locator('#memory-random-refresh').click();
+    assert.notEqual(await page.locator('#memory-random-city').innerText(), randomCityBefore);
 
     await page.locator('[data-stat-detail="provinces"]').click();
     assert.equal(await page.locator('#stats-dialog-title').innerText(), '省级地区覆盖');
@@ -179,6 +186,9 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.match(await page.locator('#filter-summary').innerText(), /54 次到访 · 53 座城市/);
     assert.equal(await page.locator('#stat-repeat-city').innerText(), '南京');
     assert.match(await page.locator('#stat-repeat-count').innerText(), /到访 2 次/);
+    assert.equal(await page.locator('#memory-return-city').innerText(), '南京');
+    assert.equal(await page.locator('#memory-return-count').innerText(), '2 次');
+    assert.match(await page.locator('#memory-return-comparison').innerText(), /2023 年第一次来到南京.*2026 年再次回到这里/s);
     await page.locator('[data-stat-detail="repeats"]').click();
     assert.equal(await page.locator('.repeat-detail-card').count(), 1);
     assert.match(await page.locator('.repeat-detail-card').innerText(), /2023-09-17.*2026-09-11/s);
