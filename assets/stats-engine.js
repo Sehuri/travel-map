@@ -10,6 +10,13 @@
   const TOTAL_PROVINCIAL_REGIONS = 34;
   const TOTAL_COUNTRIES_AND_REGIONS = 195;
   const NANJING = Object.freeze({ name: "南京", coord: [118.79, 32.06] });
+  const PROVINCIAL_REGIONS = Object.freeze([
+    "北京", "天津", "河北", "山西", "内蒙古", "辽宁", "吉林", "黑龙江",
+    "上海", "江苏", "浙江", "安徽", "福建", "江西", "山东", "河南",
+    "湖北", "湖南", "广东", "广西", "海南", "重庆", "四川", "贵州",
+    "云南", "西藏", "陕西", "甘肃", "青海", "宁夏", "新疆", "香港",
+    "澳门", "台湾"
+  ]);
 
   const provinceCities = {
     山东: ["日照", "青岛", "济南", "烟台", "威海", "泰安"],
@@ -125,6 +132,27 @@
         .filter(Boolean)
     );
     const countries = new Set(items.map((visit) => visit.country).filter(Boolean));
+    const provinceDetails = PROVINCIAL_REGIONS.map((province) => {
+      const provinceVisits = items.filter((visit) => visit.country === "中国" && provinceByCity.get(visit.name) === province);
+      return {
+        name: province,
+        visited: provinceVisits.length > 0,
+        visitCount: provinceVisits.length,
+        cities: [...new Set(provinceVisits.map((visit) => visit.name))]
+      };
+    });
+    const countryDetails = [...countries].map((country) => {
+      const countryVisits = items
+        .filter((visit) => visit.country === country)
+        .sort((a, b) => a.date.localeCompare(b.date));
+      return {
+        name: country,
+        visitCount: countryVisits.length,
+        cities: [...new Set(countryVisits.map((visit) => visit.name))],
+        firstDate: countryVisits[0]?.date || "",
+        lastDate: countryVisits[countryVisits.length - 1]?.date || ""
+      };
+    }).sort((a, b) => b.visitCount - a.visitCount || a.name.localeCompare(b.name, "zh-CN"));
     const repeatCounts = new Map();
     items.forEach((visit) => {
       if (visit?.name) repeatCounts.set(visit.name, (repeatCounts.get(visit.name) || 0) + 1);
@@ -132,6 +160,15 @@
     const repeatCities = [...repeatCounts.entries()]
       .filter(([, count]) => count > 1)
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "zh-CN"));
+    const repeatDetails = repeatCities.map(([name, count]) => {
+      const cityVisits = items.filter((visit) => visit.name === name).sort((a, b) => a.date.localeCompare(b.date));
+      return {
+        name,
+        count,
+        country: cityVisits[0]?.country || "",
+        dates: cityVisits.map((visit) => visit.date)
+      };
+    });
     const monthCounts = Array(12).fill(0);
     items.forEach((visit) => {
       const match = /^\d{4}-(\d{2})-\d{2}$/.exec(String(visit?.date || ""));
@@ -156,10 +193,13 @@
       provinceCount: provinces.size,
       provinceTotal: TOTAL_PROVINCIAL_REGIONS,
       provincePercent: Math.round(provinces.size / TOTAL_PROVINCIAL_REGIONS * 100),
+      provinceDetails,
       countryCount: countries.size,
       countryTotal: TOTAL_COUNTRIES_AND_REGIONS,
       countryPercent: Math.round(countries.size / TOTAL_COUNTRIES_AND_REGIONS * 100),
+      countryDetails,
       repeatCities,
+      repeatDetails,
       photoCount: photos.total,
       photoCityCount: photos.cities,
       monthCounts
@@ -169,6 +209,7 @@
   return {
     DEFAULT_TRIP_GAP_DAYS,
     NANJING,
+    PROVINCIAL_REGIONS,
     provinceByCity,
     elapsedDaysSinceFirstVisit,
     groupTrips,

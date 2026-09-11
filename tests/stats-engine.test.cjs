@@ -46,8 +46,12 @@ test('personal statistics include repeat visits, coverage, photos and month coun
   assert.equal(stats.tripCount, 2);
   assert.equal(stats.elapsedDays, 550);
   assert.equal(stats.provinceCount, 1);
+  assert.equal(stats.provinceDetails.length, 34);
+  assert.deepEqual(stats.provinceDetails.find((item) => item.name === '江苏').cities, ['南京', '苏州']);
   assert.equal(stats.countryCount, 2);
+  assert.equal(stats.countryDetails.find((item) => item.name === '日本').cities[0], '东京');
   assert.deepEqual(stats.repeatCities, [['南京', 2]]);
+  assert.deepEqual(stats.repeatDetails[0].dates, ['2025-01-01', '2026-07-01']);
   assert.deepEqual(stats.monthCounts, [2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0]);
   assert.deepEqual(countPhotos({ 南京: ['a.jpg'], 东京: ['b.jpg', 'c.jpg'], 空: [] }), { total: 3, cities: 2 });
 });

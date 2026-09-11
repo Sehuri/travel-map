@@ -4,7 +4,9 @@
   let visits = [];
   let wishlist = [];
   let photoManifest = {};
+  let photoDetails = [];
   let guideDocuments = [];
+  let personalStats = null;
   const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
     year: "numeric",
     month: "long",
@@ -34,6 +36,7 @@
   const filterSummary = document.querySelector("#filter-summary");
   const rankingList = document.querySelector("#ranking-list");
   const rankingStatus = document.querySelector("#ranking-status");
+  const statsDialog = document.querySelector("#stats-dialog");
   const cityDialog = document.querySelector("#city-dialog");
   const guideDialog = document.querySelector("#guide-dialog");
   const lightbox = document.querySelector("#lightbox");
@@ -120,6 +123,7 @@
     const engine = window.TRAVEL_STATS_ENGINE;
     if (!engine?.buildTravelStats) return;
     const stats = engine.buildTravelStats(visits, photoManifest);
+    personalStats = stats;
     const number = new Intl.NumberFormat("zh-CN");
     const setText = (selector, value) => {
       const element = document.querySelector(selector);
@@ -177,6 +181,196 @@
       .filter(Boolean)
       .join("、");
     setText("#month-heatmap-summary", busiest ? `${busiestMonths}最常出发 · ${busiest} 次城市到访` : "按每次城市到访日期统计");
+  }
+
+  function detailHeading(text) {
+    const heading = document.createElement("h3");
+    heading.className = "stats-detail-heading";
+    heading.textContent = text;
+    return heading;
+  }
+
+  function detailPill(text, className = "") {
+    const pill = document.createElement("span");
+    pill.className = `stats-detail-pill ${className}`.trim();
+    pill.textContent = text;
+    return pill;
+  }
+
+  function setStatsDialogHeader(kicker, title, description) {
+    document.querySelector("#stats-dialog-kicker").textContent = kicker;
+    document.querySelector("#stats-dialog-title").textContent = title;
+    document.querySelector("#stats-dialog-description").textContent = description;
+  }
+
+  function renderProvinceDetails(body) {
+    setStatsDialogHeader(
+      "PROVINCIAL COVERAGE",
+      "省级地区覆盖",
+      `已抵达 ${personalStats.provinceCount} 个，尚有 ${personalStats.provinceTotal - personalStats.provinceCount} 个等待探索。直辖市、自治区及特别行政区均按省级地区统计。`
+    );
+    const visited = personalStats.provinceDetails.filter((item) => item.visited);
+    const awaiting = personalStats.provinceDetails.filter((item) => !item.visited);
+    body.append(detailHeading(`已经抵达 · ${visited.length}`));
+    const visitedGrid = document.createElement("div");
+    visitedGrid.className = "coverage-detail-grid";
+    visited.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "coverage-detail-card is-visited";
+      const status = document.createElement("span");
+      status.textContent = `${item.visitCount} 次到访`;
+      const name = document.createElement("strong");
+      name.textContent = item.name;
+      const cities = document.createElement("p");
+      cities.textContent = item.cities.join("、");
+      card.append(status, name, cities);
+      visitedGrid.append(card);
+    });
+    body.append(visitedGrid, detailHeading(`仍在期待 · ${awaiting.length}`));
+    const awaitingGrid = document.createElement("div");
+    awaitingGrid.className = "stats-detail-pills";
+    awaiting.forEach((item) => awaitingGrid.append(detailPill(item.name, "is-muted")));
+    body.append(awaitingGrid);
+  }
+
+  function renderCountryDetails(body) {
+    setStatsDialogHeader(
+      "COUNTRIES & REGIONS",
+      "国家和地区覆盖",
+      `目前记录了 ${personalStats.countryCount} 个国家和地区，共 ${visits.length} 次城市到访。`
+    );
+    const list = document.createElement("div");
+    list.className = "country-detail-list";
+    personalStats.countryDetails.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "country-detail-card";
+      const heading = document.createElement("div");
+      const name = document.createElement("h3");
+      name.textContent = item.name;
+      const count = document.createElement("strong");
+      count.textContent = `${item.visitCount} 次到访 · ${item.cities.length} 座城市`;
+      heading.append(name, count);
+      const range = document.createElement("p");
+      range.textContent = item.firstDate === item.lastDate
+        ? `记录日期 ${item.firstDate}`
+        : `从 ${item.firstDate} 到 ${item.lastDate}`;
+      const cities = document.createElement("div");
+      cities.className = "stats-detail-pills";
+      item.cities.forEach((city) => cities.append(detailPill(city)));
+      card.append(heading, range, cities);
+      list.append(card);
+    });
+    body.append(list);
+  }
+
+  function renderRepeatDetails(body) {
+    setStatsDialogHeader(
+      "RETURN JOURNEYS",
+      "重游过的城市",
+      personalStats.repeatDetails.length
+        ? `共有 ${personalStats.repeatDetails.length} 座城市不止一次出现在时间线上。`
+        : "每座城市目前只记录了一次到访。"
+    );
+    if (!personalStats.repeatDetails.length) {
+      const empty = document.createElement("p");
+      empty.className = "stats-detail-empty";
+      empty.textContent = "等下一次故地重游，这里就会自动留下记录。";
+      body.append(empty);
+      return;
+    }
+    const list = document.createElement("div");
+    list.className = "repeat-detail-list";
+    personalStats.repeatDetails.forEach((item, index) => {
+      const card = document.createElement("article");
+      card.className = "repeat-detail-card";
+      const rank = document.createElement("span");
+      rank.className = "repeat-detail-rank";
+      rank.textContent = String(index + 1).padStart(2, "0");
+      const copy = document.createElement("div");
+      const name = document.createElement("h3");
+      name.textContent = item.name;
+      const dates = document.createElement("div");
+      dates.className = "repeat-date-list";
+      item.dates.forEach((date) => dates.append(detailPill(date)));
+      copy.append(name, dates);
+      const count = document.createElement("strong");
+      count.textContent = `${item.count} 次`;
+      card.append(rank, copy, count);
+      list.append(card);
+    });
+    body.append(list);
+  }
+
+  function renderPhotoDetails(body) {
+    setStatsDialogHeader(
+      "PHOTO ARCHIVE",
+      "全部旅行照片",
+      `${personalStats.photoCityCount} 座城市，共收藏 ${personalStats.photoCount} 张照片。点击照片可以放大查看。`
+    );
+    if (!photoDetails.length) {
+      const empty = document.createElement("p");
+      empty.className = "stats-detail-empty";
+      empty.textContent = "旅行相册目前还是空的。";
+      body.append(empty);
+      return;
+    }
+    const visitDatesByCity = new Map();
+    visits.forEach((visit) => {
+      if (!visitDatesByCity.has(visit.name)) visitDatesByCity.set(visit.name, []);
+      if (!visitDatesByCity.get(visit.name).includes(visit.date)) visitDatesByCity.get(visit.name).push(visit.date);
+    });
+    const gallery = document.createElement("div");
+    gallery.className = "photo-archive-grid";
+    photoDetails.forEach((photo) => {
+      const figure = document.createElement("figure");
+      figure.className = "photo-archive-card";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.setAttribute("aria-label", `放大查看${photo.cityName}第${photo.order}张照片`);
+      const image = document.createElement("img");
+      image.src = photo.imageUrl;
+      image.alt = photo.caption || `${photo.cityName}旅行照片 ${photo.order}`;
+      image.loading = "lazy";
+      button.append(image);
+      button.addEventListener("click", () => {
+        statsDialog.close();
+        requestAnimationFrame(() => openLightbox(photo.imageUrl, image.alt));
+      });
+      const caption = document.createElement("figcaption");
+      const city = document.createElement("strong");
+      city.textContent = photo.cityName;
+      const description = document.createElement("span");
+      description.textContent = photo.caption || `旅行照片 ${photo.order}`;
+      const dates = document.createElement("small");
+      dates.textContent = `到访：${(visitDatesByCity.get(photo.cityName) || []).join("、") || "日期待补充"}`;
+      caption.append(city, description, dates);
+      figure.append(button, caption);
+      gallery.append(figure);
+    });
+    body.append(gallery);
+  }
+
+  function openStatsDetail(type) {
+    if (!personalStats || !statsDialog) return;
+    const body = document.querySelector("#stats-detail-body");
+    body.replaceChildren();
+    statsDialog.classList.toggle("stats-dialog--photos", type === "photos");
+    if (type === "provinces") renderProvinceDetails(body);
+    if (type === "countries") renderCountryDetails(body);
+    if (type === "repeats") renderRepeatDetails(body);
+    if (type === "photos") renderPhotoDetails(body);
+    statsDialog.showModal();
+  }
+
+  function initializeStatsDetails() {
+    document.querySelectorAll("[data-stat-detail]").forEach((card) => {
+      card.addEventListener("click", () => openStatsDetail(card.dataset.statDetail));
+      card.addEventListener("keydown", (event) => {
+        if (!["Enter", " "].includes(event.key)) return;
+        event.preventDefault();
+        openStatsDetail(card.dataset.statDetail);
+      });
+    });
   }
 
   function initializeExtremeFootprints(items = visits) {
@@ -1153,6 +1347,7 @@
   }
 
   function initializeDialogs() {
+    document.querySelector("#stats-dialog-close").addEventListener("click", () => statsDialog.close());
     document.querySelector("#dialog-close").addEventListener("click", () => cityDialog.close());
     document.querySelector("#copy-city-link").addEventListener("click", copyCityLink);
     document.querySelector("#share-city").addEventListener("click", shareCity);
@@ -1161,7 +1356,7 @@
     lightbox.addEventListener("click", (event) => {
       if (event.target === lightbox) closeLightbox();
     });
-    [cityDialog, guideDialog].forEach((dialog) => {
+    [statsDialog, cityDialog, guideDialog].forEach((dialog) => {
       dialog.addEventListener("click", (event) => {
         const bounds = dialog.getBoundingClientRect();
         const inside = event.clientX >= bounds.left && event.clientX <= bounds.right
@@ -1190,9 +1385,13 @@
     visits = content.visits;
     wishlist = content.wishlist;
     photoManifest = content.photoManifest;
+    photoDetails = content.photoDetails || Object.entries(photoManifest).flatMap(([cityName, photos]) =>
+      photos.map((imageUrl, index) => ({ cityName, imageUrl, caption: "", order: index + 1 }))
+    );
     guideDocuments = content.guideDocuments || [];
     initializeStats();
     initializePersonalStats();
+    initializeStatsDetails();
     initializeExtremeFootprints();
     initializeFilters();
     initializeRatings();

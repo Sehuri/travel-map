@@ -84,6 +84,28 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('#stat-photo-count').innerText(), '67');
     assert.equal(await page.locator('.month-heat-cell').count(), 12);
 
+    await page.locator('[data-stat-detail="provinces"]').click();
+    assert.equal(await page.locator('#stats-dialog-title').innerText(), '省级地区覆盖');
+    assert.equal(await page.locator('.coverage-detail-card').count(), 19);
+    assert.equal(await page.locator('.stats-detail-pill.is-muted').count(), 15);
+    await page.locator('#stats-dialog-close').click();
+
+    await page.locator('[data-stat-detail="countries"]').click();
+    assert.equal(await page.locator('.country-detail-card').count(), 2);
+    assert.match(await page.locator('.country-detail-card').first().innerText(), /中国/);
+    await page.locator('#stats-dialog-close').click();
+
+    await page.locator('[data-stat-detail="repeats"]').click();
+    assert(await page.locator('.stats-detail-empty').isVisible());
+    await page.locator('#stats-dialog-close').click();
+
+    await page.locator('[data-stat-detail="photos"]').click();
+    assert.equal(await page.locator('.photo-archive-card').count(), 67);
+    assert.match(await page.locator('.photo-archive-card figcaption').first().innerText(), /东京.*到访/s);
+    await page.locator('.photo-archive-card button').first().click();
+    await page.locator('#lightbox').waitFor({ state: 'visible' });
+    await page.locator('#lightbox-close').click();
+
     await page.locator('#year-filter').selectOption('2026');
     assert.equal(await page.locator('.amap-marker-button').count(), 11);
     assert.equal(await page.locator('.city-card').count(), 11);
@@ -144,6 +166,10 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.match(await page.locator('#filter-summary').innerText(), /54 次到访 · 53 座城市/);
     assert.equal(await page.locator('#stat-repeat-city').innerText(), '南京');
     assert.match(await page.locator('#stat-repeat-count').innerText(), /到访 2 次/);
+    await page.locator('[data-stat-detail="repeats"]').click();
+    assert.equal(await page.locator('.repeat-detail-card').count(), 1);
+    assert.match(await page.locator('.repeat-detail-card').innerText(), /2023-09-17.*2026-09-11/s);
+    await page.locator('#stats-dialog-close').click();
     await page.locator('.city-card[aria-label="查看南京2026-09-11旅行详情"]').click();
     assert.match(await page.locator('#dialog-date').innerText(), /2026年9月11日/);
     assert.match(await page.locator('#dialog-description').innerText(), /六朝古都/);

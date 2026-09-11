@@ -4,10 +4,29 @@
   const baseData = window.TRAVEL_DATA || { visits: [], wishlist: [] };
   const basePhotos = window.PHOTO_MANIFEST || {};
   const config = window.SUPABASE_CONFIG || {};
+  function photoDetailsFrom(manifest, rows = []) {
+    const rowByUrl = new Map(
+      rows.filter((row) => !row.is_hidden && row.image_url).map((row) => [row.image_url, row])
+    );
+    return Object.entries(manifest || {}).flatMap(([cityName, photos]) =>
+      (photos || []).map((imageUrl, index) => {
+        const row = rowByUrl.get(imageUrl);
+        return {
+          cityName,
+          imageUrl,
+          caption: row?.caption || "",
+          createdAt: row?.created_at || "",
+          source: row?.storage_path ? "后台上传" : "旅行相册",
+          order: index + 1
+        };
+      })
+    );
+  }
   let state = {
     visits: [...baseData.visits],
     wishlist: [...baseData.wishlist],
     photoManifest: { ...basePhotos },
+    photoDetails: photoDetailsFrom(basePhotos),
     guideDocuments: [...(baseData.guideDocuments || [])],
     connected: false
   };
@@ -106,15 +125,17 @@
         client.from("travel_cities").select("name,country,region,visit_date,longitude,latitude,description,cover_url,is_hidden"),
         client.from("travel_city_visits").select("id,city_name,visit_date"),
         client.from("travel_wishlist").select("name,icon,description,guide,planned_time,sort_order,is_hidden"),
-        client.from("city_photos").select("city_name,image_url,sort_order,created_at,is_hidden"),
+        client.from("city_photos").select("city_name,image_url,storage_path,caption,sort_order,created_at,is_hidden"),
         client.from("travel_guides").select("id,place_type,place_name,title,file_type,file_url,file_size,created_at,is_hidden")
       ]);
       const hasError = cities.error || wishes.error || photos.error;
       if (hasError) return state;
+      const photoManifest = mergePhotos(photos.data);
       state = {
         visits: window.TRAVEL_VISIT_ENGINE.mergeCityVisits(baseData.visits, cities.data, visitDates.error ? [] : visitDates.data),
         wishlist: mergeLocalWishlist(mergeWishlist(wishes.data)),
-        photoManifest: mergePhotos(photos.data),
+        photoManifest,
+        photoDetails: photoDetailsFrom(photoManifest, photos.data),
         guideDocuments: guides.error ? [] : mergeGuides(guides.data),
         connected: true
       };

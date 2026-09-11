@@ -354,6 +354,9 @@ h1 em { color: var(--accent); font-weight: 400; }
 }
 .travel-insight-card--feature { grid-column: span 2; min-height: 280px; background: linear-gradient(145deg, rgba(228,255,117,.17), rgba(6,56,63,.27)); }
 .travel-insight-card::after { position: absolute; inset: auto -25% -55% 25%; height: 75%; border-radius: 50%; background: rgba(74,190,193,.1); filter: blur(25px); content: ""; pointer-events: none; }
+.travel-insight-card--interactive { cursor: pointer; transition: color .2s ease, background .2s ease, transform .2s ease; }
+.travel-insight-card--interactive:hover, .travel-insight-card--interactive:focus-visible { color: var(--accent); background: linear-gradient(145deg, rgba(228,255,117,.19), rgba(6,56,63,.3)); transform: translateY(-2px); }
+.travel-insight-card--interactive:focus-visible { z-index: 2; outline-offset: -4px; }
 .travel-insight-index { position: absolute; top: 1.25rem; right: 1.35rem; color: var(--faint); font-family: var(--display); font-size: .75rem; letter-spacing: .12em; }
 .travel-insight-card p { position: relative; z-index: 1; margin: 0 0 .7rem; color: var(--muted); font-size: .72rem; font-weight: 700; letter-spacing: .12em; }
 .travel-insight-card strong { position: relative; z-index: 1; color: var(--accent); font-family: var(--display); font-size: clamp(2.5rem, 5vw, 4.8rem); font-weight: 400; line-height: .95; letter-spacing: -.04em; }
@@ -361,6 +364,7 @@ h1 em { color: var(--accent); font-weight: 400; }
 .travel-insight-card strong small { color: var(--muted); font-family: var(--sans); font-size: .72rem; font-weight: 600; letter-spacing: .08em; }
 .travel-insight-card .travel-insight-city { overflow-wrap: anywhere; font-size: clamp(1.8rem, 3vw, 2.8rem); line-height: 1.1; }
 .travel-insight-detail { position: relative; z-index: 1; margin-top: .85rem; color: var(--faint); font-size: .68rem; letter-spacing: .05em; }
+.travel-insight-action { position: relative; z-index: 1; width: fit-content; margin-top: .55rem; color: var(--accent); font-size: .62rem; font-weight: 700; letter-spacing: .08em; }
 .coverage-track { position: relative; z-index: 1; height: 4px; margin-top: 1rem; overflow: hidden; background: rgba(238,243,234,.13); }
 .coverage-track i { display: block; width: 0; height: 100%; background: linear-gradient(90deg, #55cdd1, var(--accent)); box-shadow: 0 0 12px rgba(228,255,117,.45); transition: width .8s ease; }
 .month-heatmap-panel { margin-top: 1.5rem; padding: 1.5rem; border: 1px solid var(--glass-line); border-radius: 1.35rem; background: linear-gradient(135deg, rgba(220,241,239,.12), rgba(7,51,58,.26)); box-shadow: var(--glass-shadow); }
@@ -378,6 +382,40 @@ h1 em { color: var(--accent); font-weight: 400; }
 .heatmap-legend i:nth-of-type(3) { background: rgba(228,255,117,.4); }
 .heatmap-legend i:nth-of-type(4) { background: rgba(228,255,117,.58); }
 .heatmap-legend i:nth-of-type(5) { background: rgba(228,255,117,.76); }
+
+.stats-dialog { width: min(1040px, calc(100% - 2rem)); }
+.stats-dialog--photos { width: min(1240px, calc(100% - 2rem)); }
+.stats-dialog-description { max-width: 760px; margin: -0.2rem 0 2rem; color: var(--muted); }
+.stats-detail-body { display: grid; gap: 1.2rem; }
+.stats-detail-heading { margin: 1rem 0 0; color: var(--accent); font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; }
+.coverage-detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; }
+.coverage-detail-card { display: grid; min-height: 130px; align-content: end; padding: 1rem; border: 1px solid var(--line); background: rgba(228,255,117,.035); }
+.coverage-detail-card > span { color: var(--accent); font-size: .6rem; letter-spacing: .08em; }
+.coverage-detail-card strong { margin-top: .3rem; font-family: var(--display); font-size: 1.7rem; font-weight: 400; }
+.coverage-detail-card p { margin: .2rem 0 0; color: var(--muted); font-size: .68rem; }
+.stats-detail-pills { display: flex; flex-wrap: wrap; gap: .45rem; }
+.stats-detail-pill { padding: .32rem .55rem; border: 1px solid rgba(228,255,117,.35); border-radius: 999px; color: var(--ink); background: rgba(228,255,117,.05); font-size: .65rem; }
+.stats-detail-pill.is-muted { border-color: var(--line); color: var(--faint); background: transparent; }
+.country-detail-list, .repeat-detail-list { display: grid; gap: .7rem; }
+.country-detail-card { display: grid; gap: .8rem; padding: 1.15rem; border: 1px solid var(--line); background: rgba(228,255,117,.035); }
+.country-detail-card > div:first-child { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.country-detail-card h3, .repeat-detail-card h3 { margin: 0; font-family: var(--display); font-size: 1.75rem; font-weight: 400; }
+.country-detail-card > div:first-child strong { color: var(--accent); font-size: .7rem; }
+.country-detail-card > p { margin: 0; color: var(--faint); font-size: .68rem; }
+.repeat-detail-card { display: grid; grid-template-columns: 3rem minmax(0, 1fr) auto; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--line); background: rgba(228,255,117,.035); }
+.repeat-detail-rank { color: var(--faint); font-family: var(--display); font-size: 1.1rem; }
+.repeat-detail-card > strong { align-self: start; color: var(--accent); font-family: var(--display); font-size: 1.55rem; font-weight: 400; }
+.repeat-date-list { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .55rem; }
+.stats-detail-empty { margin: 0; padding: 2.5rem 1rem; border: 1px dashed var(--line); color: var(--faint); text-align: center; }
+.photo-archive-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+.photo-archive-card { margin: 0; overflow: hidden; border: 1px solid var(--line); background: rgba(228,255,117,.035); }
+.photo-archive-card button { display: block; width: 100%; aspect-ratio: 4 / 3; padding: 0; overflow: hidden; border: 0; background: var(--night-soft); cursor: zoom-in; }
+.photo-archive-card img { width: 100%; height: 100%; object-fit: cover; transition: transform .25s ease; }
+.photo-archive-card button:hover img { transform: scale(1.035); }
+.photo-archive-card figcaption { display: grid; gap: .2rem; padding: .75rem; }
+.photo-archive-card figcaption strong { font-family: var(--display); font-size: 1.05rem; font-weight: 400; }
+.photo-archive-card figcaption span { overflow: hidden; color: var(--muted); font-size: .65rem; text-overflow: ellipsis; white-space: nowrap; }
+.photo-archive-card figcaption small { color: var(--faint); font-size: .58rem; line-height: 1.45; }
 
 .city-controls { display: flex; align-items: end; justify-content: flex-end; flex-wrap: wrap; gap: .8rem; }
 .filter-wrap { display: grid; gap: .4rem; color: rgba(238,248,244,.78); font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; }
@@ -730,6 +768,7 @@ dialog h2 { margin: 1rem 0; font-size: clamp(2.8rem, 7vw, 5rem); letter-spacing:
   .wish-grid { grid-template-columns: repeat(2, 1fr); }
   .travel-insight-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .month-heatmap { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .coverage-detail-grid, .photo-archive-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .city-controls { justify-content: flex-start; }
 }
 
@@ -776,6 +815,10 @@ dialog h2 { margin: 1rem 0; font-size: clamp(2.8rem, 7vw, 5rem); letter-spacing:
   .month-heatmap-heading { display: grid; align-items: start; }
   .month-heatmap { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .month-heat-cell { min-height: 78px; }
+  .stats-dialog { padding: 1.3rem; }
+  .coverage-detail-grid, .photo-archive-grid { grid-template-columns: 1fr; }
+  .country-detail-card > div:first-child { display: grid; }
+  .repeat-detail-card { grid-template-columns: 2.2rem minmax(0, 1fr) auto; gap: .65rem; }
   .year-group { grid-template-columns: 1fr; }
   .year-label { padding: 1.6rem 3rem .7rem 0; }
   .year-toggle { gap: 1rem; }

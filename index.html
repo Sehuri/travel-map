@@ -11,7 +11,7 @@
   <meta property="og:url" content="https://sehuri.github.io/travel-map/">
   <meta property="og:locale" content="zh_CN">
   <link rel="canonical" href="https://sehuri.github.io/travel-map/">
-  <link rel="stylesheet" href="./assets/styles.css?v=20260911.1">
+  <link rel="stylesheet" href="./assets/styles.css?v=20260911.2">
   <title>Sehuri 的旅行足迹｜53 座城市与旅行记忆</title>
 </head>
 <body>
@@ -120,31 +120,35 @@
           <strong><span id="stat-distance">0</span><small> 公里</small></strong>
           <span class="travel-insight-detail">按每段旅程的城市顺序直线串联</span>
         </article>
-        <article class="travel-insight-card">
+        <article class="travel-insight-card travel-insight-card--interactive" data-stat-detail="provinces" role="button" tabindex="0" aria-haspopup="dialog" aria-label="查看省级地区覆盖详情">
           <span class="travel-insight-index">03</span>
           <p>省级地区覆盖</p>
           <strong><span id="stat-province-count">0</span><small> / 34</small></strong>
           <div class="coverage-track" aria-hidden="true"><i id="stat-province-progress"></i></div>
           <span id="stat-province-percent" class="travel-insight-detail">0% 中国省级地区</span>
+          <span class="travel-insight-action">查看详情 ↗</span>
         </article>
-        <article class="travel-insight-card">
+        <article class="travel-insight-card travel-insight-card--interactive" data-stat-detail="countries" role="button" tabindex="0" aria-haspopup="dialog" aria-label="查看国家和地区覆盖详情">
           <span class="travel-insight-index">04</span>
           <p>国家和地区覆盖</p>
           <strong><span id="stat-country-count">0</span><small> / 195</small></strong>
           <div class="coverage-track" aria-hidden="true"><i id="stat-country-progress"></i></div>
           <span id="stat-country-percent" class="travel-insight-detail">0% 全球国家和地区</span>
+          <span class="travel-insight-action">查看详情 ↗</span>
         </article>
-        <article class="travel-insight-card">
+        <article class="travel-insight-card travel-insight-card--interactive" data-stat-detail="repeats" role="button" tabindex="0" aria-haspopup="dialog" aria-label="查看重复到访城市详情">
           <span class="travel-insight-index">05</span>
           <p>重复到访最多</p>
           <strong id="stat-repeat-city" class="travel-insight-city">暂无</strong>
           <span id="stat-repeat-count" class="travel-insight-detail">目前每座城市 1 次</span>
+          <span class="travel-insight-action">查看详情 ↗</span>
         </article>
-        <article class="travel-insight-card">
+        <article class="travel-insight-card travel-insight-card--interactive" data-stat-detail="photos" role="button" tabindex="0" aria-haspopup="dialog" aria-label="查看全部旅行照片">
           <span class="travel-insight-index">06</span>
           <p>旅行照片收藏</p>
           <strong><span id="stat-photo-count">0</span><small> 张</small></strong>
           <span id="stat-photo-cities" class="travel-insight-detail">0 座城市留有影像</span>
+          <span class="travel-insight-action">查看全部照片 ↗</span>
         </article>
       </div>
       <div class="month-heatmap-panel">
@@ -244,6 +248,14 @@
       <a href="https://github.com/Sehuri/travel-map" target="_blank" rel="noopener noreferrer">View on GitHub ↗</a>
     </div>
   </footer>
+
+  <dialog class="stats-dialog" id="stats-dialog" aria-labelledby="stats-dialog-title">
+    <button class="dialog-close" id="stats-dialog-close" type="button" aria-label="关闭统计详情">×</button>
+    <p class="eyebrow" id="stats-dialog-kicker">TRAVEL DATA</p>
+    <h2 id="stats-dialog-title">统计详情</h2>
+    <p class="stats-dialog-description" id="stats-dialog-description"></p>
+    <div class="stats-detail-body" id="stats-detail-body"></div>
+  </dialog>
 
   <dialog class="city-dialog" id="city-dialog" aria-labelledby="dialog-title">
     <button class="dialog-close" id="dialog-close" type="button" aria-label="关闭城市详情">×</button>
@@ -361,9 +373,9 @@
   <script src="./assets/amap-map-config.js?v=20260907.1"></script>
   <script src="./assets/map-engine.js?v=20260910.1"></script>
   <script src="./assets/visit-engine.js?v=20260911.1"></script>
-  <script src="./assets/stats-engine.js?v=20260911.1"></script>
-  <script src="./assets/content.js?v=20260911.1"></script>
+  <script src="./assets/stats-engine.js?v=20260911.2"></script>
+  <script src="./assets/content.js?v=20260911.2"></script>
   <script src="./assets/community.js?v=20260901.1"></script>
-  <script src="./assets/app.js?v=20260911.3"></script>
+  <script src="./assets/app.js?v=20260911.4"></script>
 </body>
 </html>
