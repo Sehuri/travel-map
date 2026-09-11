@@ -74,7 +74,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     });
 
     await page.goto(`${base}/index.html?qa=site-browser`, { waitUntil: 'networkidle' });
-    assert.equal(await page.locator('.amap-marker-button').count(), 52);
+    assert.equal(await page.locator('.amap-marker-button').count(), 53);
     assert.equal(await page.locator('.amap-wishlist-marker-button').count(), 0);
 
     await page.locator('#year-filter').selectOption('2026');
@@ -87,8 +87,8 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert(await page.locator('#clear-filters').isVisible());
 
     await page.locator('#clear-filters').click();
-    assert.equal(await page.locator('.amap-marker-button').count(), 52);
-    assert.equal(await page.locator('#city-count').innerText(), '52');
+    assert.equal(await page.locator('.amap-marker-button').count(), 53);
+    assert.equal(await page.locator('#city-count').innerText(), '53');
     assert(!(await page.locator('#clear-filters').isVisible()));
 
     await page.getByRole('tab', { name: /仍在期待/ }).click();
@@ -130,11 +130,11 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       window.TRAVEL_DATA.visits.push({ ...window.TRAVEL_DATA.visits.find((visit) => visit.name === '南京'), date: '2026-09-11' });`
     }));
     await page.reload({ waitUntil: 'networkidle' });
-    assert.equal(await page.locator('.city-card').count(), 53);
-    assert.equal(await page.locator('.amap-marker-button').count(), 52);
-    assert.equal(await page.locator('#city-count').innerText(), '52');
-    assert.equal(await page.locator('#route-city-count').innerText(), '53');
-    assert.match(await page.locator('#filter-summary').innerText(), /53 次到访 · 52 座城市/);
+    assert.equal(await page.locator('.city-card').count(), 54);
+    assert.equal(await page.locator('.amap-marker-button').count(), 53);
+    assert.equal(await page.locator('#city-count').innerText(), '53');
+    assert.equal(await page.locator('#route-city-count').innerText(), '54');
+    assert.match(await page.locator('#filter-summary').innerText(), /54 次到访 · 53 座城市/);
     await page.locator('.city-card[aria-label="查看南京2026-09-11旅行详情"]').click();
     assert.match(await page.locator('#dialog-date').innerText(), /2026年9月11日/);
     assert.match(await page.locator('#dialog-description').innerText(), /六朝古都/);

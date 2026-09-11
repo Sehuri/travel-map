@@ -56,3 +56,16 @@ test('visit migration and admin UI protect shared city data', () => {
   assert.match(adminScript, /from\("travel_city_visits"\)\.insert/);
   assert.match(contentScript, /from\("travel_city_visits"\)/);
 });
+
+test('Chuzhou is included in the built-in journey archive', () => {
+  const previousWindow = global.window;
+  global.window = {};
+  delete require.cache[require.resolve('../assets/data.js')];
+  require('../assets/data.js');
+  const visits = global.window.TRAVEL_DATA.visits;
+  global.window = previousWindow;
+  const chuzhou = visits.find((visit) => visit.name === '滁州');
+  assert.equal(visits.length, 53);
+  assert.equal(chuzhou.date, '2023-01-24');
+  assert.deepEqual(chuzhou.coord, [118.32, 32.30]);
+});
