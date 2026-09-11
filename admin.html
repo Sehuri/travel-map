@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#07111f">
   <meta name="robots" content="noindex,nofollow">
   <title>站主管理｜Sehuri 的旅行足迹</title>
-  <link rel="stylesheet" href="./assets/admin.css?v=20260911.1">
+  <link rel="stylesheet" href="./assets/admin.css?v=20260911.2">
 </head>
 <body>
   <header class="admin-header">
@@ -40,6 +40,7 @@
         <p>这里的修改会直接保存到 Supabase，并在公开网站刷新后生效。代码中的原始资料仍作为备用版本保留。</p>
         <nav class="section-nav" aria-label="后台功能">
           <a href="#cities">城市</a>
+          <a href="#journeys-admin">旅程</a>
           <a href="#photos">照片</a>
           <a href="#wishes">愿望清单</a>
           <a href="#guides">攻略文件</a>
@@ -90,9 +91,69 @@
         </div>
       </section>
 
+      <section class="admin-section" id="journeys-admin">
+        <div class="section-title">
+          <div><p class="eyebrow">02 / JOURNEYS</p><h2>正式旅程档案</h2></div>
+          <button id="new-journey" type="button">＋ 新建旅程</button>
+        </div>
+        <div class="workspace-grid journey-workspace">
+          <aside>
+            <label for="journey-picker">选择旅程</label>
+            <select id="journey-picker" size="12"></select>
+          </aside>
+          <form class="editor-form" id="journey-form">
+            <div class="field-grid">
+              <label>旅程标题<input id="journey-title-input" required maxlength="160" placeholder="例如：2026 日本关西关东之旅"></label>
+              <label>独立链接标识<input id="journey-slug" required maxlength="120" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="2026-japan-kansai-kanto"></label>
+              <label>排序<input id="journey-order" type="number" min="0" step="1" value="0"></label>
+              <label>开始日期<input id="journey-start-date" type="date" required></label>
+              <label>结束日期<input id="journey-end-date" type="date" required></label>
+              <label>旅行天数<output id="journey-days-preview">—</output></label>
+              <label>里程（公里）<input id="journey-distance-input" type="number" min="0" step="0.1" placeholder="可留空"></label>
+              <label>预算金额<input id="journey-budget" type="number" min="0" step="0.01" placeholder="可留空"></label>
+              <label>预算币种<select id="journey-currency"><option value="CNY">CNY 人民币</option><option value="JPY">JPY 日元</option><option value="USD">USD 美元</option><option value="EUR">EUR 欧元</option><option value="HKD">HKD 港币</option></select></label>
+            </div>
+            <label class="check-row"><input id="journey-distance-estimated" type="checkbox" checked> 当前里程为估算值</label>
+            <label>旅程封面地址<input id="journey-cover-input" type="text" placeholder="可直接使用下方已关联照片"></label>
+            <label>旅程总结<textarea id="journey-summary-input" rows="4" maxlength="4000" placeholder="用一段话概括这趟旅程"></textarea></label>
+            <div class="field-grid journey-text-fields">
+              <label>住宿记录<textarea id="journey-accommodation-input" rows="5" maxlength="6000"></textarea></label>
+              <label>同行人<input id="journey-companions-input" maxlength="500" placeholder="可留空"></label>
+            </div>
+
+            <section class="journey-editor-block" aria-labelledby="journey-stops-title">
+              <div class="journey-editor-heading">
+                <div><h3 id="journey-stops-title">城市停留与交通</h3><p>从已经去过的城市中选择，按真实行程调整顺序；交通填写在“前往下一站”。</p></div>
+                <button id="add-journey-stop" type="button">＋ 增加城市</button>
+              </div>
+              <div class="journey-stop-editor" id="journey-stop-editor"></div>
+            </section>
+
+            <section class="journey-editor-block" aria-labelledby="journey-photos-admin-title">
+              <div class="journey-editor-heading">
+                <div><h3 id="journey-photos-admin-title">关联旅程照片</h3><p>这里会显示上述停留城市已有的照片；勾选后会出现在独立旅程页。</p></div>
+              </div>
+              <div class="journey-photo-picker" id="journey-photo-picker"></div>
+            </section>
+
+            <div class="journey-writing-fields">
+              <label>行前计划<textarea id="journey-planning-input" rows="7" maxlength="12000"></textarea></label>
+              <label>旅途中记录<textarea id="journey-notes-input" rows="7" maxlength="12000"></textarea></label>
+              <label>旅行后感想<textarea id="journey-reflection-input" rows="7" maxlength="12000"></textarea></label>
+            </div>
+            <label class="check-row"><input id="journey-published" type="checkbox" checked> 在公开网站展示这份旅程档案</label>
+            <div class="form-actions">
+              <button type="submit">保存旅程档案</button>
+              <button class="danger-button" id="remove-journey-override" type="button">恢复代码示例</button>
+            </div>
+            <p class="status" id="journey-status" aria-live="polite"></p>
+          </form>
+        </div>
+      </section>
+
       <section class="admin-section" id="photos">
         <div class="section-title">
-          <div><p class="eyebrow">02 / PHOTOS</p><h2>照片与封面</h2></div>
+          <div><p class="eyebrow">03 / PHOTOS</p><h2>照片与封面</h2></div>
         </div>
         <div class="photo-toolbar">
           <label>城市<select id="photo-city"></select></label>
@@ -107,7 +168,7 @@
 
       <section class="admin-section" id="wishes">
         <div class="section-title">
-          <div><p class="eyebrow">03 / WISHLIST</p><h2>愿望清单</h2></div>
+          <div><p class="eyebrow">04 / WISHLIST</p><h2>愿望清单</h2></div>
           <button id="new-wish" type="button">＋ 添加目的地</button>
         </div>
         <div class="workspace-grid">
@@ -136,13 +197,14 @@
 
       <section class="admin-section" id="guides">
         <div class="section-title">
-          <div><p class="eyebrow">04 / GUIDES</p><h2>攻略文件</h2></div>
+          <div><p class="eyebrow">05 / GUIDES</p><h2>攻略与旅程游记</h2></div>
         </div>
         <form class="guide-upload-form" id="guide-upload-form">
           <label>目的地类型
             <select id="guide-place-type">
               <option value="visited">已经去过</option>
               <option value="wishlist">想去的地方</option>
+              <option value="journey">正式旅程</option>
             </select>
           </label>
           <label>关联目的地<select id="guide-place-name" required></select></label>
@@ -159,7 +221,7 @@
 
       <section class="admin-section" id="ratings-admin">
         <div class="section-title">
-          <div><p class="eyebrow">05 / RATINGS</p><h2>评分管理</h2></div>
+          <div><p class="eyebrow">06 / RATINGS</p><h2>评分管理</h2></div>
           <label class="compact-field">筛选城市<select id="rating-city-filter"><option value="all">全部城市</option></select></label>
         </div>
         <p class="hint">删除明显异常的评分后，城市平均分会自动重新计算。用户编号仅显示前 8 位。</p>
@@ -175,9 +237,10 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-  <script src="./assets/data.js?v=20260911.1"></script>
+  <script src="./assets/data.js?v=20260911.2"></script>
   <script src="./assets/photos.js"></script>
   <script src="./assets/supabase-config.js"></script>
-  <script src="./assets/admin.js?v=20260911.1"></script>
+  <script src="./assets/journey-engine.js?v=20260911.1"></script>
+  <script src="./assets/admin.js?v=20260911.2"></script>
 </body>
 </html>

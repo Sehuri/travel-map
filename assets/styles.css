@@ -417,6 +417,32 @@ h1 em { color: var(--accent); font-weight: 400; }
 .photo-archive-card figcaption span { overflow: hidden; color: var(--muted); font-size: .65rem; text-overflow: ellipsis; white-space: nowrap; }
 .photo-archive-card figcaption small { color: var(--faint); font-size: .58rem; line-height: 1.45; }
 
+.journey-archive {
+  max-width: none;
+  background:
+    radial-gradient(circle at 88% 18%, rgba(255,179,107,.11), transparent 25rem),
+    linear-gradient(160deg, rgba(6,34,47,.82), rgba(6,56,52,.72));
+  backdrop-filter: blur(4px);
+}
+.journey-archive > * { width: min(100%, 1330px); margin-right: auto; margin-left: auto; }
+.journey-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.journey-card { display: grid; min-height: 360px; grid-template-columns: minmax(210px, .8fr) minmax(0, 1.2fr); overflow: hidden; border: 1px solid var(--glass-line); color: var(--ink); background: linear-gradient(145deg, rgba(222,243,240,.15), rgba(6,47,54,.27)); box-shadow: var(--glass-shadow); text-decoration: none; transition: border-color .25s ease, transform .25s ease; }
+.journey-card:only-child { grid-column: 1 / -1; }
+.journey-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+.journey-card-media { position: relative; min-height: 100%; overflow: hidden; background: rgba(7,17,31,.62); }
+.journey-card-media::after { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 50%, rgba(5,18,27,.72)); content: ""; }
+.journey-card-media img { width: 100%; height: 100%; object-fit: cover; transition: transform .45s ease; }
+.journey-card:hover .journey-card-media img { transform: scale(1.035); }
+.journey-card-number { position: absolute; z-index: 1; right: 1rem; bottom: .8rem; color: var(--accent); font-family: var(--display); font-size: 1.2rem; }
+.journey-card-copy { display: flex; flex-direction: column; justify-content: center; padding: 1.6rem; }
+.journey-card-copy time { color: var(--accent); font-size: .64rem; font-weight: 700; letter-spacing: .08em; }
+.journey-card-copy > strong { margin: .65rem 0; font-family: var(--display); font-size: clamp(1.75rem, 3vw, 2.65rem); font-weight: 400; line-height: 1.08; }
+.journey-card-route { color: var(--ink); font-size: .75rem; line-height: 1.6; }
+.journey-card-summary { margin-top: 1rem; color: var(--muted); font-size: .72rem; }
+.journey-card-meta { margin-top: 1rem; padding-top: .8rem; border-top: 1px solid var(--line); color: var(--faint); font-size: .64rem; }
+.journey-card-action { width: fit-content; margin-top: 1rem; color: var(--accent); font-size: .64rem; font-weight: 700; letter-spacing: .06em; }
+.journey-archive-empty { grid-column: 1 / -1; margin: 0; padding: 3rem; border: 1px dashed var(--line); color: var(--faint); text-align: center; }
+
 .city-controls { display: flex; align-items: end; justify-content: flex-end; flex-wrap: wrap; gap: .8rem; }
 .filter-wrap { display: grid; gap: .4rem; color: rgba(238,248,244,.78); font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; }
 .filter-wrap select, .filter-wrap input {
@@ -734,6 +760,19 @@ dialog h2 { margin: 1rem 0; font-size: clamp(2.8rem, 7vw, 5rem); letter-spacing:
 .guide-document-link strong { overflow: hidden; font-size: .76rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .guide-document-link span:last-child { color: var(--accent); }
 .guide-document-empty { margin: 0; color: var(--faint); font-size: .7rem; }
+.city-journeys-panel { display: grid; gap: 1rem; margin: 1.5rem 0 0; padding: 1.15rem; border: 1px solid var(--line); background: rgba(228,255,117,.025); }
+.city-journeys-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
+.city-journeys-heading .eyebrow { margin-bottom: .35rem; }
+.city-journeys-heading h3 { margin: 0; font-family: var(--display); font-size: 1.35rem; font-weight: 400; }
+.city-journeys-heading > strong { color: var(--accent); font-family: var(--display); font-size: 1.8rem; font-weight: 400; }
+.city-visit-dates { display: flex; flex-wrap: wrap; gap: .45rem; }
+.city-visit-dates time { padding: .32rem .55rem; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: .64rem; }
+.city-related-journeys { display: grid; gap: .55rem; }
+.city-related-journeys a { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .15rem 1rem; padding: .75rem .8rem; border: 1px solid var(--line); color: var(--ink); text-decoration: none; }
+.city-related-journeys a:hover { border-color: var(--accent); background: rgba(228,255,117,.06); }
+.city-related-journeys a strong { font-size: .76rem; }
+.city-related-journeys a span { color: var(--faint); font-size: .62rem; }
+.city-related-journeys a span:last-child { grid-column: 2; grid-row: 1 / span 2; align-self: center; color: var(--accent); }
 .guide-planned-time { width: fit-content; margin: 1rem 0 0; padding: .42rem .7rem; border: 1px solid rgba(228,255,117,.45); border-radius: 999px; color: var(--accent); background: rgba(228,255,117,.06); font-size: .72rem; }
 .guide-links { display: flex; flex-wrap: wrap; gap: .7rem; }
 .guide-links a { padding: .55rem .85rem; border: 1px solid var(--line); color: var(--muted); text-decoration: none; font-size: .72rem; }
@@ -767,6 +806,7 @@ dialog h2 { margin: 1rem 0; font-size: clamp(2.8rem, 7vw, 5rem); letter-spacing:
   .extreme-card:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
   .wish-grid { grid-template-columns: repeat(2, 1fr); }
   .travel-insight-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .journey-card-grid { grid-template-columns: 1fr; }
   .month-heatmap { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .coverage-detail-grid, .photo-archive-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .city-controls { justify-content: flex-start; }
@@ -815,6 +855,8 @@ dialog h2 { margin: 1rem 0; font-size: clamp(2.8rem, 7vw, 5rem); letter-spacing:
   .month-heatmap-heading { display: grid; align-items: start; }
   .month-heatmap { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .month-heat-cell { min-height: 78px; }
+  .journey-card { min-height: 0; grid-template-columns: 1fr; }
+  .journey-card-media { min-height: 230px; }
   .stats-dialog { padding: 1.3rem; }
   .coverage-detail-grid, .photo-archive-grid { grid-template-columns: 1fr; }
   .country-detail-card > div:first-child { display: grid; }

@@ -2,6 +2,7 @@
   "use strict";
 
   const baseData = window.TRAVEL_DATA || { visits: [], wishlist: [] };
+  const baseJourneys = baseData.journeys || [];
   const basePhotos = window.PHOTO_MANIFEST || {};
   const config = window.SUPABASE_CONFIG || {};
   function photoDetailsFrom(manifest, rows = []) {
@@ -28,6 +29,7 @@
     photoManifest: { ...basePhotos },
     photoDetails: photoDetailsFrom(basePhotos),
     guideDocuments: [...(baseData.guideDocuments || [])],
+    journeys: window.TRAVEL_JOURNEY_ENGINE?.mergeJourneys(baseJourneys, [], [], [], baseData.guideDocuments || [], basePhotos) || baseJourneys,
     connected: false
   };
 
@@ -102,7 +104,7 @@
 
   function mergeGuides(rows) {
     return (rows || [])
-      .filter((row) => !row.is_hidden && ["visited", "wishlist"].includes(row.place_type))
+      .filter((row) => !row.is_hidden && ["visited", "wishlist", "journey"].includes(row.place_type))
       .map((row) => ({
         id: row.id,
         placeType: row.place_type,
@@ -121,22 +123,36 @@
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
     });
     try {
-      const [cities, visitDates, wishes, photos, guides] = await Promise.all([
+      const [cities, visitDates, wishes, photos, guides, journeys, journeyStops, journeyPhotos] = await Promise.all([
         client.from("travel_cities").select("name,country,region,visit_date,longitude,latitude,description,cover_url,is_hidden"),
         client.from("travel_city_visits").select("id,city_name,visit_date"),
         client.from("travel_wishlist").select("name,icon,description,guide,planned_time,sort_order,is_hidden"),
         client.from("city_photos").select("city_name,image_url,storage_path,caption,sort_order,created_at,is_hidden"),
-        client.from("travel_guides").select("id,place_type,place_name,title,file_type,file_url,file_size,created_at,is_hidden")
+        client.from("travel_guides").select("id,place_type,place_name,title,file_type,file_url,file_size,created_at,is_hidden"),
+        client.from("travel_journeys").select("id,slug,title,start_date,end_date,cover_url,summary,distance_km,distance_is_estimated,accommodation,budget_amount,budget_currency,companions,planning_notes,travel_notes,reflection,sort_order,is_published"),
+        client.from("travel_journey_stops").select("id,journey_id,city_name,stop_order,arrival_date,departure_date,transport_to_next,notes"),
+        client.from("travel_journey_photos").select("id,journey_id,city_name,image_url,caption,sort_order")
       ]);
       const hasError = cities.error || wishes.error || photos.error;
       if (hasError) return state;
       const photoManifest = mergePhotos(photos.data);
+      const guideDocuments = guides.error ? [...(baseData.guideDocuments || [])] : mergeGuides(guides.data);
+      const journeyTablesReady = !journeys.error && !journeyStops.error && !journeyPhotos.error;
       state = {
         visits: window.TRAVEL_VISIT_ENGINE.mergeCityVisits(baseData.visits, cities.data, visitDates.error ? [] : visitDates.data),
         wishlist: mergeLocalWishlist(mergeWishlist(wishes.data)),
         photoManifest,
         photoDetails: photoDetailsFrom(photoManifest, photos.data),
-        guideDocuments: guides.error ? [] : mergeGuides(guides.data),
+        guideDocuments,
+        journeys: window.TRAVEL_JOURNEY_ENGINE?.mergeJourneys(
+          baseJourneys,
+          journeyTablesReady ? journeys.data : [],
+          journeyTablesReady ? journeyStops.data : [],
+          journeyTablesReady ? journeyPhotos.data : [],
+          guideDocuments,
+          photoManifest
+        ) || baseJourneys,
+        journeyTablesReady,
         connected: true
       };
       return state;

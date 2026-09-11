@@ -52,7 +52,7 @@ create table if not exists public.travel_city_visits (
 
 create table if not exists public.travel_guides (
   id uuid primary key default gen_random_uuid(),
-  place_type text not null check (place_type in ('visited', 'wishlist')),
+  place_type text not null check (place_type in ('visited', 'wishlist', 'journey')),
   place_name text not null,
   title text not null check (char_length(title) between 1 and 160),
   file_type text not null check (file_type in ('html', 'pdf')),

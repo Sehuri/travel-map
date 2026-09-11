@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Sehuri 的个人旅程档案：路线、交通、照片与旅行记录。">
+  <meta name="theme-color" content="#07111f">
+  <link rel="stylesheet" href="./assets/journey.css?v=20260911.1">
+  <title>旅程档案｜Sehuri 的旅行足迹</title>
+</head>
+<body>
+  <a class="skip-link" href="#journey-main">跳到旅程内容</a>
+  <header class="journey-site-header">
+    <a class="journey-brand" href="./index.html#journey-archive">← SEHURI / JOURNEY ARCHIVE</a>
+    <a href="./index.html">返回旅行地图</a>
+  </header>
+
+  <main id="journey-main">
+    <p class="journey-loading" id="journey-loading" role="status">正在打开旅程档案…</p>
+    <article id="journey-content" hidden>
+      <header class="journey-hero" id="journey-hero">
+        <img id="journey-cover" alt="" hidden>
+        <div class="journey-hero-shade"></div>
+        <div class="journey-hero-copy">
+          <p class="eyebrow">A COMPLETE JOURNEY RECORD</p>
+          <p class="journey-date" id="journey-date"></p>
+          <h1 id="journey-title"></h1>
+          <p class="journey-route-inline" id="journey-route-inline"></p>
+          <p class="journey-summary" id="journey-summary"></p>
+        </div>
+      </header>
+
+      <section class="journey-facts" aria-label="旅程概览">
+        <div><span>旅行天数</span><strong id="journey-days">—</strong></div>
+        <div><span>城市数量</span><strong id="journey-city-count">—</strong></div>
+        <div><span>旅程里程</span><strong id="journey-distance">—</strong></div>
+        <div><span>旅行预算</span><strong id="journey-budget">—</strong></div>
+      </section>
+
+      <section class="journey-section journey-route-section" aria-labelledby="journey-route-title">
+        <div class="journey-section-heading">
+          <p class="eyebrow">ROUTE & TRANSPORT</p>
+          <h2 id="journey-route-title">城市与行进顺序</h2>
+        </div>
+        <div class="journey-route" id="journey-route"></div>
+      </section>
+
+      <section class="journey-section journey-practical" aria-labelledby="journey-practical-title">
+        <div class="journey-section-heading">
+          <p class="eyebrow">TRAVEL NOTES</p>
+          <h2 id="journey-practical-title">同行与住宿</h2>
+        </div>
+        <dl>
+          <div><dt>同行人</dt><dd id="journey-companions">待补充</dd></div>
+          <div><dt>住宿记录</dt><dd id="journey-accommodation">待补充</dd></div>
+        </dl>
+      </section>
+
+      <section class="journey-section journey-writing" aria-labelledby="journey-writing-title">
+        <div class="journey-section-heading">
+          <p class="eyebrow">BEFORE / DURING / AFTER</p>
+          <h2 id="journey-writing-title">一趟旅程的三个时刻</h2>
+        </div>
+        <div class="journey-writing-grid">
+          <article><span>01 / BEFORE</span><h3>行前计划</h3><p id="journey-planning"></p></article>
+          <article><span>02 / DURING</span><h3>旅途中记录</h3><p id="journey-notes"></p></article>
+          <article><span>03 / AFTER</span><h3>旅行后感想</h3><p id="journey-reflection"></p></article>
+        </div>
+      </section>
+
+      <section class="journey-section" aria-labelledby="journey-photos-title">
+        <div class="journey-section-heading split-heading">
+          <div><p class="eyebrow">PHOTO STORY</p><h2 id="journey-photos-title">与这趟旅程关联的照片</h2></div>
+          <p id="journey-photo-count"></p>
+        </div>
+        <div class="journey-photo-grid" id="journey-photo-grid"></div>
+      </section>
+
+      <section class="journey-section" aria-labelledby="journey-guides-title">
+        <div class="journey-section-heading split-heading">
+          <div><p class="eyebrow">GUIDES & DOCUMENTS</p><h2 id="journey-guides-title">攻略与旅程游记</h2></div>
+          <p>支持 HTML 网页与 PDF 文档</p>
+        </div>
+        <div class="journey-guide-list" id="journey-guide-list"></div>
+      </section>
+    </article>
+  </main>
+
+  <div class="journey-lightbox" id="journey-lightbox" role="dialog" aria-modal="true" aria-label="旅程照片预览" hidden>
+    <button type="button" id="journey-lightbox-close" aria-label="关闭照片预览">×</button>
+    <img id="journey-lightbox-image" alt="">
+    <p id="journey-lightbox-caption"></p>
+  </div>
+
+  <footer>© <span id="journey-current-year"></span> Sehuri · 每一趟出发，都值得拥有完整档案</footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+  <script src="./assets/data.js?v=20260911.2"></script>
+  <script src="./assets/photos.js"></script>
+  <script src="./assets/supabase-config.js"></script>
+  <script src="./assets/visit-engine.js?v=20260911.1"></script>
+  <script src="./assets/journey-engine.js?v=20260911.1"></script>
+  <script src="./assets/content.js?v=20260911.3"></script>
+  <script src="./assets/journey.js?v=20260911.1"></script>
+</body>
+</html>

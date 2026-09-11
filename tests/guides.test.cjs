@@ -8,7 +8,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 test('guide migration limits uploads and protects writes with owner policies', () => {
   const sql = read('supabase/guide_documents.sql');
-  assert.match(sql, /place_type in \('visited', 'wishlist'\)/);
+  assert.match(sql, /place_type in \('visited', 'wishlist', 'journey'\)/);
   assert.match(sql, /file_type in \('html', 'pdf'\)/);
   assert.match(sql, /20971520/);
   assert.match(sql, /array\['text\/html', 'application\/xhtml\+xml', 'application\/pdf'\]/);

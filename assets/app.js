@@ -6,6 +6,7 @@
   let photoManifest = {};
   let photoDetails = [];
   let guideDocuments = [];
+  let journeys = [];
   let personalStats = null;
   const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
     year: "numeric",
@@ -1044,6 +1045,108 @@
     return guideDocuments.filter((guide) => guide.placeType === placeType && guide.placeName === placeName);
   }
 
+  function journeyHref(slug) {
+    const url = new URL("./journey.html", window.location.href);
+    url.searchParams.set("slug", slug);
+    return url.toString();
+  }
+
+  function renderJourneyArchive() {
+    const grid = document.querySelector("#journey-card-grid");
+    if (!grid) return;
+    grid.replaceChildren();
+    if (!journeys.length) {
+      const empty = document.createElement("p");
+      empty.className = "journey-archive-empty";
+      empty.textContent = "旅程档案正在整理中。";
+      grid.append(empty);
+      return;
+    }
+    journeys.forEach((journey, index) => {
+      const anchor = document.createElement("a");
+      anchor.className = "journey-card";
+      anchor.href = journeyHref(journey.slug);
+      anchor.setAttribute("aria-label", `打开旅程：${journey.title}`);
+      const media = document.createElement("span");
+      media.className = "journey-card-media";
+      if (journey.coverUrl) {
+        const image = document.createElement("img");
+        image.src = journey.coverUrl;
+        image.alt = `${journey.title}封面`;
+        image.loading = "lazy";
+        media.append(image);
+      }
+      const number = document.createElement("span");
+      number.className = "journey-card-number";
+      number.textContent = String(index + 1).padStart(2, "0");
+      media.append(number);
+      const copy = document.createElement("span");
+      copy.className = "journey-card-copy";
+      const date = document.createElement("time");
+      date.dateTime = journey.startDate;
+      date.textContent = `${journey.startDate} — ${journey.endDate}`;
+      const title = document.createElement("strong");
+      title.textContent = journey.title;
+      const route = document.createElement("span");
+      route.className = "journey-card-route";
+      route.textContent = journey.stops.map((stop) => stop.cityName).join(" → ");
+      const summary = document.createElement("span");
+      summary.className = "journey-card-summary";
+      summary.textContent = journey.summary || "这趟旅程的故事正在整理。";
+      const meta = document.createElement("span");
+      meta.className = "journey-card-meta";
+      const distance = journey.distanceKm
+        ? `${journey.distanceEstimated ? "约 " : ""}${new Intl.NumberFormat("zh-CN").format(journey.distanceKm)} 公里`
+        : "里程待补充";
+      meta.textContent = `${journey.days} 天 · ${journey.stops.length} 座城市 · ${distance}`;
+      const action = document.createElement("span");
+      action.className = "journey-card-action";
+      action.textContent = "打开旅程档案 ↗";
+      copy.append(date, title, route, summary, meta, action);
+      anchor.append(media, copy);
+      grid.append(anchor);
+    });
+  }
+
+  function renderCityJourneyHistory(cityName) {
+    const cityVisits = visits
+      .filter((visit) => visit.name === cityName)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    document.querySelector("#city-visit-total").textContent = `${cityVisits.length} 次`;
+    const dates = document.querySelector("#city-visit-dates");
+    dates.replaceChildren();
+    cityVisits.forEach((visit) => {
+      const time = document.createElement("time");
+      time.dateTime = visit.date;
+      time.textContent = dateFormatter.format(new Date(`${visit.date}T00:00:00`));
+      dates.append(time);
+    });
+
+    const related = window.TRAVEL_JOURNEY_ENGINE?.journeysForCity(journeys, cityName)
+      || journeys.filter((journey) => journey.stops.some((stop) => stop.cityName === cityName));
+    const container = document.querySelector("#city-related-journeys");
+    container.replaceChildren();
+    if (!related.length) {
+      const empty = document.createElement("p");
+      empty.className = "guide-document-empty";
+      empty.textContent = "这座城市还没有归入正式旅程档案。";
+      container.append(empty);
+      return;
+    }
+    related.forEach((journey) => {
+      const anchor = document.createElement("a");
+      anchor.href = journeyHref(journey.slug);
+      const title = document.createElement("strong");
+      title.textContent = journey.title;
+      const meta = document.createElement("span");
+      meta.textContent = `${journey.startDate} — ${journey.endDate} · ${journey.days} 天`;
+      const arrow = document.createElement("span");
+      arrow.textContent = "查看旅程 ↗";
+      anchor.append(title, meta, arrow);
+      container.append(anchor);
+    });
+  }
+
   function guideHref(guide) {
     if (guide.fileType !== "html") return guide.fileUrl;
     const viewer = new URL("./guide-viewer.html", window.location.href);
@@ -1107,6 +1210,7 @@
       cover.alt = "";
     }
     document.querySelector("#share-status").textContent = "";
+    renderCityJourneyHistory(visit.name);
     renderGuideLinks(document.querySelector("#city-guide-documents"), guidesFor("visited", visit.name));
     document.querySelector("#photo-grid").replaceChildren();
     document.querySelector("#photo-status").textContent = "正在寻找这座城市的旅行照片…";
@@ -1404,9 +1508,11 @@
       photos.map((imageUrl, index) => ({ cityName, imageUrl, caption: "", order: index + 1 }))
     );
     guideDocuments = content.guideDocuments || [];
+    journeys = content.journeys || [];
     initializeStats();
     initializePersonalStats();
     initializeStatsDetails();
+    renderJourneyArchive();
     initializeExtremeFootprints();
     initializeFilters();
     initializeRatings();

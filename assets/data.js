@@ -54,6 +54,34 @@ window.TRAVEL_DATA = {
     { name:"衡阳", country:"中国", date:"2026-04-04", coord:[112.57,26.89], desc:"南岳衡山与石鼓书院，在雁城之南为春日旅程收尾。" },
     { name:"绍兴", country:"中国", date:"2026-06-26", coord:[120.58,30.00], desc:"鲁迅故里、沈园、仓桥直街与东湖，在乌篷船与青石板路之间感受古越水乡。" }
   ],
+  journeys: [
+    {
+      id: "base-japan-2026",
+      slug: "2026-japan-kansai-kanto",
+      title: "2026 日本关西关东之旅",
+      startDate: "2026-02-03",
+      endDate: "2026-02-12",
+      coverUrl: "./photos/大阪/photo_1781503701952_1.jpg",
+      summary: "从大阪与京都的关西街巷出发，沿新干线抵达东京，最后把镰仓的海岸留作旅程收尾。",
+      distanceKm: 4000,
+      distanceEstimated: true,
+      accommodation: "",
+      budgetAmount: null,
+      budgetCurrency: "CNY",
+      companions: "",
+      planningNotes: "",
+      travelNotes: "",
+      reflection: "",
+      sortOrder: 0,
+      photoCities: ["大阪", "京都", "东京", "镰仓"],
+      stops: [
+        { cityName: "大阪", stopOrder: 0, arrivalDate: "2026-02-03", departureDate: "", transportToNext: "", notes: "" },
+        { cityName: "京都", stopOrder: 1, arrivalDate: "2026-02-06", departureDate: "", transportToNext: "", notes: "" },
+        { cityName: "东京", stopOrder: 2, arrivalDate: "2026-02-09", departureDate: "", transportToNext: "", notes: "" },
+        { cityName: "镰仓", stopOrder: 3, arrivalDate: "2026-02-12", departureDate: "", transportToNext: "", notes: "" }
+      ]
+    }
+  ],
   wishlist: [
     { icon:"火", name:"印度尼西亚 · 布罗莫火山与雅加达", desc:"从爪哇火山日出，到首都街巷的热带旅程", guide:"建议安排 6—8 天：先在雅加达用 2 天感受老城、国家纪念塔与多元饮食，再飞往泗水或玛琅，预留 2—3 天前往布罗莫火山。火山日出通常需要凌晨出发，山口温差大且火山灰较多，建议准备保暖外套、口罩和防滑鞋，并提前关注当地火山活动及景区开放信息。" },
     { icon:"狮", name:"新加坡", desc:"花园城市与多元文化交汇的热带岛国", guide:"建议安排 4—5 天，串联滨海湾花园、鱼尾狮公园、牛车水、小印度与圣淘沙。全年炎热多雨，轻便衣物之外也记得准备雨具；夜景和熟食中心都值得专门留出时间。" },

@@ -11,7 +11,7 @@
   <meta property="og:url" content="https://sehuri.github.io/travel-map/">
   <meta property="og:locale" content="zh_CN">
   <link rel="canonical" href="https://sehuri.github.io/travel-map/">
-  <link rel="stylesheet" href="./assets/styles.css?v=20260911.2">
+  <link rel="stylesheet" href="./assets/styles.css?v=20260911.3">
   <title>Sehuri 的旅行足迹｜53 座城市与旅行记忆</title>
 </head>
 <body>
@@ -26,6 +26,7 @@
       <nav>
         <a href="#map-section">地图</a>
         <a href="#journey-stats">统计</a>
+        <a href="#journey-archive">旅程</a>
         <a href="#memories">足迹</a>
         <a href="#ratings">排行</a>
         <a href="./discover.html">随机旅行</a>
@@ -164,10 +165,21 @@
       </div>
     </section>
 
+    <section class="journey-archive section-shell" id="journey-archive" aria-labelledby="journey-archive-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">03 / JOURNEY ARCHIVE</p>
+          <h2 id="journey-archive-title">一趟旅程，一份档案</h2>
+        </div>
+        <p class="section-note">把城市重新放回真实路线里，保存出发前的计划、路上的记录与回家后的感想。</p>
+      </div>
+      <div class="journey-card-grid" id="journey-card-grid" aria-live="polite"></div>
+    </section>
+
     <section class="memories section-shell" id="memories" aria-labelledby="memories-title">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">03 / MEMORIES</p>
+          <p class="eyebrow">04 / MEMORIES</p>
           <h2 id="memories-title">沿时间，重走一遍</h2>
         </div>
         <div class="city-controls" aria-label="筛选旅行城市">
@@ -222,7 +234,7 @@
     <section class="ratings-section section-shell" id="ratings" aria-labelledby="ratings-title">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">04 / COMMUNITY RANKING</p>
+          <p class="eyebrow">05 / COMMUNITY RANKING</p>
           <h2 id="ratings-title">旅行城市评分排行</h2>
         </div>
         <p class="section-note">按平均分排序；同分时，评分人数更多的城市优先。</p>
@@ -234,9 +246,9 @@
   </main>
 
   <nav class="mobile-dock" aria-label="手机快捷导航">
-    <a href="#top" data-home-tab-target="journeys">首页</a>
     <a href="#map-section">地图</a>
     <a href="#journey-stats">统计</a>
+    <a href="#journey-archive">旅程</a>
     <a href="#memories" data-home-tab-target="journeys" data-scroll-target="#memories">足迹</a>
     <a href="#wishlist-panel" data-home-tab-target="wishlist">愿望</a>
   </nav>
@@ -278,6 +290,17 @@
         <h3 id="city-guides-title">我的攻略文件</h3>
       </div>
       <div class="guide-document-list" id="city-guide-documents"></div>
+    </section>
+    <section class="city-journeys-panel" aria-labelledby="city-journeys-title">
+      <div class="city-journeys-heading">
+        <div>
+          <p class="eyebrow">VISIT HISTORY</p>
+          <h3 id="city-journeys-title">我来过这里几次</h3>
+        </div>
+        <strong id="city-visit-total">1 次</strong>
+      </div>
+      <div class="city-visit-dates" id="city-visit-dates"></div>
+      <div class="city-related-journeys" id="city-related-journeys"></div>
     </section>
     <section class="city-community" aria-label="城市旅行资料与评分">
       <div class="city-notes-panel">
@@ -367,15 +390,16 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-  <script src="./assets/data.js?v=20260911.1"></script>
+  <script src="./assets/data.js?v=20260911.2"></script>
   <script src="./assets/photos.js"></script>
   <script src="./assets/supabase-config.js"></script>
   <script src="./assets/amap-map-config.js?v=20260907.1"></script>
   <script src="./assets/map-engine.js?v=20260910.1"></script>
   <script src="./assets/visit-engine.js?v=20260911.1"></script>
+  <script src="./assets/journey-engine.js?v=20260911.1"></script>
   <script src="./assets/stats-engine.js?v=20260911.2"></script>
-  <script src="./assets/content.js?v=20260911.2"></script>
+  <script src="./assets/content.js?v=20260911.3"></script>
   <script src="./assets/community.js?v=20260901.1"></script>
-  <script src="./assets/app.js?v=20260911.5"></script>
+  <script src="./assets/app.js?v=20260911.6"></script>
 </body>
 </html>

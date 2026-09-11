@@ -83,6 +83,9 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('#stat-country-count').innerText(), '2');
     assert.equal(await page.locator('#stat-photo-count').innerText(), '67');
     assert.equal(await page.locator('.month-heat-cell').count(), 12);
+    assert.equal(await page.locator('.journey-card').count(), 1);
+    assert.match(await page.locator('.journey-card').innerText(), /2026 日本关西关东之旅.*大阪 → 京都 → 东京 → 镰仓/s);
+    assert.match(await page.locator('.journey-card').getAttribute('href'), /journey\.html\?slug=2026-japan-kansai-kanto/);
 
     await page.locator('[data-stat-detail="provinces"]').click();
     assert.equal(await page.locator('#stats-dialog-title').innerText(), '省级地区覆盖');
@@ -109,6 +112,12 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('#stats-dialog-title').innerText(), '全部旅行照片');
     await page.waitForFunction(() => document.querySelector('.photo-archive-card button') === document.activeElement);
     await page.locator('#stats-dialog-close').click();
+
+    await page.locator('.city-card[aria-label^="查看东京"]').click();
+    assert.equal(await page.locator('#city-visit-total').innerText(), '1 次');
+    assert.equal(await page.locator('#city-related-journeys a').count(), 1);
+    assert.match(await page.locator('#city-related-journeys a').innerText(), /2026 日本关西关东之旅/);
+    await page.locator('#dialog-close').click();
 
     await page.locator('#year-filter').selectOption('2026');
     assert.equal(await page.locator('.amap-marker-button').count(), 11);

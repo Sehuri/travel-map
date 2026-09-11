@@ -5,8 +5,12 @@
   const baseVisits = window.TRAVEL_DATA?.visits || [];
   const baseWishlist = window.TRAVEL_DATA?.wishlist || [];
   const basePhotos = window.PHOTO_MANIFEST || {};
+  const baseJourneys = (window.TRAVEL_DATA?.journeys || []).map((journey) =>
+    window.TRAVEL_JOURNEY_ENGINE.normalizeBaseJourney(journey, basePhotos)
+  );
   const baseVisitMap = new Map(baseVisits.map((visit) => [visit.name, visit]));
   const baseWishMap = new Map(baseWishlist.map((wish, index) => [wish.name, { ...wish, sortOrder: index }]));
+  const baseJourneyMap = new Map(baseJourneys.map((journey) => [journey.slug, journey]));
   const elements = Object.fromEntries([
     "login-panel", "login-form", "login-email", "login-status", "admin-app", "session-label", "sign-out",
     "city-picker", "city-form", "city-name", "city-country", "city-region", "city-date", "city-longitude",
@@ -16,7 +20,13 @@
     "admin-photo-grid", "wish-picker", "wish-form", "wish-name", "wish-icon", "wish-order", "wish-description",
     "wish-guide", "wish-planned-time", "wish-hidden", "wish-status", "new-wish", "remove-wish-override", "rating-city-filter",
     "guide-upload-form", "guide-place-type", "guide-place-name", "guide-title", "guide-file", "upload-guide",
-    "guide-admin-status", "guide-admin-list", "rating-admin-status", "ratings-table"
+    "guide-admin-status", "guide-admin-list", "rating-admin-status", "ratings-table",
+    "journey-picker", "journey-form", "journey-title-input", "journey-slug", "journey-order", "journey-start-date",
+    "journey-end-date", "journey-days-preview", "journey-distance-input", "journey-distance-estimated",
+    "journey-budget", "journey-currency", "journey-cover-input", "journey-summary-input", "journey-accommodation-input",
+    "journey-companions-input", "journey-planning-input", "journey-notes-input", "journey-reflection-input",
+    "journey-published", "journey-stop-editor", "add-journey-stop", "journey-photo-picker", "new-journey",
+    "remove-journey-override", "journey-status"
   ].map((id) => [id.replaceAll("-", "_"), document.getElementById(id)]));
 
   let client = null;
@@ -27,10 +37,19 @@
   let wishRows = new Map();
   let ratingRows = [];
   let guideRows = [];
+  let journeyRows = new Map();
+  let journeyStopRows = [];
+  let journeyPhotoRows = [];
+  let allPhotoRows = [];
+  let journeyTablesAvailable = true;
   let currentCityName = "";
   let currentWishName = "";
+  let currentJourneySlug = "";
   let creatingCity = false;
   let creatingWish = false;
+  let creatingJourney = false;
+  let journeyStopsDraft = [];
+  let journeySelectedPhotos = new Set();
 
   function configured() {
     return Boolean(window.supabase?.createClient && config.url && config.publishableKey);
@@ -323,6 +342,428 @@
     return data;
   }
 
+  function effectiveJourney(slug) {
+    const base = baseJourneyMap.get(slug);
+    const row = journeyRows.get(slug);
+    if (!row) return base ? { ...base, isPublished: true } : null;
+    return {
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      startDate: row.start_date,
+      endDate: row.end_date,
+      days: window.TRAVEL_JOURNEY_ENGINE.inclusiveDays(row.start_date, row.end_date),
+      coverUrl: row.cover_url || "",
+      summary: row.summary || "",
+      distanceKm: row.distance_km === null ? null : Number(row.distance_km),
+      distanceEstimated: row.distance_is_estimated !== false,
+      accommodation: row.accommodation || "",
+      budgetAmount: row.budget_amount === null ? null : Number(row.budget_amount),
+      budgetCurrency: row.budget_currency || "CNY",
+      companions: row.companions || "",
+      planningNotes: row.planning_notes || "",
+      travelNotes: row.travel_notes || "",
+      reflection: row.reflection || "",
+      sortOrder: Number(row.sort_order || 0),
+      isPublished: row.is_published !== false,
+      source: "database",
+      stops: journeyStopRows
+        .filter((stop) => stop.journey_id === row.id)
+        .sort((a, b) => a.stop_order - b.stop_order)
+        .map((stop) => ({
+          id: stop.id,
+          cityName: stop.city_name,
+          stopOrder: Number(stop.stop_order),
+          arrivalDate: stop.arrival_date || "",
+          departureDate: stop.departure_date || "",
+          transportToNext: stop.transport_to_next || "",
+          notes: stop.notes || ""
+        })),
+      photos: journeyPhotoRows
+        .filter((photo) => photo.journey_id === row.id)
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((photo) => ({
+          id: photo.id,
+          cityName: photo.city_name || "",
+          imageUrl: photo.image_url,
+          caption: photo.caption || "",
+          sortOrder: Number(photo.sort_order || 0)
+        }))
+    };
+  }
+
+  function journeySlugs() {
+    return [...new Set([...baseJourneyMap.keys(), ...journeyRows.keys()])]
+      .sort((a, b) => {
+        const first = effectiveJourney(a);
+        const second = effectiveJourney(b);
+        return (second?.startDate || "").localeCompare(first?.startDate || "")
+          || Number(first?.sortOrder || 0) - Number(second?.sortOrder || 0);
+      });
+  }
+
+  function populateJourneyPicker() {
+    const slugs = journeySlugs();
+    if (!currentJourneySlug || !slugs.includes(currentJourneySlug)) currentJourneySlug = slugs[0] || "";
+    refillSelect(elements.journey_picker, slugs, currentJourneySlug, (slug) => {
+      const journey = effectiveJourney(slug);
+      return `${journey?.isPublished === false ? "[未发布] " : ""}${journey?.title || slug}`;
+    });
+    populateGuidePlaces();
+  }
+
+  function photoCatalog() {
+    const result = [];
+    const managedCities = new Set(allPhotoRows.map((photo) => photo.city_name));
+    Object.entries(basePhotos).forEach(([cityName, photos]) => {
+      if (managedCities.has(cityName)) return;
+      photos.forEach((imageUrl, index) => result.push({ cityName, imageUrl, caption: "", sortOrder: index }));
+    });
+    allPhotoRows
+      .filter((photo) => !photo.is_hidden)
+      .sort((a, b) => a.city_name.localeCompare(b.city_name, "zh-CN") || a.sort_order - b.sort_order)
+      .forEach((photo) => result.push({
+        cityName: photo.city_name,
+        imageUrl: photo.image_url,
+        caption: photo.caption || "",
+        sortOrder: Number(photo.sort_order || 0)
+      }));
+    journeyPhotoRows.forEach((photo) => {
+      if (result.some((item) => item.imageUrl === photo.image_url)) return;
+      result.push({
+        cityName: photo.city_name || "",
+        imageUrl: photo.image_url,
+        caption: photo.caption || "",
+        sortOrder: Number(photo.sort_order || 0)
+      });
+    });
+    return result;
+  }
+
+  function renderJourneyPhotoPicker() {
+    elements.journey_photo_picker.replaceChildren();
+    const stopCities = new Set(journeyStopsDraft.map((stop) => stop.cityName).filter(Boolean));
+    const photos = photoCatalog().filter((photo) => stopCities.has(photo.cityName));
+    if (!photos.length) {
+      elements.journey_photo_picker.append(emptyCopy(stopCities.size
+        ? "这些城市还没有可关联的照片。"
+        : "先添加城市停留，再选择旅程照片。"));
+      return;
+    }
+    photos.forEach((photo, index) => {
+      const label = document.createElement("label");
+      label.className = "journey-photo-option";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = journeySelectedPhotos.has(photo.imageUrl);
+      input.addEventListener("change", () => {
+        if (input.checked) journeySelectedPhotos.add(photo.imageUrl);
+        else journeySelectedPhotos.delete(photo.imageUrl);
+      });
+      const image = document.createElement("img");
+      image.src = photo.imageUrl;
+      image.alt = photo.caption || `${photo.cityName}旅行照片`;
+      image.loading = "lazy";
+      const caption = document.createElement("span");
+      caption.textContent = `${photo.cityName} · ${photo.caption || `照片 ${index + 1}`}`;
+      const cover = document.createElement("button");
+      cover.type = "button";
+      cover.textContent = "设为封面";
+      cover.addEventListener("click", (event) => {
+        event.preventDefault();
+        elements.journey_cover_input.value = photo.imageUrl;
+        journeySelectedPhotos.add(photo.imageUrl);
+        input.checked = true;
+        status(elements.journey_status, `已选择${photo.cityName}照片作为旅程封面，保存后生效。`);
+      });
+      label.append(input, image, caption, cover);
+      elements.journey_photo_picker.append(label);
+    });
+  }
+
+  function labeledControl(text, control) {
+    const label = document.createElement("label");
+    label.append(text, control);
+    return label;
+  }
+
+  function renderJourneyStops() {
+    elements.journey_stop_editor.replaceChildren();
+    if (!journeyStopsDraft.length) {
+      elements.journey_stop_editor.append(emptyCopy("还没有城市停留，请至少添加一座城市。"));
+      renderJourneyPhotoPicker();
+      return;
+    }
+    const names = cityNames().filter((name) => !effectiveCity(name)?.hidden);
+    journeyStopsDraft.forEach((stop, index) => {
+      const row = document.createElement("div");
+      row.className = "journey-stop-row";
+      const order = document.createElement("span");
+      order.className = "journey-stop-order";
+      order.textContent = String(index + 1).padStart(2, "0");
+      const city = document.createElement("select");
+      refillSelect(city, names, stop.cityName || names[0]);
+      city.addEventListener("change", () => {
+        stop.cityName = city.value;
+        renderJourneyPhotoPicker();
+      });
+      const arrival = document.createElement("input");
+      arrival.type = "date";
+      arrival.value = stop.arrivalDate || "";
+      arrival.addEventListener("change", () => { stop.arrivalDate = arrival.value; });
+      const departure = document.createElement("input");
+      departure.type = "date";
+      departure.value = stop.departureDate || "";
+      departure.addEventListener("change", () => { stop.departureDate = departure.value; });
+      const transport = document.createElement("input");
+      transport.maxLength = 300;
+      transport.placeholder = index === journeyStopsDraft.length - 1 ? "最后一站可留空" : "例如：新干线";
+      transport.value = stop.transportToNext || "";
+      transport.addEventListener("input", () => { stop.transportToNext = transport.value; });
+      const actions = document.createElement("div");
+      actions.className = "journey-stop-actions";
+      const action = (text, handler, className = "") => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = text;
+        button.className = className;
+        button.addEventListener("click", handler);
+        actions.append(button);
+      };
+      action("↑", () => {
+        if (!journeyStopsDraft[index - 1]) return;
+        [journeyStopsDraft[index - 1], journeyStopsDraft[index]] = [journeyStopsDraft[index], journeyStopsDraft[index - 1]];
+        renderJourneyStops();
+      });
+      action("↓", () => {
+        if (!journeyStopsDraft[index + 1]) return;
+        [journeyStopsDraft[index], journeyStopsDraft[index + 1]] = [journeyStopsDraft[index + 1], journeyStopsDraft[index]];
+        renderJourneyStops();
+      });
+      action("删除", () => {
+        journeyStopsDraft.splice(index, 1);
+        renderJourneyStops();
+      }, "remove");
+      row.append(
+        order,
+        labeledControl("城市", city),
+        labeledControl("到达日期", arrival),
+        labeledControl("离开日期", departure),
+        labeledControl("前往下一站", transport),
+        actions
+      );
+      const notes = document.createElement("textarea");
+      notes.rows = 2;
+      notes.maxLength = 2000;
+      notes.placeholder = "这座城市的停留记录（可留空）";
+      notes.value = stop.notes || "";
+      notes.addEventListener("input", () => { stop.notes = notes.value; });
+      const notesLabel = labeledControl("城市停留记录", notes);
+      notesLabel.className = "journey-stop-notes-field";
+      row.append(notesLabel);
+      elements.journey_stop_editor.append(row);
+    });
+    renderJourneyPhotoPicker();
+  }
+
+  function updateJourneyDaysPreview() {
+    const days = window.TRAVEL_JOURNEY_ENGINE.inclusiveDays(
+      elements.journey_start_date.value,
+      elements.journey_end_date.value
+    );
+    elements.journey_days_preview.textContent = days ? `${days} 天` : "—";
+  }
+
+  function renderJourneyForm(slug) {
+    const journey = effectiveJourney(slug);
+    if (!journey) return;
+    currentJourneySlug = slug;
+    creatingJourney = false;
+    elements.journey_title_input.value = journey.title;
+    elements.journey_slug.value = journey.slug;
+    elements.journey_slug.readOnly = true;
+    elements.journey_order.value = journey.sortOrder;
+    elements.journey_start_date.value = journey.startDate;
+    elements.journey_end_date.value = journey.endDate;
+    elements.journey_distance_input.value = journey.distanceKm ?? "";
+    elements.journey_distance_estimated.checked = journey.distanceEstimated;
+    elements.journey_budget.value = journey.budgetAmount ?? "";
+    elements.journey_currency.value = journey.budgetCurrency || "CNY";
+    elements.journey_cover_input.value = journey.coverUrl || "";
+    elements.journey_summary_input.value = journey.summary || "";
+    elements.journey_accommodation_input.value = journey.accommodation || "";
+    elements.journey_companions_input.value = journey.companions || "";
+    elements.journey_planning_input.value = journey.planningNotes || "";
+    elements.journey_notes_input.value = journey.travelNotes || "";
+    elements.journey_reflection_input.value = journey.reflection || "";
+    elements.journey_published.checked = journey.isPublished !== false;
+    journeyStopsDraft = journey.stops.map((stop) => ({ ...stop }));
+    journeySelectedPhotos = new Set(journey.photos.map((photo) => photo.imageUrl));
+    elements.remove_journey_override.hidden = !journeyRows.has(slug);
+    elements.remove_journey_override.textContent = baseJourneyMap.has(slug) ? "恢复代码示例" : "永久删除旅程";
+    updateJourneyDaysPreview();
+    renderJourneyStops();
+    status(elements.journey_status, journey.source === "database"
+      ? "当前显示后台保存的版本。"
+      : "当前使用代码中的示例版本；保存后即可在后台持续维护。"
+    );
+  }
+
+  function startNewJourney() {
+    creatingJourney = true;
+    currentJourneySlug = "";
+    elements.journey_form.reset();
+    elements.journey_slug.readOnly = false;
+    elements.journey_slug.value = `journey-${Date.now()}`;
+    elements.journey_order.value = journeySlugs().length;
+    elements.journey_distance_estimated.checked = true;
+    elements.journey_published.checked = true;
+    elements.remove_journey_override.hidden = true;
+    journeyStopsDraft = [];
+    journeySelectedPhotos = new Set();
+    updateJourneyDaysPreview();
+    renderJourneyStops();
+    status(elements.journey_status, "填写旅程资料并至少添加一座城市，保存后会生成独立详情页。" );
+    elements.journey_title_input.focus();
+  }
+
+  function addJourneyStop() {
+    const used = new Set(journeyStopsDraft.map((stop) => stop.cityName));
+    const cityName = cityNames().find((name) => !used.has(name) && !effectiveCity(name)?.hidden)
+      || cityNames().find((name) => !effectiveCity(name)?.hidden)
+      || "";
+    journeyStopsDraft.push({
+      cityName,
+      arrivalDate: elements.journey_start_date.value || "",
+      departureDate: "",
+      transportToNext: "",
+      notes: ""
+    });
+    renderJourneyStops();
+  }
+
+  async function saveJourney(event) {
+    event.preventDefault();
+    if (!journeyTablesAvailable) {
+      status(elements.journey_status, "请先运行 supabase/journeys.sql。", true);
+      return;
+    }
+    const slug = elements.journey_slug.value.trim();
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+      status(elements.journey_status, "独立链接标识只能使用小写字母、数字和连字符。", true);
+      return;
+    }
+    if (creatingJourney && (baseJourneyMap.has(slug) || journeyRows.has(slug))) {
+      status(elements.journey_status, "这个独立链接标识已经被使用。", true);
+      return;
+    }
+    if (!window.TRAVEL_JOURNEY_ENGINE.inclusiveDays(elements.journey_start_date.value, elements.journey_end_date.value)) {
+      status(elements.journey_status, "结束日期不能早于开始日期。", true);
+      return;
+    }
+    if (!journeyStopsDraft.length || journeyStopsDraft.some((stop) => !stop.cityName)) {
+      status(elements.journey_status, "请至少添加一座有效城市。", true);
+      return;
+    }
+    const existing = journeyRows.get(currentJourneySlug || slug);
+    const payload = {
+      slug,
+      title: elements.journey_title_input.value.trim(),
+      start_date: elements.journey_start_date.value,
+      end_date: elements.journey_end_date.value,
+      cover_url: elements.journey_cover_input.value.trim() || null,
+      summary: elements.journey_summary_input.value.trim(),
+      distance_km: elements.journey_distance_input.value === "" ? null : Number(elements.journey_distance_input.value),
+      distance_is_estimated: elements.journey_distance_estimated.checked,
+      accommodation: elements.journey_accommodation_input.value.trim(),
+      budget_amount: elements.journey_budget.value === "" ? null : Number(elements.journey_budget.value),
+      budget_currency: elements.journey_currency.value,
+      companions: elements.journey_companions_input.value.trim(),
+      planning_notes: elements.journey_planning_input.value.trim(),
+      travel_notes: elements.journey_notes_input.value.trim(),
+      reflection: elements.journey_reflection_input.value.trim(),
+      sort_order: Number(elements.journey_order.value || 0),
+      is_published: elements.journey_published.checked,
+      created_by: existing?.created_by || user.id,
+      updated_by: user.id,
+      updated_at: new Date().toISOString()
+    };
+    setBusy(elements.journey_form, true);
+    status(elements.journey_status, "正在保存旅程档案…");
+    try {
+      const saved = await client.from("travel_journeys")
+        .upsert(payload, { onConflict: "slug" }).select().single();
+      if (saved.error) throw saved.error;
+      const journeyId = saved.data.id;
+      const [removedStops, removedPhotos] = await Promise.all([
+        client.from("travel_journey_stops").delete().eq("journey_id", journeyId),
+        client.from("travel_journey_photos").delete().eq("journey_id", journeyId)
+      ]);
+      if (removedStops.error) throw removedStops.error;
+      if (removedPhotos.error) throw removedPhotos.error;
+      const stopsPayload = journeyStopsDraft.map((stop, index) => ({
+        journey_id: journeyId,
+        city_name: stop.cityName,
+        stop_order: index,
+        arrival_date: stop.arrivalDate || null,
+        departure_date: stop.departureDate || null,
+        transport_to_next: stop.transportToNext.trim(),
+        notes: stop.notes.trim(),
+        created_by: user.id
+      }));
+      const insertedStops = await client.from("travel_journey_stops").insert(stopsPayload).select();
+      if (insertedStops.error) throw insertedStops.error;
+      const catalog = new Map(photoCatalog().map((photo) => [photo.imageUrl, photo]));
+      const photosPayload = [...journeySelectedPhotos].map((imageUrl, index) => {
+        const photo = catalog.get(imageUrl) || {};
+        return {
+          journey_id: journeyId,
+          city_name: photo.cityName || null,
+          image_url: imageUrl,
+          caption: photo.caption || "",
+          sort_order: index,
+          created_by: user.id
+        };
+      });
+      let insertedPhotos = { data: [], error: null };
+      if (photosPayload.length) {
+        insertedPhotos = await client.from("travel_journey_photos").insert(photosPayload).select();
+        if (insertedPhotos.error) throw insertedPhotos.error;
+      }
+      journeyRows.set(slug, saved.data);
+      journeyStopRows = journeyStopRows.filter((row) => row.journey_id !== journeyId).concat(insertedStops.data || []);
+      journeyPhotoRows = journeyPhotoRows.filter((row) => row.journey_id !== journeyId).concat(insertedPhotos.data || []);
+      currentJourneySlug = slug;
+      creatingJourney = false;
+      populateJourneyPicker();
+      renderJourneyForm(slug);
+      status(elements.journey_status, "旅程档案已保存，公开网站刷新后即可查看。" );
+    } catch (error) {
+      status(elements.journey_status, `保存失败：${error.message}`, true);
+    } finally {
+      setBusy(elements.journey_form, false);
+    }
+  }
+
+  async function removeJourneyOverride() {
+    const slug = currentJourneySlug;
+    const row = journeyRows.get(slug);
+    if (!slug || !row) return;
+    const wording = baseJourneyMap.has(slug) ? "恢复代码中的示例旅程" : "永久删除这份旅程";
+    if (!window.confirm(`确定要${wording}吗？`)) return;
+    const removed = await client.from("travel_journeys").delete().eq("id", row.id);
+    if (removed.error) {
+      status(elements.journey_status, `操作失败：${removed.error.message}`, true);
+      return;
+    }
+    journeyRows.delete(slug);
+    journeyStopRows = journeyStopRows.filter((stop) => stop.journey_id !== row.id);
+    journeyPhotoRows = journeyPhotoRows.filter((photo) => photo.journey_id !== row.id);
+    populateJourneyPicker();
+    if (baseJourneyMap.has(slug)) renderJourneyForm(slug);
+    else if (elements.journey_picker.value) renderJourneyForm(elements.journey_picker.value);
+  }
+
   async function fetchPhotoRows(cityName) {
     const { data, error } = await client.from("city_photos")
       .select("id,city_name,image_url,storage_path,caption,sort_order,is_hidden,created_at")
@@ -369,6 +810,10 @@
     status(elements.photo_admin_status, "正在载入照片…");
     try {
       const allRows = await fetchPhotoRows(cityName);
+      allPhotoRows = allPhotoRows.filter((photo) => photo.city_name !== cityName).concat(allRows);
+      if (elements.journey_photo_picker && !elements.journey_photo_picker.hidden) {
+        renderJourneyPhotoPicker();
+      }
       const rows = allRows.filter((photo) => !photo.is_hidden);
       const hasManagedSet = allRows.length > 0;
       elements.import_photos.hidden = hasManagedSet || !(basePhotos[cityName]?.length);
@@ -512,6 +957,9 @@
   }
 
   function guidePlaceNames() {
+    if (elements.guide_place_type.value === "journey") {
+      return journeyTablesAvailable ? journeySlugs() : [];
+    }
     if (elements.guide_place_type.value === "wishlist") {
       return [...new Set([...baseWishMap.keys(), ...wishRows.keys()])]
         .filter((name) => !effectiveWish(name)?.hidden)
@@ -524,7 +972,10 @@
     if (!elements.guide_place_name) return;
     const previous = elements.guide_place_name.value;
     const names = guidePlaceNames();
-    refillSelect(elements.guide_place_name, names, names.includes(previous) ? previous : names[0]);
+    const labeler = elements.guide_place_type.value === "journey"
+      ? (slug) => effectiveJourney(slug)?.title || slug
+      : (name) => name;
+    refillSelect(elements.guide_place_name, names, names.includes(previous) ? previous : names[0], labeler);
     renderGuideRows();
   }
 
@@ -787,12 +1238,16 @@
 
   async function loadAdminData() {
     status(elements.city_status, "正在载入后台数据…");
-    const [cities, visitDates, wishes, ratings, guides] = await Promise.all([
+    const [cities, visitDates, wishes, ratings, guides, photos, journeys, journeyStops, journeyPhotos] = await Promise.all([
       client.from("travel_cities").select("*").order("visit_date", { ascending: false }),
       client.from("travel_city_visits").select("*").order("visit_date", { ascending: false }),
       client.from("travel_wishlist").select("*").order("sort_order", { ascending: true }),
       client.from("city_ratings").select("city_name,user_id,score,created_at,updated_at").order("updated_at", { ascending: false }),
-      client.from("travel_guides").select("*").order("created_at", { ascending: false })
+      client.from("travel_guides").select("*").order("created_at", { ascending: false }),
+      client.from("city_photos").select("id,city_name,image_url,storage_path,caption,sort_order,is_hidden,created_at"),
+      client.from("travel_journeys").select("*").order("start_date", { ascending: false }),
+      client.from("travel_journey_stops").select("*").order("stop_order", { ascending: true }),
+      client.from("travel_journey_photos").select("*").order("sort_order", { ascending: true })
     ]);
     const migrationError = cities.error || wishes.error;
     if (migrationError) {
@@ -808,10 +1263,25 @@
     wishRows = new Map((wishes.data || []).map((row) => [row.name, row]));
     ratingRows = ratings.error ? [] : (ratings.data || []);
     guideRows = guides.error ? [] : (guides.data || []);
+    allPhotoRows = photos.error ? [] : (photos.data || []);
+    journeyTablesAvailable = !journeys.error && !journeyStops.error && !journeyPhotos.error;
+    journeyRows = journeyTablesAvailable
+      ? new Map((journeys.data || []).map((row) => [row.slug, row]))
+      : new Map();
+    journeyStopRows = journeyTablesAvailable ? (journeyStops.data || []) : [];
+    journeyPhotoRows = journeyTablesAvailable ? (journeyPhotos.data || []) : [];
     populateCityPickers();
     populateWishPicker();
+    populateJourneyPicker();
     if (currentCityName) renderCityForm(currentCityName);
     if (currentWishName) renderWishForm(currentWishName);
+    if (journeyTablesAvailable && currentJourneySlug) {
+      renderJourneyForm(currentJourneySlug);
+    } else if (!journeyTablesAvailable) {
+      setBusy(elements.journey_form, true);
+      elements.new_journey.disabled = true;
+      status(elements.journey_status, "旅程数据库尚未启用。请先运行 supabase/journeys.sql。", true);
+    }
     renderRatings();
     renderGuideRows();
     if (guides.error) {
@@ -875,6 +1345,13 @@
       }
     });
     elements.upload_photos.addEventListener("click", uploadPhotos);
+    elements.journey_picker.addEventListener("change", () => renderJourneyForm(elements.journey_picker.value));
+    elements.journey_form.addEventListener("submit", saveJourney);
+    elements.new_journey.addEventListener("click", startNewJourney);
+    elements.remove_journey_override.addEventListener("click", removeJourneyOverride);
+    elements.add_journey_stop.addEventListener("click", addJourneyStop);
+    elements.journey_start_date.addEventListener("change", updateJourneyDaysPreview);
+    elements.journey_end_date.addEventListener("change", updateJourneyDaysPreview);
     elements.wish_picker.addEventListener("change", () => renderWishForm(elements.wish_picker.value));
     elements.wish_form.addEventListener("submit", saveWish);
     elements.new_wish.addEventListener("click", startNewWish);
