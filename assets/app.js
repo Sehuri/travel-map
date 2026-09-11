@@ -53,6 +53,7 @@
   let visibleJourneyVisits = [];
   let filtersActive = false;
   let syncingHistory = false;
+  let lightboxReturnState = null;
   let ratingSummaries = new Map();
   let ratingsLoaded = false;
   let ratingsFailed = false;
@@ -333,6 +334,11 @@
       image.loading = "lazy";
       button.append(image);
       button.addEventListener("click", () => {
+        lightboxReturnState = {
+          dialog: statsDialog,
+          scrollTop: statsDialog.scrollTop,
+          focusTarget: button
+        };
         statsDialog.close();
         requestAnimationFrame(() => openLightbox(photo.imageUrl, image.alt));
       });
@@ -1341,9 +1347,18 @@
   }
 
   function closeLightbox() {
+    const returnState = lightboxReturnState;
+    lightboxReturnState = null;
     lightbox.hidden = true;
     document.querySelector("#lightbox-image").removeAttribute("src");
     document.body.style.overflow = "";
+    if (returnState?.dialog && !returnState.dialog.open) {
+      returnState.dialog.showModal();
+      requestAnimationFrame(() => {
+        returnState.dialog.scrollTop = returnState.scrollTop;
+        returnState.focusTarget?.focus({ preventScroll: true });
+      });
+    }
   }
 
   function initializeDialogs() {

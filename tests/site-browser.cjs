@@ -105,6 +105,10 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     await page.locator('.photo-archive-card button').first().click();
     await page.locator('#lightbox').waitFor({ state: 'visible' });
     await page.locator('#lightbox-close').click();
+    await page.locator('#stats-dialog').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('#stats-dialog-title').innerText(), '全部旅行照片');
+    await page.waitForFunction(() => document.querySelector('.photo-archive-card button') === document.activeElement);
+    await page.locator('#stats-dialog-close').click();
 
     await page.locator('#year-filter').selectOption('2026');
     assert.equal(await page.locator('.amap-marker-button').count(), 11);
