@@ -885,7 +885,10 @@
       for (const file of files) {
         if (file.size > 15 * 1024 * 1024) throw new Error(`${file.name} 超过 15 MB`);
         const extension = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-        const path = `${cityName}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+        // Supabase Storage object keys only accept a restricted ASCII character set.
+        // Keep the Chinese city name in the database and use an ASCII-only object path
+        // so photos selected from macOS Photos/Finder can be uploaded directly.
+        const path = `cities/${Date.now()}-${crypto.randomUUID()}.${extension}`;
         status(elements.photo_admin_status, `正在上传 ${file.name}…`);
         const upload = await client.storage.from("city-photos").upload(path, file, { upsert: false, contentType: file.type });
         if (upload.error) throw upload.error;
