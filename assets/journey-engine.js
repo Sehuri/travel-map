@@ -59,6 +59,7 @@
         arrivalDate: stop.arrivalDate || "",
         departureDate: stop.departureDate || "",
         transportToNext: stop.transportToNext || "",
+        distanceToNextKm: Number(stop.distanceToNextKm || 0),
         notes: stop.notes || ""
       })).sort((a, b) => a.stopOrder - b.stopOrder),
       photos: journey.photos || expandBasePhotos(journey, photoManifest),
@@ -95,6 +96,7 @@
         arrivalDate: stop.arrival_date || "",
         departureDate: stop.departure_date || "",
         transportToNext: stop.transport_to_next || "",
+        distanceToNextKm: Number(stop.distance_to_next_km || 0),
         notes: stop.notes || ""
       })).sort((a, b) => a.stopOrder - b.stopOrder),
       photos: photos.map((photo) => ({

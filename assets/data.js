@@ -75,10 +75,10 @@ window.TRAVEL_DATA = {
       sortOrder: 0,
       photoCities: ["大阪", "京都", "东京", "镰仓"],
       stops: [
-        { cityName: "大阪", stopOrder: 0, arrivalDate: "2026-02-03", departureDate: "", transportToNext: "", notes: "" },
-        { cityName: "京都", stopOrder: 1, arrivalDate: "2026-02-06", departureDate: "", transportToNext: "", notes: "" },
-        { cityName: "东京", stopOrder: 2, arrivalDate: "2026-02-09", departureDate: "", transportToNext: "", notes: "" },
-        { cityName: "镰仓", stopOrder: 3, arrivalDate: "2026-02-12", departureDate: "", transportToNext: "", notes: "" }
+        { cityName: "大阪", stopOrder: 0, arrivalDate: "2026-02-03", departureDate: "2026-02-05", transportToNext: "JR 京都线", distanceToNextKm: 42, notes: "从大阪的热闹街巷开始，慢慢进入关西的节奏。" },
+        { cityName: "京都", stopOrder: 1, arrivalDate: "2026-02-06", departureDate: "2026-02-08", transportToNext: "东海道新干线", distanceToNextKm: 476, notes: "在寺院、町屋和山间小径里，为古都留出完整的时间。" },
+        { cityName: "东京", stopOrder: 2, arrivalDate: "2026-02-09", departureDate: "2026-02-11", transportToNext: "JR 横须贺线", distanceToNextKm: 51, notes: "穿过东京的繁华与秩序，再向湘南海岸出发。" },
+        { cityName: "镰仓", stopOrder: 3, arrivalDate: "2026-02-12", departureDate: "2026-02-12", transportToNext: "", distanceToNextKm: 0, notes: "用海岸、电车与古寺，为这趟旅程收尾。" }
       ]
     }
   ],

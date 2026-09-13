@@ -41,6 +41,27 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('.journey-photo-grid figure').count(), 32);
     assert.match(await page.locator('.journey-stop a').first().getAttribute('href'), /index\.html\?city=%E5%A4%A7%E9%98%AA&visit=2026-02-03/);
 
+    assert.equal(await page.locator('#route-replay-journey option').count(), 1);
+    assert.equal(await page.locator('.route-map-stop').count(), 4);
+    assert.equal(await page.locator('.route-map-segment').count(), 3);
+    assert.equal(await page.locator('#route-replay-panel-city').innerText(), '大阪');
+    assert.match(await page.locator('#route-replay-stay').innerText(), /停留 3 天/);
+    assert.match(await page.locator('#route-replay-next-leg').innerText(), /JR 京都线/);
+    await page.locator('#route-replay-next').click();
+    assert.equal(await page.locator('#route-replay-panel-city').innerText(), '京都');
+    assert.equal(await page.locator('.route-map-segment.is-travelled').count(), 1);
+    assert.equal(await page.locator('.route-map-stop.is-active').getAttribute('data-stop-index'), '1');
+    await page.locator('#route-replay-play').click();
+    assert.equal(await page.locator('#route-replay-play').innerText(), '暂停');
+    await page.locator('#route-replay-play').click();
+    assert.equal(await page.locator('#route-replay-play').innerText(), '播放');
+    assert.equal(await page.locator('#route-replay-share').innerText(), '分享这段路线 ↗');
+
+    await page.goto(`${base}/journey.html?slug=2026-japan-kansai-kanto&replay=1&stop=3#route-replay`, { waitUntil: 'networkidle' });
+    await page.locator('#journey-content').waitFor({ state: 'visible' });
+    await page.waitForFunction(() => Math.abs(document.querySelector('#route-replay').getBoundingClientRect().top) < 2);
+    assert.equal(await page.locator('#route-replay-panel-city').innerText(), '东京');
+
     const firstPhoto = page.locator('.journey-photo-grid button').first();
     await firstPhoto.click();
     await page.locator('#journey-lightbox').waitFor({ state: 'visible' });
@@ -50,7 +71,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     await page.setViewportSize({ width: 390, height: 844 });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
     assert.deepEqual(errors, []);
-    console.log('Journey browser checks passed: archive facts, ordered route, linked photos, city links, and mobile layout.');
+    console.log('Journey browser checks passed: route replay, controls, archive facts, linked photos, city links, and mobile layout.');
   } finally {
     await browser?.close();
     await new Promise((resolve) => server.close(resolve));

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Sehuri 的个人旅程档案：路线、交通、照片与旅行记录。">
   <meta name="theme-color" content="#07111f">
-  <link rel="stylesheet" href="./assets/journey.css?v=20260911.1">
+  <link rel="stylesheet" href="./assets/journey.css?v=20260913.1">
   <title>旅程档案｜Sehuri 的旅行足迹</title>
 </head>
 <body>
@@ -35,6 +35,56 @@
         <div><span>城市数量</span><strong id="journey-city-count">—</strong></div>
         <div><span>旅程里程</span><strong id="journey-distance">—</strong></div>
         <div><span>旅行预算</span><strong id="journey-budget">—</strong></div>
+      </section>
+
+      <section class="journey-section route-replay-section" id="route-replay" aria-labelledby="route-replay-title">
+        <div class="journey-section-heading split-heading route-replay-heading">
+          <div>
+            <p class="eyebrow">ROUTE REPLAY</p>
+            <h2 id="route-replay-title">沿着路线，再走一遍</h2>
+          </div>
+          <div class="route-replay-actions">
+            <label for="route-replay-journey">选择旅程</label>
+            <select id="route-replay-journey" aria-label="选择要回放的旅程"></select>
+            <button id="route-replay-share" type="button">分享这段路线 ↗</button>
+          </div>
+        </div>
+
+        <div class="route-replay-layout">
+          <div class="route-replay-map-wrap">
+            <svg id="route-replay-map" class="route-replay-map" viewBox="0 0 1000 520" role="img" aria-labelledby="route-replay-map-title route-replay-map-description">
+              <title id="route-replay-map-title">旅程路线回放地图</title>
+              <desc id="route-replay-map-description">按真实地理方位展示旅程城市、交通线路与当前到达站。</desc>
+            </svg>
+            <p class="route-replay-map-empty" id="route-replay-map-empty" hidden>这趟旅程的城市还缺少坐标，暂时无法绘制路线。</p>
+            <article class="route-arrival-card" id="route-arrival-card" aria-live="polite">
+              <img id="route-replay-photo" alt="" hidden>
+              <div>
+                <span id="route-replay-step-label">ARRIVAL 01</span>
+                <h3 id="route-replay-city">—</h3>
+                <p id="route-replay-date">—</p>
+              </div>
+            </article>
+          </div>
+
+          <aside class="route-replay-panel" aria-label="当前站点信息">
+            <div class="route-replay-counter"><span>NOW ARRIVING</span><strong id="route-replay-counter">01 / 01</strong></div>
+            <h3 id="route-replay-panel-city">—</h3>
+            <p class="route-replay-stay" id="route-replay-stay">—</p>
+            <p class="route-replay-description" id="route-replay-description">城市停留记录待补充。</p>
+            <div class="route-replay-next-leg" id="route-replay-next-leg"></div>
+            <div class="route-replay-controls" aria-label="路线播放控制">
+              <button id="route-replay-previous" type="button" aria-label="上一站">← 上一站</button>
+              <button class="primary" id="route-replay-play" type="button" aria-label="播放路线">播放</button>
+              <button id="route-replay-next" type="button" aria-label="下一站">下一站 →</button>
+            </div>
+            <div class="route-replay-progress" aria-hidden="true"><i id="route-replay-progress"></i></div>
+            <p class="route-replay-share-status" id="route-replay-share-status" aria-live="polite"></p>
+          </aside>
+        </div>
+
+        <div class="route-replay-legend" id="route-replay-legend" aria-label="交通方式图例"></div>
+        <ol class="route-replay-stop-list" id="route-replay-stop-list" aria-label="旅程站点"></ol>
       </section>
 
       <section class="journey-section journey-route-section" aria-labelledby="journey-route-title">
@@ -95,12 +145,13 @@
   <footer>© <span id="journey-current-year"></span> Sehuri · 每一趟出发，都值得拥有完整档案</footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-  <script src="./assets/data.js?v=20260911.2"></script>
+  <script src="./assets/data.js?v=20260913.1"></script>
   <script src="./assets/photos.js"></script>
   <script src="./assets/supabase-config.js"></script>
   <script src="./assets/visit-engine.js?v=20260911.1"></script>
-  <script src="./assets/journey-engine.js?v=20260911.1"></script>
+  <script src="./assets/journey-engine.js?v=20260913.1"></script>
+  <script src="./assets/route-replay-engine.js?v=20260913.1"></script>
   <script src="./assets/content.js?v=20260911.3"></script>
-  <script src="./assets/journey.js?v=20260911.1"></script>
+  <script src="./assets/journey.js?v=20260913.1"></script>
 </body>
 </html>
