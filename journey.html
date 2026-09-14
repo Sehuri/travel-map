@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#07111f">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-fuji.png?v=20260914.1">
   <link rel="apple-touch-icon" href="./assets/favicon-fuji.png?v=20260914.1">
-  <link rel="stylesheet" href="./assets/journey.css?v=20260913.1">
+  <link rel="stylesheet" href="./assets/journey.css?v=20260914.1">
   <title>旅程档案｜Sehuri 的旅行足迹</title>
 </head>
 <body>
@@ -54,10 +54,7 @@
 
         <div class="route-replay-layout">
           <div class="route-replay-map-wrap">
-            <svg id="route-replay-map" class="route-replay-map" viewBox="0 0 1000 520" role="img" aria-labelledby="route-replay-map-title route-replay-map-description">
-              <title id="route-replay-map-title">旅程路线回放地图</title>
-              <desc id="route-replay-map-description">按真实地理方位展示旅程城市、交通线路与当前到达站。</desc>
-            </svg>
+            <div id="route-replay-map" class="route-replay-map" role="region" aria-label="高德地图旅程路线回放；按真实地理位置展示城市、交通线路与当前到达站"></div>
             <p class="route-replay-map-empty" id="route-replay-map-empty" hidden>这趟旅程的城市还缺少坐标，暂时无法绘制路线。</p>
             <article class="route-arrival-card" id="route-arrival-card" aria-live="polite">
               <img id="route-replay-photo" alt="" hidden>
@@ -152,8 +149,10 @@
   <script src="./assets/supabase-config.js"></script>
   <script src="./assets/visit-engine.js?v=20260911.1"></script>
   <script src="./assets/journey-engine.js?v=20260913.1"></script>
+  <script src="./assets/map-engine.js?v=20260910.1"></script>
+  <script src="./assets/amap-map-config.js?v=20260907.1"></script>
   <script src="./assets/route-replay-engine.js?v=20260913.1"></script>
   <script src="./assets/content.js?v=20260911.3"></script>
-  <script src="./assets/journey.js?v=20260913.1"></script>
+  <script src="./assets/journey.js?v=20260914.1"></script>
 </body>
 </html>

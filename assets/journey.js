@@ -4,7 +4,6 @@
   const byId = (id) => document.getElementById(id);
   const dateFormatter = new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long", day: "numeric" });
   const numberFormatter = new Intl.NumberFormat("zh-CN");
-  const SVG_NS = "http://www.w3.org/2000/svg";
   let lastPhotoButton = null;
   let allJourneys = [];
   let activeJourney = null;
@@ -12,6 +11,10 @@
   let replayIndex = 0;
   let replayTimer = null;
   let replayPlaying = false;
+  let replayMap = null;
+  let amapLoadPromise = null;
+  let replayMarkers = [];
+  let replaySegmentLines = [];
 
   function formatDate(value) {
     return value ? dateFormatter.format(new Date(`${value}T00:00:00`)) : "日期待补充";
@@ -45,12 +48,6 @@
     return viewer.toString();
   }
 
-  function svgElement(name, attributes = {}) {
-    const element = document.createElementNS(SVG_NS, name);
-    Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, String(value)));
-    return element;
-  }
-
   function stopDateText(stop) {
     if (!stop.arrivalDate) return "日期待补充";
     if (!stop.departureDate || stop.departureDate === stop.arrivalDate) return formatDate(stop.arrivalDate);
@@ -66,78 +63,204 @@
     return `${stop.cityName}代表照片`;
   }
 
-  function drawReplayMap() {
-    const engine = window.TRAVEL_ROUTE_REPLAY_ENGINE;
-    const map = byId("route-replay-map");
-    map.replaceChildren();
-    const title = svgElement("title");
-    title.id = "route-replay-map-title";
-    title.textContent = `${activeJourney.title}路线地图`;
-    const description = svgElement("desc");
-    description.id = "route-replay-map-description";
-    description.textContent = "按真实地理方位展示旅程城市；播放时会依次点亮站点与交通线路。";
-    map.append(title, description);
+  function installAmapProxyBridge(config) {
+    if (window.__TRAVEL_AMAP_PROXY_BRIDGE__) return;
+    if (!config.proxyTarget) throw new Error("高德安全代理目标尚未配置。");
+    const publicBase = config.serviceHost.replace(/\/$/, "");
+    const proxyBase = config.proxyTarget.replace(/\/$/, "");
+    const rewrite = (value) => {
+      const url = typeof value === "string" || value instanceof URL ? String(value) : value?.url;
+      if (!url || !url.startsWith(`${publicBase}/`)) return url;
+      return `${proxyBase}${url.slice(publicBase.length)}`;
+    };
+    const nativeOpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function (method, url, ...rest) {
+      return nativeOpen.call(this, method, rewrite(url) || url, ...rest);
+    };
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      const rewritten = rewrite(input);
+      if (!rewritten || rewritten === (typeof input === "string" ? input : input?.url)) return nativeFetch(input, init);
+      return nativeFetch(input instanceof Request ? new Request(rewritten, input) : rewritten, init);
+    };
+    window.__TRAVEL_AMAP_PROXY_BRIDGE__ = true;
+  }
 
-    const background = svgElement("rect", { x: 0, y: 0, width: 1000, height: 520, class: "route-map-background" });
-    map.append(background);
-    for (let x = 100; x < 1000; x += 100) {
-      map.append(svgElement("line", { x1: x, y1: 0, x2: x, y2: 520, class: "route-map-grid-line" }));
-    }
-    for (let y = 80; y < 520; y += 80) {
-      map.append(svgElement("line", { x1: 0, y1: y, x2: 1000, y2: y, class: "route-map-grid-line" }));
-    }
-
-    const positions = engine.projectStops(replay.stops);
-    const pointByStop = new Map(positions.map((point) => [point.stopIndex, point]));
-    byId("route-replay-map-empty").hidden = positions.length > 0;
-    replay.segments.forEach((segment) => {
-      const from = pointByStop.get(segment.index);
-      const to = pointByStop.get(segment.index + 1);
-      if (!from || !to) return;
-      const path = svgElement("path", {
-        d: `M ${from.x} ${from.y} L ${to.x} ${to.y}`,
-        class: "route-map-segment",
-        "data-segment-index": segment.index,
-        stroke: segment.color
-      });
-      const pathTitle = svgElement("title");
-      pathTitle.textContent = `${segment.from}到${segment.to}：${segment.label}，${segment.distanceKm}公里`;
-      path.append(pathTitle);
-      map.append(path);
+  function loadAmap() {
+    if (window.AMap?.Map) return Promise.resolve(window.AMap);
+    if (amapLoadPromise) return amapLoadPromise;
+    const config = window.AMAP_MAP_CONFIG || {};
+    if (!config.jsApiKey) return Promise.reject(new Error("高德 Web端（JS API）Key 尚未配置。"));
+    if (!config.serviceHost) return Promise.reject(new Error("高德安全代理尚未配置。"));
+    installAmapProxyBridge(config);
+    window._AMapSecurityConfig = { serviceHost: config.serviceHost.replace(/\/$/, "") };
+    amapLoadPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      const timeout = window.setTimeout(() => reject(new Error("高德地图载入超时。")), 15000);
+      script.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(config.jsApiKey)}&plugin=AMap.ToolBar,AMap.Scale`;
+      script.referrerPolicy = "strict-origin-when-cross-origin";
+      script.onload = () => {
+        window.clearTimeout(timeout);
+        if (window.AMap?.Map) resolve(window.AMap);
+        else reject(new Error("高德地图没有正确完成初始化。"));
+      };
+      script.onerror = () => {
+        window.clearTimeout(timeout);
+        reject(new Error("高德地图资源暂时无法载入。"));
+      };
+      document.head.append(script);
     });
+    return amapLoadPromise;
+  }
 
-    positions.forEach((point) => {
-      const stop = replay.stops[point.stopIndex];
-      const group = svgElement("g", {
-        class: "route-map-stop",
-        "data-stop-index": point.stopIndex,
-        role: "button",
-        tabindex: "0",
-        "aria-label": `第${point.stopIndex + 1}站${stop.cityName}`,
-        transform: `translate(${point.x} ${point.y})`
-      });
-      const halo = svgElement("circle", { r: 25, class: "route-map-stop-halo" });
-      const dot = svgElement("circle", { r: 8, class: "route-map-stop-dot" });
-      const labelOnLeft = point.stopIndex % 2 === 1;
-      const number = svgElement("text", { x: 0, y: -19, class: "route-map-stop-number", "text-anchor": "middle" });
-      number.textContent = String(point.stopIndex + 1).padStart(2, "0");
-      const label = svgElement("text", {
-        x: labelOnLeft ? -18 : 18,
-        y: 6,
-        class: "route-map-stop-label",
-        "text-anchor": labelOnLeft ? "end" : "start"
-      });
-      label.textContent = stop.cityName;
-      group.append(halo, dot, number, label);
-      group.addEventListener("click", () => setReplayIndex(point.stopIndex));
-      group.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          setReplayIndex(point.stopIndex);
-        }
-      });
-      map.append(group);
+  function amapPosition(stop) {
+    if (!Array.isArray(stop?.coord) || stop.coord.length !== 2 || !stop.coord.every(Number.isFinite)) return null;
+    const getAmapCoordinate = window.TRAVEL_MAP_ENGINE?.getAmapCoordinate || ((place) => place.coord);
+    return getAmapCoordinate(stop);
+  }
+
+  function createReplayMarkerContent(stop, index) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "route-map-stop";
+    button.dataset.stopIndex = String(index);
+    button.dataset.labelSide = index % 2 === 1 ? "left" : "right";
+    button.setAttribute("aria-label", `第${index + 1}站${stop.cityName}，${stopDateText(stop)}`);
+    button.title = `${String(index + 1).padStart(2, "0")} · ${stop.cityName} · ${stopDateText(stop)}`;
+    const halo = document.createElement("span");
+    halo.className = "route-map-stop-halo";
+    halo.setAttribute("aria-hidden", "true");
+    const dot = document.createElement("span");
+    dot.className = "route-map-stop-dot";
+    dot.setAttribute("aria-hidden", "true");
+    const number = document.createElement("span");
+    number.className = "route-map-stop-number";
+    number.textContent = String(index + 1).padStart(2, "0");
+    const label = document.createElement("span");
+    label.className = "route-map-stop-label";
+    label.textContent = stop.cityName;
+    button.append(halo, dot, number, label);
+    button.addEventListener("click", () => setReplayIndex(index));
+    return button;
+  }
+
+  function replayMarkerOffsets(positions) {
+    const offsets = new Map();
+    const groups = new Map();
+    positions.forEach((position, index) => {
+      if (!position) return;
+      const key = position.map((value) => Number(value).toFixed(5)).join(",");
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(index);
     });
+    groups.forEach((indices) => {
+      if (indices.length < 2) return;
+      indices.forEach((stopIndex, duplicateIndex) => {
+        offsets.set(stopIndex, [(duplicateIndex - (indices.length - 1) / 2) * 34, duplicateIndex % 2 ? -12 : 12]);
+      });
+    });
+    return offsets;
+  }
+
+  function updateReplayMapState(announce = false) {
+    replaySegmentLines.forEach(({ polyline, index, segment }) => {
+      const travelled = index < replayIndex;
+      const current = index === replayIndex - 1;
+      polyline.setOptions?.({
+        strokeColor: segment.color,
+        strokeOpacity: current ? 1 : travelled ? .9 : .28,
+        strokeWeight: current ? 8 : travelled ? 6 : 4,
+        strokeStyle: current || travelled ? "solid" : "dashed"
+      });
+    });
+    replayMarkers.forEach(({ marker, content, index, position }) => {
+      content.classList.toggle("is-visited", index <= replayIndex);
+      content.classList.toggle("is-active", index === replayIndex);
+      content.setAttribute("aria-current", index === replayIndex ? "step" : "false");
+      marker.setzIndex?.(index === replayIndex ? 220 : 150 + index);
+      if (announce && index === replayIndex) {
+        const bounds = replayMap?.getBounds?.();
+        if (bounds?.contains && !bounds.contains(position)) replayMap.panTo?.(position, 450);
+      }
+    });
+    const container = byId("route-replay-map");
+    container.dataset.travelledSegments = String(Math.max(0, replayIndex));
+    container.dataset.currentStop = String(replayIndex);
+  }
+
+  async function drawReplayMap() {
+    const container = byId("route-replay-map");
+    const status = byId("route-replay-map-empty");
+    const positions = replay.stops.map(amapPosition);
+    const validPositions = positions.filter(Boolean);
+    const markerOffsets = replayMarkerOffsets(positions);
+    if (!validPositions.length) {
+      status.textContent = "这趟旅程的城市还缺少坐标，暂时无法绘制路线。";
+      status.hidden = false;
+      return;
+    }
+    status.textContent = "正在载入高德地图与旅程路线…";
+    status.hidden = false;
+    try {
+      const AMap = await loadAmap();
+      replayMap?.destroy?.();
+      container.replaceChildren();
+      replayMap = new AMap.Map(container, {
+        viewMode: "2D",
+        mapStyle: "amap://styles/normal",
+        zoom: 5,
+        center: validPositions[0],
+        resizeEnable: true,
+        showIndoorMap: false
+      });
+      if (AMap.ToolBar) replayMap.addControl?.(new AMap.ToolBar({ position: "LT" }));
+      if (AMap.Scale) replayMap.addControl?.(new AMap.Scale());
+      replaySegmentLines = replay.segments.flatMap((segment) => {
+        const from = positions[segment.index];
+        const to = positions[segment.index + 1];
+        if (!from || !to) return [];
+        const polyline = new AMap.Polyline({
+          path: [from, to],
+          strokeColor: segment.color,
+          strokeOpacity: .28,
+          strokeWeight: 4,
+          strokeStyle: "dashed",
+          lineJoin: "round",
+          lineCap: "round",
+          zIndex: 90,
+          extData: { segmentIndex: segment.index }
+        });
+        polyline.setMap(replayMap);
+        return [{ polyline, index: segment.index, segment }];
+      });
+      replayMarkers = replay.stops.flatMap((stop, index) => {
+        const position = positions[index];
+        if (!position) return [];
+        const content = createReplayMarkerContent(stop, index);
+        const offset = markerOffsets.get(index);
+        const marker = new AMap.Marker({
+          position,
+          content,
+          anchor: "center",
+          title: `${String(index + 1).padStart(2, "0")} · ${stop.cityName}`,
+          zIndex: 150 + index,
+          ...(offset && AMap.Pixel ? { offset: new AMap.Pixel(offset[0], offset[1]) } : {})
+        });
+        marker.setMap(replayMap);
+        return [{ marker, content, index, position }];
+      });
+      const overlays = [...replaySegmentLines.map((item) => item.polyline), ...replayMarkers.map((item) => item.marker)];
+      if (validPositions.length === 1) replayMap.setZoomAndCenter?.(8, validPositions[0]);
+      else replayMap.setFitView?.(overlays, false, [70, 80, 170, 80], 9);
+      replayMap.resize?.();
+      container.dataset.mapProvider = "amap";
+      container.dataset.segmentCount = String(replaySegmentLines.length);
+      updateReplayMapState(false);
+      status.hidden = true;
+    } catch (error) {
+      status.textContent = `${error.message || "高德地图暂时无法载入。"} 路线列表与播放控制仍可正常使用。`;
+      status.hidden = false;
+    }
   }
 
   function renderReplayLegend() {
@@ -189,17 +312,7 @@
   function updateReplayView(announce = true) {
     const stop = replay.stops[replayIndex];
     if (!stop) return;
-    document.querySelectorAll(".route-map-segment").forEach((segment) => {
-      const index = Number(segment.dataset.segmentIndex);
-      segment.classList.toggle("is-travelled", index < replayIndex);
-      segment.classList.toggle("is-current", index === replayIndex - 1);
-    });
-    document.querySelectorAll(".route-map-stop").forEach((node) => {
-      const index = Number(node.dataset.stopIndex);
-      node.classList.toggle("is-visited", index <= replayIndex);
-      node.classList.toggle("is-active", index === replayIndex);
-      node.setAttribute("aria-current", index === replayIndex ? "step" : "false");
-    });
+    updateReplayMapState(announce);
     document.querySelectorAll("#route-replay-stop-list li").forEach((item) => {
       const index = Number(item.dataset.stopIndex);
       item.classList.toggle("is-visited", index <= replayIndex);
@@ -325,7 +438,7 @@
     }
   }
 
-  function initializeReplay(journey, journeys, visits, photoManifest) {
+  async function initializeReplay(journey, journeys, visits, photoManifest) {
     const engine = window.TRAVEL_ROUTE_REPLAY_ENGINE;
     if (!engine?.buildReplay) return;
     replay = engine.buildReplay(journey, visits, photoManifest);
@@ -352,7 +465,6 @@
       document.querySelectorAll(".route-replay-controls button, #route-replay-share").forEach((button) => { button.disabled = true; });
       return;
     }
-    drawReplayMap();
     renderReplayLegend();
     renderReplayStopList();
     const requestedStop = Number(new URL(window.location.href).searchParams.get("stop")) - 1;
@@ -374,6 +486,7 @@
     if (new URL(window.location.href).searchParams.get("replay") === "1") {
       window.requestAnimationFrame(() => byId("route-replay").scrollIntoView({ block: "start" }));
     }
+    await drawReplayMap();
   }
 
   function renderRoute(journey) {
@@ -530,7 +643,7 @@
     renderJourney(journey);
     byId("journey-loading").hidden = true;
     byId("journey-content").hidden = false;
-    initializeReplay(journey, allJourneys, content.visits || [], content.photoManifest || {});
+    await initializeReplay(journey, allJourneys, content.visits || [], content.photoManifest || {});
     byId("journey-lightbox-close").addEventListener("click", closePhoto);
     byId("journey-lightbox").addEventListener("click", (event) => {
       if (event.target === byId("journey-lightbox")) closePhoto();

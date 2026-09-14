@@ -30,6 +30,45 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await page.route('https://cdn.jsdelivr.net/**', (route) => route.fulfill({ contentType: 'text/javascript', body: '' }));
+    await page.addInitScript(() => {
+      window.__journeyMapLines = [];
+      class FakeMap {
+        constructor(container) {
+          this.container = typeof container === 'string' ? document.getElementById(container) : container;
+        }
+        addControl() {}
+        resize() {}
+        setFitView(overlays) { this.fitCount = overlays.length; }
+        setZoomAndCenter() {}
+        getBounds() { return { contains: () => true }; }
+        panTo() {}
+        destroy() { this.container.replaceChildren(); }
+      }
+      class FakeMarker {
+        constructor(options) {
+          this.options = options;
+          this.element = options.content;
+        }
+        setMap(map) { if (map) map.container.append(this.element); else this.element.remove(); }
+        setzIndex(value) { this.zIndex = value; }
+      }
+      class FakePolyline {
+        constructor(options) {
+          this.options = { ...options };
+          window.__journeyMapLines.push(this);
+        }
+        setMap(map) { this.map = map; }
+        setOptions(options) { Object.assign(this.options, options); }
+      }
+      window.AMap = {
+        Map: FakeMap,
+        Marker: FakeMarker,
+        Polyline: FakePolyline,
+        Pixel: class { constructor(x, y) { this.x = x; this.y = y; } },
+        ToolBar: class {},
+        Scale: class {}
+      };
+    });
     await page.goto(`${base}/journey.html?slug=2026-japan-kansai-kanto`, { waitUntil: 'networkidle' });
 
     await page.locator('#journey-content').waitFor({ state: 'visible' });
@@ -42,15 +81,17 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.match(await page.locator('.journey-stop a').first().getAttribute('href'), /index\.html\?city=%E5%A4%A7%E9%98%AA&visit=2026-02-03/);
 
     assert.equal(await page.locator('#route-replay-journey option').count(), 1);
+    assert.equal(await page.locator('#route-replay-map').getAttribute('data-map-provider'), 'amap');
+    assert.equal(await page.locator('#route-replay-map').getAttribute('data-segment-count'), '3');
     assert.equal(await page.locator('.route-map-stop').count(), 4);
-    assert.equal(await page.locator('.route-map-segment').count(), 3);
     assert.equal(await page.locator('#route-replay-panel-city').innerText(), '大阪');
     assert.match(await page.locator('#route-replay-stay').innerText(), /停留 3 天/);
     assert.match(await page.locator('#route-replay-next-leg').innerText(), /JR 京都线/);
     await page.locator('#route-replay-next').click();
     assert.equal(await page.locator('#route-replay-panel-city').innerText(), '京都');
-    assert.equal(await page.locator('.route-map-segment.is-travelled').count(), 1);
+    assert.equal(await page.locator('#route-replay-map').getAttribute('data-travelled-segments'), '1');
     assert.equal(await page.locator('.route-map-stop.is-active').getAttribute('data-stop-index'), '1');
+    assert.equal(await page.evaluate(() => window.__journeyMapLines[0].options.strokeStyle), 'solid');
     await page.locator('#route-replay-play').click();
     assert.equal(await page.locator('#route-replay-play').innerText(), '暂停');
     await page.locator('#route-replay-play').click();
