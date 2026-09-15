@@ -1,14 +1,67 @@
-# 🗺️ Sehuri 的旅行足迹
+<p align="center">
+  <img src="./assets/favicon-fuji.png" width="88" alt="富士山网站图标">
+</p>
 
-一个用地图与时间记录旅程的个人旅行网站。
+<h1 align="center">Sehuri 的旅行足迹</h1>
 
-从 2013 年黄海边的第一次远行，到 2026 年绍兴初夏的水乡漫步；这里收藏走过的城市、拍下的风景，以及仍在期待的下一站。
+<p align="center">
+  用地图连接走过的城市，用时间保存真实发生过的旅行。
+</p>
 
-## 🌏 在线访问
+<p align="center">
+  <a href="https://sehuri.github.io/travel-map/"><strong>在线打开旅行地图 ↗</strong></a>
+  ·
+  <a href="https://sehuri.github.io/travel-map/discover.html">下一站去哪</a>
+  ·
+  <a href="./SUPABASE_SETUP.md">后台配置</a>
+</p>
 
-**[打开旅行足迹地图](https://sehuri.github.io/travel-map/)**
+<p align="center">
+  <img alt="53 座城市" src="https://img.shields.io/badge/足迹-53_座城市-e4ff75?style=flat-square&labelColor=07111f">
+  <img alt="2 个国家" src="https://img.shields.io/badge/版图-2_个国家-8adbd1?style=flat-square&labelColor=07111f">
+  <img alt="原生前端" src="https://img.shields.io/badge/构建-HTML_·_CSS_·_JavaScript-ffad66?style=flat-square&labelColor=07111f">
+  <img alt="GitHub Pages" src="https://img.shields.io/badge/部署-GitHub_Pages-f5f1df?style=flat-square&labelColor=07111f">
+</p>
 
-## ✨ 网站功能
+<p align="center">
+  <a href="https://sehuri.github.io/travel-map/">
+    <img src="./docs/readme/01-home.jpg" alt="Sehuri 旅行足迹网站首页" width="100%">
+  </a>
+</p>
+
+从 2013 年黄海边的第一次远行，到 2026 年绍兴初夏的水乡漫步。这里不只记录打卡数字，也保存城市、路线、照片、攻略，以及仍在期待的下一站。
+
+## ✨ 项目亮点
+
+| 旅行足迹 | 正式旅程 | 记忆重现 | 下一站 |
+| --- | --- | --- | --- |
+| 高德地图与城市时间线联动 | 多城市、交通、预算、照片和游记组成完整档案 | 往年今日、重复到访与月份热力图 | 全国随机推荐与三级愿望清单 |
+
+## 🖼️ 界面预览
+
+<table>
+  <tr>
+    <td width="50%">
+      <a href="./docs/readme/02-wishlist.jpg"><img src="./docs/readme/02-wishlist.jpg" alt="三级愿望清单界面"></a><br>
+      <strong>仍在期待的远方</strong><br>
+      <sub>后台维护想去程度，前台自动分组并同步地图光点。</sub>
+    </td>
+    <td width="50%">
+      <a href="./docs/readme/03-travel-data.jpg"><img src="./docs/readme/03-travel-data.jpg" alt="旅行数字档案界面"></a><br>
+      <strong>旅行数字档案</strong><br>
+      <sub>累计时间、估算里程、地区覆盖、照片数量与月份热力图。</sub>
+    </td>
+  </tr>
+</table>
+
+<p align="center">
+  <a href="./docs/readme/04-journey.jpg"><img src="./docs/readme/04-journey.jpg" alt="2026 日本关西关东之旅档案" width="100%"></a><br>
+  <sub>正式旅程详情页：把路线、交通、照片、攻略和旅行感想重新放回同一段时间里。</sub>
+</p>
+
+> 点击预览图可以查看原尺寸。界面截图可通过 `npm run capture:readme` 重新生成。
+
+## 🧩 网站功能
 
 ### 下一站去哪（全国城市推荐）
 
@@ -204,10 +257,10 @@ npm test
 
 其中 `npm test` 会依次运行数据与地图单元测试、首页筛选及手机端浏览器测试、随机旅行浏览器测试。推送或创建 Pull Request 时，GitHub Actions 会自动执行同一套检查。
 
-正式 Git 工作目录：
+界面调整后可重新生成 README 截图：
 
-```text
-/Users/macbook/Desktop/个人文件/个人文件/travel-map
+```bash
+npm run capture:readme
 ```
 
 日常发布流程：
