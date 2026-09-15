@@ -51,6 +51,7 @@ aside select { min-height: 430px; padding: .2rem; }
 aside option { padding: .55rem; }
 .editor-form { display: grid; align-content: start; gap: 1rem; }
 .field-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.wishlist-field-grid { grid-template-columns: 2fr 1fr 1fr 1.35fr; }
 .check-row { display: flex; align-items: center; gap: .6rem; }
 .check-row input { width: auto; accent-color: var(--accent); }
 .form-actions { display: flex; flex-wrap: wrap; gap: .65rem; }

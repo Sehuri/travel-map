@@ -5,6 +5,14 @@
   const baseJourneys = baseData.journeys || [];
   const basePhotos = window.PHOTO_MANIFEST || {};
   const config = window.SUPABASE_CONFIG || {};
+  const wishlistEngine = window.TRAVEL_WISHLIST_ENGINE || {};
+  const normalizePriority = wishlistEngine.normalizePriority || ((value, fallback = 2) => {
+    const parsed = Number(value);
+    return [1, 2, 3].includes(parsed) ? parsed : fallback;
+  });
+  const sortWishlist = wishlistEngine.sortWishlist || ((items) => [...items].sort((a, b) => (
+    b.priorityLevel - a.priorityLevel || a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "zh-CN")
+  )));
   function photoDetailsFrom(manifest, rows = []) {
     const rowByUrl = new Map(
       rows.filter((row) => !row.is_hidden && row.image_url).map((row) => [row.image_url, row])
@@ -57,14 +65,22 @@
         guide: "出发前请重新核对交通、天气和开放信息。",
         ...wishes.get(item.name),
         ...item,
+        priorityLevel: normalizePriority(item.priorityLevel, 1),
         sortOrder: Number(item.sortOrder ?? items.length + index)
       });
     });
-    return [...wishes.values()].sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0));
+    return sortWishlist([...wishes.values()].map((item) => ({
+      ...item,
+      priorityLevel: normalizePriority(item.priorityLevel)
+    })));
   }
 
   function mergeWishlist(rows) {
-    const wishes = new Map(baseData.wishlist.map((item, index) => [item.name, { ...item, sortOrder: index }]));
+    const wishes = new Map(baseData.wishlist.map((item, index) => [item.name, {
+      ...item,
+      priorityLevel: normalizePriority(item.priorityLevel),
+      sortOrder: index
+    }]));
     (rows || []).forEach((row) => {
       if (row.name === "成都 · 重庆") return;
       if (row.is_hidden) {
@@ -79,11 +95,20 @@
         desc: row.description ?? current.desc ?? "",
         guide: row.guide ?? current.guide ?? "",
         plannedTime: row.planned_time ?? current.plannedTime ?? "",
+        priorityLevel: normalizePriority(row.priority_level, current.priorityLevel),
         sortOrder: Number(row.sort_order ?? current.sortOrder ?? 0)
       });
     });
-    return [...wishes.values()]
-      .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "zh-CN"));
+    return sortWishlist([...wishes.values()]);
+  }
+
+  async function loadWishlistRows(client) {
+    const withPriority = await client.from("travel_wishlist")
+      .select("name,icon,description,guide,planned_time,priority_level,sort_order,is_hidden");
+    if (!withPriority.error) return withPriority;
+    const legacy = await client.from("travel_wishlist")
+      .select("name,icon,description,guide,planned_time,sort_order,is_hidden");
+    return legacy;
   }
 
   function mergePhotos(rows) {
@@ -126,7 +151,7 @@
       const [cities, visitDates, wishes, photos, guides, journeys, journeyStops, journeyPhotos] = await Promise.all([
         client.from("travel_cities").select("name,country,region,visit_date,longitude,latitude,description,cover_url,is_hidden"),
         client.from("travel_city_visits").select("id,city_name,visit_date"),
-        client.from("travel_wishlist").select("name,icon,description,guide,planned_time,sort_order,is_hidden"),
+        loadWishlistRows(client),
         client.from("city_photos").select("city_name,image_url,storage_path,caption,sort_order,created_at,is_hidden"),
         client.from("travel_guides").select("id,place_type,place_name,title,file_type,file_url,file_size,created_at,is_hidden"),
         client.from("travel_journeys").select("id,slug,title,start_date,end_date,cover_url,summary,distance_km,distance_is_estimated,accommodation,budget_amount,budget_currency,companions,planning_notes,travel_notes,reflection,sort_order,is_published"),

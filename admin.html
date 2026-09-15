@@ -8,7 +8,7 @@
   <link rel="apple-touch-icon" href="./assets/favicon-fuji.png?v=20260914.1">
   <meta name="robots" content="noindex,nofollow">
   <title>站主管理｜Sehuri 的旅行足迹</title>
-  <link rel="stylesheet" href="./assets/admin.css?v=20260911.2">
+  <link rel="stylesheet" href="./assets/admin.css?v=20260915.1">
 </head>
 <body>
   <header class="admin-header">
@@ -179,11 +179,19 @@
             <select id="wish-picker" size="10"></select>
           </aside>
           <form class="editor-form" id="wish-form">
-            <div class="field-grid">
+            <div class="field-grid wishlist-field-grid">
               <label>目的地名称<input id="wish-name" required maxlength="120"></label>
               <label>图标文字<input id="wish-icon" required maxlength="4" placeholder="山"></label>
               <label>排序<input id="wish-order" type="number" min="0" step="1" required></label>
+              <label>想去程度
+                <select id="wish-priority" required>
+                  <option value="3">3 · 最想去</option>
+                  <option value="2" selected>2 · 很想去</option>
+                  <option value="1">1 · 有机会去</option>
+                </select>
+              </label>
             </div>
+            <p class="hint">公开网站会先按想去程度分组，再按“排序”数字排列；数字越小越靠前。</p>
             <label>一句话描述<textarea id="wish-description" rows="3" maxlength="500" required></textarea></label>
             <label>计划去的时间<input id="wish-planned-time" maxlength="120" placeholder="例如：2027 年春季、下一个国庆假期（可留空）"></label>
             <label>旅行建议<textarea id="wish-guide" rows="6" maxlength="3000" required></textarea></label>
@@ -243,6 +251,7 @@
   <script src="./assets/photos.js"></script>
   <script src="./assets/supabase-config.js"></script>
   <script src="./assets/journey-engine.js?v=20260913.1"></script>
-  <script src="./assets/admin.js?v=20260913.1"></script>
+  <script src="./assets/wishlist-engine.js?v=20260915.1"></script>
+  <script src="./assets/admin.js?v=20260915.1"></script>
 </body>
 </html>

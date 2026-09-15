@@ -20,12 +20,19 @@ create table if not exists public.travel_wishlist (
   description text not null default '',
   guide text not null default '',
   planned_time text,
+  priority_level smallint not null default 2,
   sort_order integer not null default 0,
   is_hidden boolean not null default false,
   updated_by uuid references auth.users(id),
   updated_at timestamptz not null default now()
 );
 alter table public.travel_wishlist add column if not exists planned_time text;
+alter table public.travel_wishlist add column if not exists priority_level smallint not null default 2;
+alter table public.travel_wishlist drop constraint if exists travel_wishlist_priority_level_check;
+alter table public.travel_wishlist
+  add constraint travel_wishlist_priority_level_check check (priority_level between 1 and 3);
+comment on column public.travel_wishlist.priority_level is
+  '想去程度：3 最想去，2 很想去，1 有机会去';
 delete from public.travel_wishlist where name = '成都 · 重庆';
 
 create table if not exists public.city_photos (
@@ -70,8 +77,9 @@ create index if not exists city_photos_city_sort_idx
 create index if not exists travel_city_visits_city_date_idx
   on public.travel_city_visits (city_name, visit_date desc);
 alter table public.city_photos add column if not exists is_hidden boolean not null default false;
-create index if not exists travel_wishlist_sort_idx
-  on public.travel_wishlist (sort_order, name);
+drop index if exists public.travel_wishlist_sort_idx;
+create index travel_wishlist_sort_idx
+  on public.travel_wishlist (priority_level desc, sort_order, name);
 create index if not exists travel_guides_place_idx
   on public.travel_guides (place_type, place_name, created_at desc);
 

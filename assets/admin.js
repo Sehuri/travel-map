@@ -8,8 +8,15 @@
   const baseJourneys = (window.TRAVEL_DATA?.journeys || []).map((journey) =>
     window.TRAVEL_JOURNEY_ENGINE.normalizeBaseJourney(journey, basePhotos)
   );
+  const wishlistEngine = window.TRAVEL_WISHLIST_ENGINE || {};
+  const normalizeWishPriority = wishlistEngine.normalizePriority || ((value) => [1, 2, 3].includes(Number(value)) ? Number(value) : 2);
+  const wishPriorityMeta = wishlistEngine.priorityMeta || ((value) => ({ label: ({ 1: "有机会去", 2: "很想去", 3: "最想去" })[normalizeWishPriority(value)] }));
   const baseVisitMap = new Map(baseVisits.map((visit) => [visit.name, visit]));
-  const baseWishMap = new Map(baseWishlist.map((wish, index) => [wish.name, { ...wish, sortOrder: index }]));
+  const baseWishMap = new Map(baseWishlist.map((wish, index) => [wish.name, {
+    ...wish,
+    priorityLevel: normalizeWishPriority(wish.priorityLevel),
+    sortOrder: index
+  }]));
   const baseJourneyMap = new Map(baseJourneys.map((journey) => [journey.slug, journey]));
   const elements = Object.fromEntries([
     "login-panel", "login-form", "login-email", "login-status", "admin-app", "session-label", "sign-out",
@@ -18,7 +25,7 @@
     "visit-record-editor", "visit-record-list", "visit-record-date", "add-visit-record", "visit-record-status",
     "remove-city-override", "photo-city", "photo-files", "upload-photos", "import-photos", "photo-admin-status",
     "admin-photo-grid", "wish-picker", "wish-form", "wish-name", "wish-icon", "wish-order", "wish-description",
-    "wish-guide", "wish-planned-time", "wish-hidden", "wish-status", "new-wish", "remove-wish-override", "rating-city-filter",
+    "wish-guide", "wish-planned-time", "wish-priority", "wish-hidden", "wish-status", "new-wish", "remove-wish-override", "rating-city-filter",
     "guide-upload-form", "guide-place-type", "guide-place-name", "guide-title", "guide-file", "upload-guide",
     "guide-admin-status", "guide-admin-list", "rating-admin-status", "ratings-table",
     "journey-picker", "journey-form", "journey-title-input", "journey-slug", "journey-order", "journey-start-date",
@@ -93,6 +100,7 @@
       description: row?.description ?? base?.desc ?? "",
       guide: row?.guide ?? base?.guide ?? "",
       plannedTime: row?.planned_time ?? base?.plannedTime ?? "",
+      priorityLevel: normalizeWishPriority(row?.priority_level ?? base?.priorityLevel),
       sortOrder: Number(row?.sort_order ?? base?.sortOrder ?? 0),
       hidden: Boolean(row?.is_hidden)
     };
@@ -953,9 +961,16 @@
 
   function populateWishPicker() {
     const names = [...new Set([...baseWishMap.keys(), ...wishRows.keys()])]
-      .sort((a, b) => effectiveWish(a).sortOrder - effectiveWish(b).sortOrder || a.localeCompare(b, "zh-CN"));
+      .sort((a, b) => {
+        const first = effectiveWish(a);
+        const second = effectiveWish(b);
+        return second.priorityLevel - first.priorityLevel || first.sortOrder - second.sortOrder || a.localeCompare(b, "zh-CN");
+      });
     if (!currentWishName || !names.includes(currentWishName)) currentWishName = names[0] || "";
-    refillSelect(elements.wish_picker, names, currentWishName, (name) => `${effectiveWish(name).hidden ? "[已隐藏] " : ""}${name}`);
+    refillSelect(elements.wish_picker, names, currentWishName, (name) => {
+      const wish = effectiveWish(name);
+      return `${wish.hidden ? "[已隐藏] " : ""}[${wishPriorityMeta(wish.priorityLevel).label}] ${name}`;
+    });
     populateGuidePlaces();
   }
 
@@ -1133,6 +1148,7 @@
     elements.wish_description.value = wish.description;
     elements.wish_guide.value = wish.guide;
     elements.wish_planned_time.value = wish.plannedTime;
+    elements.wish_priority.value = String(wish.priorityLevel);
     elements.wish_hidden.checked = wish.hidden;
     elements.remove_wish_override.hidden = !wishRows.has(name) && baseWishMap.has(name);
     elements.remove_wish_override.textContent = baseWishMap.has(name) ? "恢复代码版本" : "永久删除新增目的地";
@@ -1145,6 +1161,7 @@
     elements.wish_form.reset();
     elements.wish_name.readOnly = false;
     elements.wish_order.value = baseWishMap.size + wishRows.size;
+    elements.wish_priority.value = "2";
     elements.remove_wish_override.hidden = true;
     status(elements.wish_status, "填写后保存，新目的地会出现在愿望清单。" );
     elements.wish_name.focus();
@@ -1164,6 +1181,7 @@
       description: elements.wish_description.value.trim(),
       guide: elements.wish_guide.value.trim(),
       planned_time: elements.wish_planned_time.value.trim() || null,
+      priority_level: normalizeWishPriority(elements.wish_priority.value),
       sort_order: Number(elements.wish_order.value),
       is_hidden: elements.wish_hidden.checked,
       updated_by: user.id,
@@ -1173,7 +1191,10 @@
       .upsert(payload, { onConflict: "name" }).select().single();
     setBusy(elements.wish_form, false);
     if (error) {
-      status(elements.wish_status, `保存失败：${error.message}`, true);
+      const migrationHint = /priority_level/i.test(error.message || "")
+        ? "请先在 Supabase SQL Editor 运行 supabase/wishlist_priority.sql。"
+        : "";
+      status(elements.wish_status, `保存失败：${error.message}${migrationHint ? ` ${migrationHint}` : ""}`, true);
       return;
     }
     wishRows.set(name, data);

@@ -247,6 +247,7 @@
       desc: `随机旅行候选 · 从${current.origin}出发 · 人均参考 ${formatBudget(current.budget)}`,
       guide: `${current.intro} 建议安排 ${current.days} 天。${current.city.season.note} 交通时间与预算请在出发前再次核对。`,
       plannedTime,
+      priorityLevel: 1,
       country: "中国",
       coord: current.city.coord,
       coordinateSystem: current.preview ? "WGS84" : "GCJ-02",

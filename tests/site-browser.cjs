@@ -143,7 +143,12 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     await page.getByRole('tab', { name: /仍在期待/ }).click();
     assert.equal(await page.locator('.amap-wishlist-marker-button').count(), 22);
     assert.equal(await page.locator('.amap-marker-button').count(), 0);
+    assert.equal(await page.locator('.wish-priority-group').count(), 1);
+    assert.match(await page.locator('.wish-priority-group').innerText(), /很想去 · 等待合适时机/);
+    assert.equal(await page.locator('.wish-card[data-priority="2"]').count(), 22);
+    assert.equal(await page.locator('.amap-wishlist-marker-button[data-priority="2"]').count(), 22);
     assert.equal(await page.locator('#map-title').innerText(), '把愿望放到地图上');
+    assert.match(await page.locator('#map-interaction-hint').innerText(), /光点越大代表越想去/);
     assert(await page.locator('.wishlist-map-link').isVisible());
 
     await page.setViewportSize({ width: 390, height: 844 });
@@ -168,6 +173,9 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     await page.getByRole('tab', { name: /仍在期待/ }).click();
     assert.equal(await page.locator('.amap-wishlist-marker-button').count(), 23);
     assert(await page.locator('[data-destination="江苏省 · 昆山市"]').count());
+    assert.equal(await page.locator('.wish-priority-group').count(), 2);
+    assert.equal(await page.locator('.wish-card[data-priority="1"]').count(), 1);
+    assert.equal(await page.locator('[data-destination="江苏省 · 昆山市"][data-priority="1"]').count(), 1);
 
     const dataSource = await fs.readFile(path.join(root, 'assets/data.js'), 'utf8');
     await page.route('**/assets/data.js*', (route) => route.fulfill({

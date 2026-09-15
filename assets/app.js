@@ -58,6 +58,18 @@
   let filtersActive = false;
   let syncingHistory = false;
   let lightboxReturnState = null;
+  const wishlistEngine = window.TRAVEL_WISHLIST_ENGINE || {};
+  const normalizeWishPriority = wishlistEngine.normalizePriority || ((value) => [1, 2, 3].includes(Number(value)) ? Number(value) : 2);
+  const wishPriorityMeta = wishlistEngine.priorityMeta || ((value) => ({
+    level: normalizeWishPriority(value),
+    label: ({ 1: "有机会去", 2: "很想去", 3: "最想去" })[normalizeWishPriority(value)],
+    heading: ({ 1: "有机会去 · 慢慢收藏", 2: "很想去 · 等待合适时机", 3: "最想去 · 优先计划" })[normalizeWishPriority(value)],
+    description: ""
+  }));
+  const groupWishlist = wishlistEngine.groupWishlist || ((items) => [{
+    ...wishPriorityMeta(2),
+    items
+  }]);
   let ratingSummaries = new Map();
   let ratingsLoaded = false;
   let ratingsFailed = false;
@@ -893,13 +905,15 @@
       wishlistMarkers = wishlist.flatMap((destination, index) => {
         const location = getWishlistMapLocation(destination);
         if (!location) return [];
+        const priority = wishPriorityMeta(destination.priorityLevel);
         const content = document.createElement("button");
         content.type = "button";
         content.className = "amap-wishlist-marker-button";
         content.dataset.destination = destination.name;
+        content.dataset.priority = String(priority.level);
         content.dataset.labelSide = index % 3 === 0 ? "left" : "right";
-        content.title = destination.name;
-        content.setAttribute("aria-label", `查看${destination.name}旅行攻略`);
+        content.title = `${destination.name} · ${priority.label}`;
+        content.setAttribute("aria-label", `查看${priority.label}目的地${destination.name}旅行攻略`);
 
         const dot = document.createElement("span");
         dot.className = "wishlist-marker";
@@ -921,7 +935,7 @@
           content,
           anchor: "center",
           title: destination.name,
-          zIndex: 120
+          zIndex: 120 + priority.level
         });
         content.addEventListener("click", () => {
           setActiveWishlistMarker(marker);
@@ -1004,7 +1018,7 @@
     document.querySelector("#map-secondary-label").textContent = isWishlist ? "当前选择" : "当前城市";
     document.querySelector("#map-primary-dot").className = `legend-dot ${isWishlist ? "wishlist" : "visited"}`;
     document.querySelector("#map-interaction-hint").textContent = isWishlist
-      ? "地图展示愿望清单中的目的地，点击光点查看旅行攻略"
+      ? "光点越大代表越想去，点击可查看对应旅行攻略"
       : (filtersActive
           ? `地图已同步展示筛选后的 ${uniqueCityVisits(visibleJourneyVisits).length} 座城市`
           : "中国足迹按市域填色，日本足迹以城市光点标记");
@@ -1470,12 +1484,37 @@
   }
 
   function initializeWishlist() {
-    const grid = document.querySelector("#wish-grid");
+    const board = document.querySelector("#wish-grid");
+    board.replaceChildren();
     document.querySelector("#wishlist-count").textContent = wishlist.length;
-    wishlist.forEach((destination) => {
+    groupWishlist(wishlist).forEach((group) => {
+      const section = document.createElement("section");
+      section.className = "wish-priority-group";
+      section.dataset.priority = String(group.level);
+
+      const heading = document.createElement("header");
+      const headingCopy = document.createElement("div");
+      const eyebrow = document.createElement("p");
+      eyebrow.className = "eyebrow";
+      eyebrow.textContent = `PRIORITY 0${group.level}`;
+      const title = document.createElement("h3");
+      title.textContent = group.heading;
+      const explanation = document.createElement("p");
+      explanation.textContent = group.description;
+      headingCopy.append(eyebrow, title, explanation);
+      const count = document.createElement("span");
+      count.className = "wish-priority-count";
+      count.textContent = `${group.items.length} 个目的地`;
+      heading.append(headingCopy, count);
+
+      const grid = document.createElement("div");
+      grid.className = "wish-grid";
+      group.items.forEach((destination) => {
+      const priority = wishPriorityMeta(destination.priorityLevel);
       const button = document.createElement("button");
       button.type = "button";
       button.className = "wish-card";
+      button.dataset.priority = String(priority.level);
       button.setAttribute("aria-label", `查看${destination.name}旅行笔记`);
 
       const icon = document.createElement("span");
@@ -1500,6 +1539,10 @@
       guideBadge.hidden = !guideCount;
 
       button.append(icon, arrow);
+      const priorityBadge = document.createElement("span");
+      priorityBadge.className = "wish-priority-badge";
+      priorityBadge.textContent = `${priority.label} · ${priority.level}/3`;
+      button.append(priorityBadge);
       if (destination.plannedTime) {
         const plannedTime = document.createElement("span");
         plannedTime.className = "wish-planned-time";
@@ -1509,6 +1552,9 @@
       button.append(name, description, guideBadge);
       button.addEventListener("click", () => openGuide(destination));
       grid.append(button);
+      });
+      section.append(heading, grid);
+      board.append(section);
     });
   }
 
