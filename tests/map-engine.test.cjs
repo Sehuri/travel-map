@@ -58,7 +58,7 @@ test('AMap district names match visited city names across administrative suffixe
 });
 
 test('every configured wishlist destination resolves to a valid map location',()=>{
-  assert.equal(Object.keys(WISHLIST_MAP_LOCATIONS).length,22);
+  assert.equal(Object.keys(WISHLIST_MAP_LOCATIONS).length,30);
   Object.keys(WISHLIST_MAP_LOCATIONS).forEach((name)=>{
     const location=getWishlistMapLocation({name});
     assert.equal(location.coord.length,2);
@@ -74,11 +74,18 @@ test('every built-in wishlist card has a map location',()=>{
   require('../assets/data.js');
   const destinations=global.window.TRAVEL_DATA.wishlist;
   global.window=previousWindow;
-  assert.equal(destinations.length,22);
+  assert.equal(destinations.length,30);
   assert.deepEqual(
     destinations.filter((destination)=>!getWishlistMapLocation(destination)).map((destination)=>destination.name),
     []
   );
+  assert.deepEqual(
+    destinations.filter((destination)=>destination.priorityLevel===3).map((destination)=>destination.name),
+    ['意大利','法国']
+  );
+  assert.equal(destinations.find((destination)=>destination.name==='意大利').plannedTime,'2027 国庆');
+  assert.equal(destinations.find((destination)=>destination.name==='宣城 · 皖南川藏线').plannedTime,'2026 年 10 月或 11 月');
+  assert.equal(destinations.filter((destination)=>destination.priorityLevel===1).length,6);
 });
 
 test('wishlist records can override their fallback map metadata',()=>{

@@ -5,6 +5,8 @@
   const AXIS = 6378245;
   const ECCENTRICITY = 0.006693421622965943;
   const WISHLIST_MAP_LOCATIONS = Object.freeze({
+    "意大利": { country: "意大利", coord: [12.50, 41.90], label: "意大利" },
+    "法国": { country: "法国", coord: [2.35, 48.86], label: "法国" },
     "印度尼西亚 · 布罗莫火山与雅加达": { country: "印度尼西亚", coord: [112.95, -7.94], label: "布罗莫火山" },
     "新加坡": { country: "新加坡", coord: [103.82, 1.35], label: "新加坡" },
     "新疆 · 伊犁与赛里木湖": { country: "中国", coord: [81.18, 44.61], label: "赛里木湖" },
@@ -26,7 +28,13 @@
     "四川阿坝 · 萨武神山": { country: "中国", coord: [102.36, 31.00], label: "萨武神山" },
     "青海 · 黑独山": { country: "中国", coord: [93.28, 38.50], label: "黑独山" },
     "甘肃 · 敦煌莫高窟与鸣沙山": { country: "中国", coord: [94.66, 40.14], label: "敦煌" },
-    "四川 · 峨眉山": { country: "中国", coord: [103.33, 29.52], label: "峨眉山" }
+    "四川 · 峨眉山": { country: "中国", coord: [103.33, 29.52], label: "峨眉山" },
+    "宣城 · 皖南川藏线": { country: "中国", coord: [118.69, 30.63], label: "皖南川藏线" },
+    "天津": { country: "中国", coord: [117.20, 39.13], label: "天津" },
+    "桂林": { country: "中国", coord: [110.29, 25.27], label: "桂林" },
+    "徐州": { country: "中国", coord: [117.28, 34.20], label: "徐州" },
+    "开封": { country: "中国", coord: [114.31, 34.80], label: "开封" },
+    "临沂": { country: "中国", coord: [118.36, 35.10], label: "临沂" }
   });
 
   function outsideChina(lng, lat) {

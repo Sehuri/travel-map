@@ -186,7 +186,7 @@
     }
   }
 
-  state.wishlist = mergeLocalWishlist(state.wishlist);
+  state.wishlist = mergeLocalWishlist(mergeWishlist([]));
   const ready = load();
   window.TRAVEL_CONTENT = {
     ready,
