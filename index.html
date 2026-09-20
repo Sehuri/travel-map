@@ -14,6 +14,7 @@
   <meta property="og:locale" content="zh_CN">
   <link rel="canonical" href="https://sehuri.github.io/travel-map/">
   <link rel="stylesheet" href="./assets/styles.css?v=20260920.2">
+  <link rel="stylesheet" href="./assets/photo-cinema.css?v=20260920.1">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <title>Sehuri 的旅行足迹｜53 座城市与旅行记忆</title>
 </head>
@@ -73,6 +74,26 @@
           </div>
         </div>
         <div class="wish-priority-board" id="wish-grid"></div>
+      </div>
+    </section>
+
+    <section class="memory-cinema section-shell" id="photo-cinema" aria-labelledby="cinema-title" hidden>
+      <div class="section-heading">
+        <div><p class="eyebrow">THE MOMENTS WE KEEP / 回忆放映室</p><h2 id="cinema-title">让旅途，再慢慢发生。</h2></div>
+        <button class="cinema-wall-link" id="cinema-wall" type="button">打开照片墙 ↗</button>
+      </div>
+      <div class="cinema-frame">
+        <div class="cinema-screen" id="cinema-screen">
+          <div class="cinema-slide"><img alt=""></div><div class="cinema-slide"><img alt=""></div>
+          <div class="cinema-grain" aria-hidden="true"></div>
+          <span class="cinema-stamp" aria-hidden="true">SEHURI · TRAVEL FILM</span>
+          <div class="cinema-caption"><p id="cinema-date"></p><h3 id="cinema-city"></h3><p id="cinema-caption"></p></div>
+        </div>
+        <div class="cinema-controls">
+          <div><span class="eyebrow">一帧一帧，重回那些日子</span><p id="cinema-count" aria-live="off"></p></div>
+          <div class="cinema-buttons"><button id="cinema-prev" type="button" aria-label="上一张照片">←</button><button id="cinema-play" type="button">播放所有照片</button><button id="cinema-next" type="button" aria-label="下一张照片">→</button></div>
+        </div>
+        <p class="cinema-status" id="cinema-status" role="status"></p>
       </div>
     </section>
 
@@ -469,6 +490,7 @@
   <script src="./assets/wishlist-engine.js?v=20260915.1"></script>
   <script src="./assets/content.js?v=20260916.1"></script>
   <script src="./assets/community.js?v=20260901.1"></script>
-  <script src="./assets/app.js?v=20260920.2"></script>
+  <script src="./assets/photo-cinema.js?v=20260920.1"></script>
+  <script src="./assets/app.js?v=20260920.3"></script>
 </body>
 </html>

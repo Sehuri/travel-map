@@ -111,6 +111,10 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 
     await page.locator('[data-stat-detail="photos"]').click();
     assert.equal(await page.locator('.photo-archive-card').count(), 67);
+    await page.locator('#photo-wall-city').selectOption('东京');
+    assert(await page.locator('.photo-archive-card:visible').count() < 67);
+    assert.equal(await page.locator('.photo-archive-card:visible').first().getAttribute('data-city'), '东京');
+    await page.locator('#photo-wall-city').selectOption('');
     assert.match(await page.locator('.photo-archive-card figcaption').first().innerText(), /东京.*到访/s);
     await page.locator('.photo-archive-card button').first().click();
     await page.locator('#lightbox').waitFor({ state: 'visible' });
@@ -118,6 +122,21 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     await page.locator('#stats-dialog').waitFor({ state: 'visible' });
     assert.equal(await page.locator('#stats-dialog-title').innerText(), '全部旅行照片');
     await page.waitForFunction(() => document.querySelector('.photo-archive-card button') === document.activeElement);
+    await page.locator('#stats-dialog-close').click();
+
+    await page.locator('#photo-cinema').scrollIntoViewIfNeeded();
+    await page.waitForFunction(() => document.querySelector('#cinema-count').textContent.startsWith('01 / 67'));
+    await page.locator('#cinema-next').click();
+    await page.waitForFunction(() => document.querySelector('#cinema-count').textContent.startsWith('02 / 67'));
+    await page.locator('#cinema-prev').click();
+    await page.waitForFunction(() => document.querySelector('#cinema-count').textContent.startsWith('01 / 67'));
+    await page.locator('#cinema-play').click();
+    assert.equal(await page.locator('#cinema-play').getAttribute('aria-pressed'), 'true');
+    await page.waitForFunction(() => document.querySelector('#cinema-count').textContent.startsWith('02 / 67'), null, { timeout: 15000 });
+    await page.locator('#cinema-play').click();
+    assert.equal(await page.locator('#cinema-play').getAttribute('aria-pressed'), 'false');
+    await page.locator('#cinema-wall').click();
+    assert(await page.locator('#stats-dialog').isVisible());
     await page.locator('#stats-dialog-close').click();
 
     await page.locator('.city-card[aria-label^="查看东京"]').click();
@@ -159,6 +178,10 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert(await page.locator('.mobile-dock').isVisible());
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
     await page.getByRole('tab', { name: '旅行足迹', exact: true }).click();
+    await page.locator('#cinema-wall').click();
+    assert.equal(await page.locator('.photo-archive-grid').evaluate(el => getComputedStyle(el).columnCount), '1');
+    assert(await page.locator('#stats-dialog').evaluate(el => el.scrollWidth <= el.clientWidth));
+    await page.locator('#stats-dialog .dialog-close').click();
     const firstYearToggle = page.locator('.year-toggle').first();
     const controlledId = await firstYearToggle.getAttribute('aria-controls');
     await firstYearToggle.click();

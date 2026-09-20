@@ -344,9 +344,42 @@
     });
     const gallery = document.createElement("div");
     gallery.className = "photo-archive-grid";
+    const toolbar = document.createElement("div");
+    toolbar.className = "photo-wall-toolbar";
+    const label = document.createElement("label");
+    label.textContent = "按城市回忆 ";
+    const filter = document.createElement("select");
+    filter.id = "photo-wall-city";
+    filter.add(new Option("所有城市", ""));
+    [...new Set(photoDetails.map(photo => photo.cityName))].forEach(city => filter.add(new Option(city, city)));
+    label.append(filter);
+    const total = document.createElement("span");
+    total.className = "photo-wall-count";
+    total.setAttribute("role", "status");
+    total.textContent = `${photoDetails.length} 张记忆`;
+    const slideshow = document.createElement("button");
+    slideshow.type = "button";
+    slideshow.textContent = "▶ 放映全部照片";
+    slideshow.addEventListener("click", () => {
+      statsDialog.close();
+      document.querySelector("#photo-cinema").scrollIntoView({ behavior: "smooth", block: "center" });
+      const play = document.querySelector("#cinema-play");
+      if (play.getAttribute("aria-pressed") !== "true") play.click();
+      play.focus({ preventScroll: true });
+    });
+    toolbar.append(label, total, slideshow);
+    filter.addEventListener("change", () => {
+      let visible = 0;
+      [...gallery.children].forEach(card => {
+        card.hidden = !!filter.value && card.dataset.city !== filter.value;
+        if (!card.hidden) visible++;
+      });
+      total.textContent = `${visible} 张记忆`;
+    });
     photoDetails.forEach((photo) => {
       const figure = document.createElement("figure");
       figure.className = "photo-archive-card";
+      figure.dataset.city = photo.cityName;
       const button = document.createElement("button");
       button.type = "button";
       button.setAttribute("aria-label", `放大查看${photo.cityName}第${photo.order}张照片`);
@@ -375,7 +408,7 @@
       figure.append(button, caption);
       gallery.append(figure);
     });
-    body.append(gallery);
+    body.append(toolbar, gallery);
   }
 
   function openStatsDetail(type) {
@@ -1838,6 +1871,7 @@
     initializeWishlist();
     initializeHomeTabs();
     initializeDialogs();
+    window.initializePhotoCinema?.(photoDetails, visits, () => openStatsDetail("photos"));
     syncCityFromUrl();
   }
 
