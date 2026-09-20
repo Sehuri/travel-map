@@ -45,6 +45,12 @@
   const guideDialog = document.querySelector("#guide-dialog");
   const lightbox = document.querySelector("#lightbox");
   let chinaMap;
+  let worldMap;
+  let worldJourneyLayer;
+  let worldWishlistLayer;
+  let worldMarkers = [];
+  let worldWishlistMarkers = [];
+  let mapView = "world";
   let chinaMarkers = [];
   let wishlistMarkers = [];
   let chinaDistrictLayer;
@@ -759,7 +765,108 @@
     });
   }
 
+  function initializeWorldMap() {
+    if (!window.L) return false;
+    worldMap = L.map("world-map", { zoomControl: true, minZoom: 2, worldCopyJump: true });
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_2er4_1_991de9fa689e4c42aeee39c4", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: "abcd",
+      maxZoom: 19
+    }).addTo(worldMap);
+    worldJourneyLayer = L.layerGroup().addTo(worldMap);
+    worldWishlistLayer = L.layerGroup().addTo(worldMap);
+    worldMarkers = uniqueCityVisits(visits).map((visit) => {
+      const content = document.createElement("span");
+      content.className = "world-map-marker";
+      const dot = document.createElement("span");
+      dot.className = "travel-marker";
+      content.append(dot);
+      const marker = L.marker([visit.coord[1], visit.coord[0]], {
+        icon: L.divIcon({ className: "world-map-icon", html: content, iconSize: [28, 28], iconAnchor: [14, 14] }),
+        title: visit.name,
+        keyboard: true
+      });
+      const tooltip = document.createElement("span");
+      tooltip.textContent = `${visit.name} · ${visit.date.slice(0, 4)}`;
+      marker.bindTooltip(tooltip, { direction: "top", offset: [0, -8] });
+      marker.on("click", () => openCity(visit));
+      return { marker, visit };
+    });
+    const getWishlistMapLocation = window.TRAVEL_MAP_ENGINE?.getWishlistMapLocation || (() => null);
+    worldWishlistMarkers = wishlist.flatMap((destination) => {
+      const location = getWishlistMapLocation(destination);
+      if (!location) return [];
+      const priority = wishPriorityMeta(destination.priorityLevel);
+      const content = document.createElement("span");
+      content.className = "world-map-marker world-map-wishlist";
+      content.dataset.priority = String(priority.level);
+      const dot = document.createElement("span");
+      dot.className = "wishlist-marker";
+      content.append(dot);
+      const marker = L.marker([location.coord[1], location.coord[0]], {
+        icon: L.divIcon({ className: "world-map-icon", html: content, iconSize: [34, 34], iconAnchor: [17, 17] }),
+        title: `${destination.name} · ${priority.label}`,
+        keyboard: true
+      });
+      const tooltip = document.createElement("span");
+      tooltip.textContent = `${location.label} · ${priority.label}`;
+      marker.bindTooltip(tooltip, { direction: "top", offset: [0, -10] });
+      marker.on("click", () => openGuide(destination));
+      return { marker, destination };
+    });
+    updateWorldMapMode();
+    return true;
+  }
+
+  function updateWorldMapMode() {
+    if (!worldMap) return;
+    worldJourneyLayer.clearLayers();
+    worldWishlistLayer.clearLayers();
+    const isWishlist = mapMode === "wishlist";
+    const visibleNames = new Set(visibleJourneyVisits.map((visit) => visit.name));
+    const entries = isWishlist
+      ? worldWishlistMarkers
+      : worldMarkers.filter(({ visit }) => visibleNames.has(visit.name));
+    entries.forEach(({ marker }) => marker.addTo(isWishlist ? worldWishlistLayer : worldJourneyLayer));
+    if (entries.length && mapView === "world" && !document.querySelector("#world-map").hidden) {
+      worldMap.invalidateSize(false);
+      worldMap.fitBounds(L.featureGroup(entries.map(({ marker }) => marker)).getBounds().pad(.04), {
+        padding: [28, 28], maxZoom: isWishlist ? 5 : 7, animate: false
+      });
+    }
+    refreshWorldActiveMarker();
+  }
+
+  function refreshWorldActiveMarker() {
+    worldMarkers.forEach(({ marker, visit }) => {
+      marker.getElement()?.querySelector(".world-map-marker")?.classList.toggle("active", activeCity?.name === visit.name);
+    });
+  }
+
+  function setMapView(view) {
+    mapView = view === "china" ? "china" : "world";
+    if (mapView === "world" && !worldMap) mapView = "china";
+    document.querySelector("#world-map").hidden = mapView !== "world";
+    document.querySelector("#china-map").hidden = mapView !== "china";
+    document.querySelectorAll(".map-switch-button").forEach((button) => {
+      const active = button.dataset.view === mapView;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    if (mapView === "world") {
+      worldMap.invalidateSize(false);
+    } else if (chinaMap) {
+      chinaMap.resize();
+    }
+    applyMapMode();
+  }
+
   async function initializeMap() {
+    initializeWorldMap();
+    document.querySelectorAll(".map-switch-button").forEach((button) => {
+      button.addEventListener("click", () => setMapView(button.dataset.view));
+    });
+    setMapView(worldMap ? "world" : "china");
     const status = document.querySelector("#china-map-status");
     status.textContent = "正在载入高德旅行地图…";
     status.hidden = false;
@@ -769,8 +876,9 @@
       applyMapMode();
       status.hidden = true;
     } catch (error) {
-      status.textContent = `${error.message || "高德地图暂时无法载入。"} 下方足迹列表仍可正常浏览。`;
+      status.textContent = `${error.message || "高德地图暂时无法载入。"} 请切换全球地图继续浏览。`;
       status.hidden = false;
+      if (worldMap) setMapView("world");
     }
   }
 
@@ -1010,7 +1118,8 @@
     const mapRoot = document.querySelector("#travel-map");
     mapRoot.dataset.mapMode = mapMode;
     mapRoot.setAttribute("aria-label", isWishlist ? "想去目的地互动地图" : "旅行城市互动地图");
-    document.querySelector("#china-map").setAttribute("aria-label", isWishlist ? "想去目的地高德地图" : "完整旅行足迹高德地图");
+    document.querySelector("#china-map").setAttribute("aria-label", isWishlist ? "想去目的地高德地图" : "中国足迹高德地图");
+    document.querySelector("#world-map").setAttribute("aria-label", isWishlist ? "全球想去目的地地图" : "全球旅行足迹地图");
     document.querySelector("#map-title").textContent = isWishlist ? "把愿望放到地图上" : "把旅程摊开来看";
     document.querySelector("#map-primary-label").textContent = isWishlist
       ? "想去目的地"
@@ -1021,8 +1130,9 @@
       ? "光点越大代表越想去，点击可查看对应旅行攻略"
       : (filtersActive
           ? `地图已同步展示筛选后的 ${uniqueCityVisits(visibleJourneyVisits).length} 座城市`
-          : "中国足迹按市域填色，日本足迹以城市光点标记");
+          : (mapView === "world" ? "中国与海外足迹都能在全球地图上查看" : "中国足迹按市域填色，日本足迹以城市光点标记"));
     document.querySelector("#footprint-extremes").hidden = isWishlist || !visibleJourneyVisits.length;
+    updateWorldMapMode();
     refreshChinaDistrictStyles();
     if (!chinaMap) return;
 
@@ -1363,6 +1473,7 @@
 
   async function openCity(visit, { updateUrl = true } = {}) {
     activeCity = visit;
+    refreshWorldActiveMarker();
     const markerEntry = chinaMarkers.find((entry) => entry.visit.name === visit.name);
     if (markerEntry && markerEntry.marker !== activeMarker) setActiveMarker(markerEntry.marker);
     else refreshChinaDistrictStyles();
