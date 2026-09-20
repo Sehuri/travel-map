@@ -54,11 +54,6 @@
       image.src = photo.imageUrl;
       image.alt = photo.caption || `${photo.cityName}的旅行照片`;
       slide.style.setProperty("--photo-background", `url(${JSON.stringify(photo.imageUrl)})`);
-      if (active >= 0) {
-        const previous = slides[active].querySelector("img");
-        previous.style.transform = getComputedStyle(previous).transform;
-      }
-      image.style.transform = "";
       slides.forEach(item => { item.classList.remove("is-current"); item.setAttribute("aria-hidden", "true"); });
       slide.classList.add("is-current");
       slide.setAttribute("aria-hidden", "false");
