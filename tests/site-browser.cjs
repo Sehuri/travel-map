@@ -143,6 +143,15 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('#city-visit-total').innerText(), '1 次');
     assert.equal(await page.locator('#city-related-journeys a').count(), 1);
     assert.match(await page.locator('#city-related-journeys a').innerText(), /2026 日本关西关东之旅/);
+    await page.locator('#photo-grid button').first().click();
+    assert(await page.locator('#lightbox').evaluate(el => el.matches(':modal')));
+    assert(await page.locator('#city-dialog').evaluate(el => el.open));
+    await page.keyboard.press('Escape');
+    assert(!(await page.locator('#lightbox').evaluate(el => el.open)));
+    assert(await page.locator('#city-dialog').evaluate(el => el.open));
+    await page.locator('#photo-grid button').first().click();
+    await page.locator('#lightbox-close').click();
+    assert(await page.locator('#city-dialog').evaluate(el => el.open));
     await page.locator('#dialog-close').click();
 
     await page.locator('#year-filter').selectOption('2026');

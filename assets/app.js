@@ -64,6 +64,7 @@
   let filtersActive = false;
   let syncingHistory = false;
   let lightboxReturnState = null;
+  let lightboxReturnFocus = null;
   const wishlistEngine = window.TRAVEL_WISHLIST_ENGINE || {};
   const normalizeWishPriority = wishlistEngine.normalizePriority || ((value) => [1, 2, 3].includes(Number(value)) ? Number(value) : 2);
   const wishPriorityMeta = wishlistEngine.priorityMeta || ((value) => ({
@@ -1791,25 +1792,29 @@
 
   function openLightbox(source, alt) {
     const image = document.querySelector("#lightbox-image");
+    lightboxReturnFocus = document.activeElement;
     image.src = source;
     image.alt = alt;
-    lightbox.hidden = false;
-    document.body.style.overflow = "hidden";
+    lightbox.showModal();
     document.querySelector("#lightbox-close").focus();
   }
 
   function closeLightbox() {
+    if (!lightbox.open) return;
     const returnState = lightboxReturnState;
     lightboxReturnState = null;
-    lightbox.hidden = true;
+    const focusTarget = lightboxReturnFocus;
+    lightboxReturnFocus = null;
+    lightbox.close();
     document.querySelector("#lightbox-image").removeAttribute("src");
-    document.body.style.overflow = "";
     if (returnState?.dialog && !returnState.dialog.open) {
       returnState.dialog.showModal();
       requestAnimationFrame(() => {
         returnState.dialog.scrollTop = returnState.scrollTop;
         returnState.focusTarget?.focus({ preventScroll: true });
       });
+    } else if (focusTarget?.isConnected) {
+      focusTarget.focus({ preventScroll: true });
     }
   }
 
@@ -1822,6 +1827,10 @@
     document.querySelector("#lightbox-close").addEventListener("click", closeLightbox);
     lightbox.addEventListener("click", (event) => {
       if (event.target === lightbox) closeLightbox();
+    });
+    lightbox.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      closeLightbox();
     });
     [statsDialog, cityDialog, guideDialog].forEach((dialog) => {
       dialog.addEventListener("click", (event) => {
@@ -1837,9 +1846,6 @@
       if (!syncingHistory) clearCityUrl();
     });
     window.addEventListener("popstate", syncCityFromUrl);
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && !lightbox.hidden) closeLightbox();
-    });
   }
 
   async function initialize() {
