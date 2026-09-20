@@ -50,7 +50,7 @@
   let worldWishlistLayer;
   let worldMarkers = [];
   let worldWishlistMarkers = [];
-  let mapView = "world";
+  let mapView = "china";
   let chinaMarkers = [];
   let wishlistMarkers = [];
   let chinaDistrictLayer;
@@ -866,7 +866,7 @@
     document.querySelectorAll(".map-switch-button").forEach((button) => {
       button.addEventListener("click", () => setMapView(button.dataset.view));
     });
-    setMapView(worldMap ? "world" : "china");
+    setMapView("china");
     const status = document.querySelector("#china-map-status");
     status.textContent = "正在载入高德旅行地图…";
     status.hidden = false;
@@ -876,7 +876,7 @@
       applyMapMode();
       status.hidden = true;
     } catch (error) {
-      status.textContent = `${error.message || "高德地图暂时无法载入。"} 请切换全球地图继续浏览。`;
+      status.textContent = `${error.message || "高德地图暂时无法载入。"} ${worldMap ? "已自动切换到全球地图。" : "下方时间线仍可继续浏览。"}`;
       status.hidden = false;
       if (worldMap) setMapView("world");
     }
