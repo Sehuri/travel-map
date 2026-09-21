@@ -14,7 +14,7 @@
   <meta property="og:locale" content="zh_CN">
   <link rel="canonical" href="https://sehuri.github.io/travel-map/">
   <link rel="stylesheet" href="./assets/styles.css?v=20260920.3">
-  <link rel="stylesheet" href="./assets/photo-cinema.css?v=20260920.2">
+  <link rel="stylesheet" href="./assets/photo-cinema.css?v=20260921.1">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <title>Sehuri 的旅行足迹｜53 座城市与旅行记忆</title>
 </head>
@@ -79,19 +79,42 @@
 
     <section class="memory-cinema section-shell" id="photo-cinema" aria-labelledby="cinema-title" hidden>
       <div class="section-heading">
-        <div><p class="eyebrow">THE MOMENTS WE KEEP / 回忆放映室</p><h2 id="cinema-title">让旅途，再慢慢发生。</h2></div>
+        <div><p class="eyebrow">MEMORY THEATER / 旅程放映室</p><h2 id="cinema-title">把走过的路，重新放映。</h2></div>
         <button class="cinema-wall-link" id="cinema-wall" type="button">打开照片墙 ↗</button>
       </div>
       <div class="cinema-frame">
-        <div class="cinema-screen" id="cinema-screen">
-          <div class="cinema-slide"><img alt=""></div><div class="cinema-slide"><img alt=""></div>
-          <div class="cinema-grain" aria-hidden="true"></div>
-          <span class="cinema-stamp" aria-hidden="true">SEHURI · TRAVEL FILM</span>
-          <div class="cinema-caption"><p id="cinema-date"></p><h3 id="cinema-city"></h3><p id="cinema-caption"></p></div>
+        <div class="cinema-scope">
+          <div class="cinema-scope-tabs" role="group" aria-label="选择放映范围">
+            <button type="button" data-cinema-mode="all" aria-pressed="true">全部照片</button>
+            <button type="button" data-cinema-mode="journey" aria-pressed="false">按旅程</button>
+            <button type="button" data-cinema-mode="city" aria-pressed="false">按城市</button>
+          </div>
+          <label class="cinema-select" id="cinema-journey-wrap" hidden>选择旅程 <select id="cinema-journey"></select></label>
+          <label class="cinema-select" id="cinema-city-wrap" hidden>选择城市 <select id="cinema-city-select"></select></label>
+          <span class="cinema-scope-note" id="cinema-scope-note">从第一张照片开始，重走所有旅途。</span>
         </div>
-        <div class="cinema-controls">
-          <div><span class="eyebrow">一帧一帧，重回那些日子</span><p id="cinema-count" aria-live="off"></p></div>
-          <div class="cinema-buttons"><button id="cinema-prev" type="button" aria-label="上一张照片">←</button><button id="cinema-play" type="button">播放所有照片</button><button id="cinema-next" type="button" aria-label="下一张照片">→</button></div>
+        <div class="cinema-stage">
+          <div class="cinema-screen" id="cinema-screen">
+            <div class="cinema-slide" aria-hidden="true"><img alt=""></div><div class="cinema-slide" aria-hidden="true"><img alt=""></div>
+            <span class="cinema-stamp" aria-hidden="true">SEHURI · TRAVEL FILM</span>
+            <div class="cinema-chapter" id="cinema-chapter" aria-hidden="true">
+              <span>下一站 / NEXT MEMORY</span><strong id="cinema-chapter-city"></strong><small id="cinema-chapter-date"></small>
+            </div>
+          </div>
+          <div class="cinema-story" aria-live="polite">
+            <span class="eyebrow">NOW SHOWING / 正在放映</span>
+            <p class="cinema-story-context" id="cinema-context"></p>
+            <div class="cinema-story-copy"><p id="cinema-date"></p><h3 id="cinema-city"></h3><p id="cinema-caption"></p></div>
+            <span class="cinema-story-mark" aria-hidden="true">✳</span>
+          </div>
+        </div>
+        <div class="cinema-player">
+          <div class="cinema-controls">
+            <div class="cinema-counter"><span class="eyebrow">一帧一帧，重回那些日子</span><p id="cinema-count" aria-live="off"></p></div>
+            <div class="cinema-buttons"><button id="cinema-prev" type="button" aria-label="上一张照片">← <span>上一张</span></button><button id="cinema-play" type="button" aria-pressed="false">播放</button><button id="cinema-next" type="button" aria-label="下一张照片"><span>下一张</span> →</button></div>
+          </div>
+          <progress class="cinema-progress" id="cinema-progress" value="0" max="1" aria-label="照片播放进度"></progress>
+          <div class="cinema-filmstrip" id="cinema-filmstrip" role="group" aria-label="选择照片"></div>
         </div>
         <p class="cinema-status" id="cinema-status" role="status"></p>
       </div>
@@ -490,7 +513,7 @@
   <script src="./assets/wishlist-engine.js?v=20260915.1"></script>
   <script src="./assets/content.js?v=20260916.1"></script>
   <script src="./assets/community.js?v=20260901.1"></script>
-  <script src="./assets/photo-cinema.js?v=20260920.2"></script>
-  <script src="./assets/app.js?v=20260920.4"></script>
+  <script src="./assets/photo-cinema.js?v=20260921.1"></script>
+  <script src="./assets/app.js?v=20260921.1"></script>
 </body>
 </html>

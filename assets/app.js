@@ -5,6 +5,7 @@
   let wishlist = [];
   let photoManifest = {};
   let photoDetails = [];
+  let photoCinema = null;
   let guideDocuments = [];
   let journeys = [];
   let personalStats = null;
@@ -365,7 +366,7 @@
       statsDialog.close();
       document.querySelector("#photo-cinema").scrollIntoView({ behavior: "smooth", block: "center" });
       const play = document.querySelector("#cinema-play");
-      if (play.getAttribute("aria-pressed") !== "true") play.click();
+      photoCinema?.playAll();
       play.focus({ preventScroll: true });
     });
     toolbar.append(label, total, slideshow);
@@ -1877,7 +1878,7 @@
     initializeWishlist();
     initializeHomeTabs();
     initializeDialogs();
-    window.initializePhotoCinema?.(photoDetails, visits, () => openStatsDetail("photos"));
+    photoCinema = window.initializePhotoCinema?.(photoDetails, visits, journeys, () => openStatsDetail("photos"));
     syncCityFromUrl();
   }
 

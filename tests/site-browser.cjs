@@ -126,6 +126,25 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 
     await page.locator('#photo-cinema').scrollIntoViewIfNeeded();
     await page.waitForFunction(() => document.querySelector('#cinema-count').textContent.startsWith('01 / 67'));
+    assert.equal(await page.locator('#cinema-filmstrip .cinema-thumb').count(), 67);
+    await page.locator('#cinema-filmstrip .cinema-thumb').nth(2).click();
+    await page.waitForFunction(() => document.querySelector('#cinema-count').textContent.startsWith('03 / 67'));
+    assert.equal(await page.locator('#cinema-progress').getAttribute('value'), '3');
+    assert.equal(await page.locator('#cinema-filmstrip .cinema-thumb[aria-current="true"]').count(), 1);
+    await page.locator('[data-cinema-mode="city"]').click();
+    await page.locator('#cinema-city-select').selectOption('东京');
+    await page.waitForFunction(() => document.querySelector('#cinema-count').textContent.startsWith('01 / 7'));
+    assert.equal(await page.locator('#cinema-filmstrip .cinema-thumb').count(), 7);
+    assert.equal(await page.locator('#cinema-city').innerText(), '东京');
+    await page.locator('[data-cinema-mode="journey"]').click();
+    await page.waitForFunction(() => document.querySelector('#cinema-city').textContent === '大阪');
+    assert.match(await page.locator('#cinema-context').innerText(), /日本关西关东之旅/);
+    const kyotoThumb = page.locator('#cinema-filmstrip .cinema-thumb[aria-label*="京都"]').first();
+    await kyotoThumb.click();
+    await page.waitForFunction(() => document.querySelector('#cinema-city').textContent === '京都');
+    assert.equal(await page.locator('#cinema-chapter').getAttribute('aria-hidden'), 'false');
+    await page.locator('[data-cinema-mode="all"]').click();
+    await page.waitForFunction(() => document.querySelector('#cinema-count').textContent.startsWith('01 / 67'));
     await page.locator('#cinema-next').click();
     await page.waitForFunction(() => document.querySelector('#cinema-count').textContent.startsWith('02 / 67'));
     await page.locator('#cinema-prev').click();
@@ -137,7 +156,10 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('#cinema-play').getAttribute('aria-pressed'), 'false');
     await page.locator('#cinema-wall').click();
     assert(await page.locator('#stats-dialog').isVisible());
-    await page.locator('#stats-dialog-close').click();
+    await page.locator('.photo-wall-toolbar button').click();
+    assert.equal(await page.locator('[data-cinema-mode="all"]').getAttribute('aria-pressed'), 'true');
+    assert.equal(await page.locator('#cinema-play').getAttribute('aria-pressed'), 'true');
+    await page.locator('#cinema-play').click();
 
     await page.locator('.city-card[aria-label^="查看东京"]').click();
     assert.equal(await page.locator('#city-visit-total').innerText(), '1 次');
