@@ -80,7 +80,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('.journey-photo-grid figure').count(), 32);
     assert.match(await page.locator('.journey-stop a').first().getAttribute('href'), /index\.html\?city=%E5%A4%A7%E9%98%AA&visit=2026-02-03/);
 
-    assert.equal(await page.locator('#route-replay-journey option').count(), 1);
+    assert.equal(await page.locator('#route-replay-journey option').count(), 5);
     assert.equal(await page.locator('#route-replay-map').getAttribute('data-map-provider'), 'amap');
     assert.equal(await page.locator('#route-replay-map').getAttribute('data-segment-count'), '3');
     assert.equal(await page.locator('.route-map-stop').count(), 4);
@@ -108,6 +108,14 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     await page.locator('#journey-lightbox').waitFor({ state: 'visible' });
     await page.locator('#journey-lightbox-close').click();
     await page.waitForFunction(() => document.querySelector('.journey-photo-grid button') === document.activeElement);
+
+    await page.goto(`${base}/journey.html?slug=2026-ningbo-taizhou&replay=1#route-replay`, { waitUntil: 'networkidle' });
+    await page.locator('#journey-content').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('#journey-title').innerText(), '2026 浙东山海之旅');
+    assert.equal(await page.locator('.journey-stop').count(), 2);
+    assert.equal(await page.locator('#route-replay-map').getAttribute('data-segment-count'), '1');
+    assert.equal(await page.locator('#route-replay-panel-city').innerText(), '宁波');
+    assert.match(await page.locator('#route-replay-next-leg').innerText(), /高铁/);
 
     await page.setViewportSize({ width: 390, height: 844 });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));

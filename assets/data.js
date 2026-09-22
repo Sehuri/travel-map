@@ -80,6 +80,105 @@ window.TRAVEL_DATA = {
         { cityName: "东京", stopOrder: 2, arrivalDate: "2026-02-09", departureDate: "2026-02-11", transportToNext: "JR 横须贺线", distanceToNextKm: 51, notes: "穿过东京的繁华与秩序，再向湘南海岸出发。" },
         { cityName: "镰仓", stopOrder: 3, arrivalDate: "2026-02-12", departureDate: "2026-02-12", transportToNext: "", distanceToNextKm: 0, notes: "用海岸、电车与古寺，为这趟旅程收尾。" }
       ]
+    },
+    {
+      id: "base-ningbo-taizhou-2026",
+      slug: "2026-ningbo-taizhou",
+      title: "2026 浙东山海之旅",
+      startDate: "2026-02-18",
+      endDate: "2026-02-20",
+      coverUrl: "",
+      summary: "从天一阁与老外滩出发，沿浙东海岸南下台州，在临海古城与山海之间完成一段轻快的短途旅程。",
+      distanceKm: 152,
+      distanceEstimated: true,
+      accommodation: "",
+      budgetAmount: null,
+      budgetCurrency: "CNY",
+      companions: "2 人",
+      planningNotes: "",
+      travelNotes: "从宁波向南抵达台州，把港城人文、古城街巷与浙东山海串成一条线。",
+      reflection: "两座相邻的浙东城市，各自保留了不同的山海气质。",
+      sortOrder: 1,
+      photoCities: ["宁波", "台州"],
+      stops: [
+        { cityName: "宁波", stopOrder: 0, arrivalDate: "2026-02-18", departureDate: "2026-02-19", transportToNext: "高铁", distanceToNextKm: 152, notes: "从天一阁、东钱湖与老外滩开始，感受港城的人文与水岸。" },
+        { cityName: "台州", stopOrder: 1, arrivalDate: "2026-02-20", departureDate: "2026-02-20", transportToNext: "", distanceToNextKm: 0, notes: "沿临海古城、天台山与山海风景，为这段浙东短途收尾。" }
+      ]
+    },
+    {
+      id: "base-shandong-northeast-2025",
+      slug: "2025-shandong-northeast-winter",
+      title: "2025 齐鲁与东北冰雪之旅",
+      startDate: "2025-01-14",
+      endDate: "2025-01-20",
+      coverUrl: "",
+      summary: "从济南泉水与烟台海岸出发，跨过渤海抵达大连，再一路向北走进哈尔滨冰雪，最后在沈阳收束东北冬日。",
+      distanceKm: 2140,
+      distanceEstimated: true,
+      accommodation: "",
+      budgetAmount: null,
+      budgetCurrency: "CNY",
+      companions: "2 人",
+      planningNotes: "",
+      travelNotes: "一条从齐鲁大地延伸到东北腹地的冬季长线，城市气质从泉城、海岸逐渐转入冰雪与历史。",
+      reflection: "跨越海岸与雪原，北方冬季在五座城市里呈现出完全不同的层次。",
+      sortOrder: 4,
+      photoCities: ["济南", "烟台", "大连", "哈尔滨", "沈阳"],
+      stops: [
+        { cityName: "济南", stopOrder: 0, arrivalDate: "2025-01-14", departureDate: "2025-01-14", transportToNext: "高铁", distanceToNextKm: 455, notes: "从趵突泉、大明湖与老城街巷出发，开启北方冬日长线。" },
+        { cityName: "烟台", stopOrder: 1, arrivalDate: "2025-01-15", departureDate: "2025-01-15", transportToNext: "轮渡", distanceToNextKm: 160, notes: "沿烟台冬日海岸前行，随后跨过渤海前往大连。" },
+        { cityName: "大连", stopOrder: 2, arrivalDate: "2025-01-16", departureDate: "2025-01-16", transportToNext: "高铁", distanceToNextKm: 950, notes: "在星海广场与滨海路感受北方海滨，再向更寒冷的北境出发。" },
+        { cityName: "哈尔滨", stopOrder: 3, arrivalDate: "2025-01-16", departureDate: "2025-01-19", transportToNext: "高铁", distanceToNextKm: 575, notes: "把中央大街、冰雪大世界与索菲亚教堂留作整段旅程的冰雪高潮。" },
+        { cityName: "沈阳", stopOrder: 4, arrivalDate: "2025-01-20", departureDate: "2025-01-20", transportToNext: "", distanceToNextKm: 0, notes: "在沈阳故宫与老城历史里，为这段齐鲁至东北之旅收尾。" }
+      ]
+    },
+    {
+      id: "base-wuxi-shanghai-2025",
+      slug: "2025-wuxi-shanghai",
+      title: "2025 江南新春之旅",
+      startDate: "2025-01-30",
+      endDate: "2025-02-01",
+      coverUrl: "",
+      summary: "从太湖边的无锡出发，乘高铁抵达上海，在江南年味与都市天际线之间度过新春假期。",
+      distanceKm: 126,
+      distanceEstimated: true,
+      accommodation: "",
+      budgetAmount: null,
+      budgetCurrency: "CNY",
+      companions: "2 人",
+      planningNotes: "",
+      travelNotes: "从太湖风景到上海街区，一段距离不长、气质变化鲜明的新春双城旅程。",
+      reflection: "江南的从容与上海的繁华，在三天里自然衔接。",
+      sortOrder: 3,
+      photoCities: ["无锡", "上海"],
+      stops: [
+        { cityName: "无锡", stopOrder: 0, arrivalDate: "2025-01-30", departureDate: "2025-01-31", transportToNext: "高铁", distanceToNextKm: 126, notes: "在鼋头渚、惠山古镇与太湖边感受江南新春。" },
+        { cityName: "上海", stopOrder: 1, arrivalDate: "2025-02-01", departureDate: "2025-02-01", transportToNext: "", distanceToNextKm: 0, notes: "从外滩到城市街区，用上海的天际线结束这趟双城旅程。" }
+      ]
+    },
+    {
+      id: "base-hong-kong-shenzhen-2025",
+      slug: "2025-hong-kong-shenzhen",
+      title: "2025 港深双城之旅",
+      startDate: "2025-08-09",
+      endDate: "2025-08-10",
+      coverUrl: "",
+      summary: "先看维港山海与香港街巷，再跨境来到深圳，在相邻两座湾区城市之间感受不同的城市节奏。",
+      distanceKm: 39,
+      distanceEstimated: true,
+      accommodation: "",
+      budgetAmount: null,
+      budgetCurrency: "CNY",
+      companions: "2 人",
+      planningNotes: "",
+      travelNotes: "两天串联香港与深圳，以便捷的跨境交通体验大湾区相邻城市的鲜明反差。",
+      reflection: "一边是山海与老街，一边是年轻而快速的城市，两座城靠得很近，却各有节奏。",
+      sortOrder: 2,
+      photoCities: ["香港", "深圳"],
+      stops: [
+        { cityName: "香港", stopOrder: 0, arrivalDate: "2025-08-09", departureDate: "2025-08-09", transportToNext: "跨境高铁", distanceToNextKm: 39, notes: "从维多利亚港、太平山与街巷出发，先看香港的山海城市感。" },
+        { cityName: "深圳", stopOrder: 1, arrivalDate: "2025-08-10", departureDate: "2025-08-10", transportToNext: "", distanceToNextKm: 0, notes: "跨境抵达深圳，在深圳湾与现代城市空间里完成双城切换。" }
+      ]
     }
   ],
   wishlist: [

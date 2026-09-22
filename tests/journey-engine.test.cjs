@@ -16,15 +16,32 @@ function loadFixtures() {
   return { data: global.TRAVEL_DATA, photos: global.PHOTO_MANIFEST };
 }
 
-test('built-in journey becomes a complete ordered archive', () => {
+test('built-in journeys become complete ordered archives', () => {
   const { data, photos } = loadFixtures();
   const journeys = engine.mergeJourneys(data.journeys, [], [], [], [], photos);
-  assert.equal(journeys.length, 1);
-  assert.equal(journeys[0].slug, '2026-japan-kansai-kanto');
-  assert.equal(journeys[0].days, 10);
-  assert.deepEqual(journeys[0].stops.map((stop) => stop.cityName), ['大阪', '京都', '东京', '镰仓']);
-  assert.equal(journeys[0].photos.length, 32);
+  assert.equal(journeys.length, 5);
+  const japan = journeys.find((journey) => journey.slug === '2026-japan-kansai-kanto');
+  assert.equal(japan.days, 10);
+  assert.deepEqual(japan.stops.map((stop) => stop.cityName), ['大阪', '京都', '东京', '镰仓']);
+  assert.equal(japan.photos.length, 32);
+  assert.deepEqual(
+    journeys.find((journey) => journey.slug === '2026-ningbo-taizhou').stops.map((stop) => stop.cityName),
+    ['宁波', '台州']
+  );
+  assert.deepEqual(
+    journeys.find((journey) => journey.slug === '2025-shandong-northeast-winter').stops.map((stop) => stop.cityName),
+    ['济南', '烟台', '大连', '哈尔滨', '沈阳']
+  );
+  assert.deepEqual(
+    journeys.find((journey) => journey.slug === '2025-wuxi-shanghai').stops.map((stop) => stop.cityName),
+    ['无锡', '上海']
+  );
+  assert.deepEqual(
+    journeys.find((journey) => journey.slug === '2025-hong-kong-shenzhen').stops.map((stop) => stop.cityName),
+    ['香港', '深圳']
+  );
   assert.equal(engine.journeysForCity(journeys, '东京').length, 1);
+  assert.equal(engine.journeysForCity(journeys, '上海').length, 1);
 });
 
 test('database journey overrides the fallback and can be unpublished', () => {
@@ -38,12 +55,13 @@ test('database journey overrides the fallback and can be unpublished', () => {
   const stop = { id: 'stop-id', journey_id: 'database-id', city_name: '东京', stop_order: 0 };
   const guide = { placeType: 'journey', placeName: row.slug, title: '旅程游记' };
   const journeys = engine.mergeJourneys(data.journeys, [row], [stop], [], [guide], photos);
-  assert.equal(journeys[0].source, 'database');
-  assert.equal(journeys[0].title, '后台更新后的日本之旅');
-  assert.equal(journeys[0].distanceEstimated, false);
-  assert.equal(journeys[0].stops.length, 1);
-  assert.equal(journeys[0].guides.length, 1);
-  assert.equal(engine.mergeJourneys(data.journeys, [{ ...row, is_published: false }], [], [], [], photos).length, 0);
+  const overridden = journeys.find((journey) => journey.slug === row.slug);
+  assert.equal(overridden.source, 'database');
+  assert.equal(overridden.title, '后台更新后的日本之旅');
+  assert.equal(overridden.distanceEstimated, false);
+  assert.equal(overridden.stops.length, 1);
+  assert.equal(overridden.guides.length, 1);
+  assert.equal(engine.mergeJourneys(data.journeys, [{ ...row, is_published: false }], [], [], [], photos).length, 4);
 });
 
 test('journey migration protects owner writes and expands guide types', () => {
