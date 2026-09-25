@@ -26,6 +26,7 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.jpg
     let configEndpoint='';
     await page.route('**/assets/discover-config.js',r=>r.fulfill({contentType:'text/javascript',body:`window.TRAVEL_DISCOVER_CONFIG={endpoint:${JSON.stringify(configEndpoint)}};`}));
     await page.goto(base+'/discover.html',{waitUntil:'networkidle'});
+    assert(await page.locator('#site-bgm-toggle').isDisabled());
     assert(await page.locator('#draw').isDisabled());
     assert.match(await page.locator('#connection-status').innerText(),/尚未启用/);
     await page.locator('#preview-button').click();

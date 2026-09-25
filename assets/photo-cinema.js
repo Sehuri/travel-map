@@ -30,11 +30,6 @@
     const journeySelect = root.querySelector("#cinema-journey");
     const citySelect = root.querySelector("#cinema-city-select");
     const shuffleButton = root.querySelector("#cinema-shuffle");
-    const musicButton = root.querySelector("#cinema-music-toggle");
-    const musicLabel = root.querySelector("#cinema-music-label");
-    const tracks = (window.TRAVEL_CINEMA_TRACKS || []).filter(track => track.audioUrl);
-    const audio = tracks.length ? new Audio() : null;
-    if (audio) { audio.preload = "none"; audio.volume = .55; }
     const dates = new Map();
     (visits || []).forEach(visit => {
       const values = dates.get(visit.name) || [];
@@ -102,46 +97,6 @@
     let timer;
     let chapterTimer;
     let request = 0;
-    let musicEnabled = tracks.length > 0;
-    let musicQueue = [];
-    let lastTrack = -1;
-    const failedTracks = new Set();
-
-    function updateMusicButton() {
-      musicButton.disabled = !tracks.length || failedTracks.size === tracks.length;
-      musicButton.setAttribute("aria-pressed", String(musicEnabled && !musicButton.disabled));
-      if (!tracks.length) musicLabel.textContent = "四首音频待添加";
-      else if (musicButton.disabled) musicLabel.textContent = "背景音乐暂时无法播放";
-      else if (!musicEnabled) musicLabel.textContent = "音乐已关闭";
-      else if (lastTrack < 0) musicLabel.textContent = "播放照片时随机选曲";
-      else musicLabel.textContent = tracks[lastTrack].title;
-    }
-    function nextTrack() {
-      if (!audio || !musicEnabled) return;
-      const available = tracks.map((_, position) => position).filter(position => !failedTracks.has(position));
-      if (!available.length) { musicEnabled = false; updateMusicButton(); return; }
-      if (!musicQueue.length) musicQueue = shuffled(available, lastTrack);
-      lastTrack = musicQueue.shift();
-      audio.src = tracks[lastTrack].audioUrl;
-      updateMusicButton();
-      if (playing && visible && !document.hidden) audio.play().catch(() => {
-        musicLabel.textContent = "点按背景音乐开启声音";
-      });
-    }
-    function syncMusic() {
-      if (!audio) return;
-      if (!musicEnabled || !playing || !visible || document.hidden) { audio.pause(); return; }
-      if (lastTrack < 0) { nextTrack(); return; }
-      if (audio.paused) audio.play().catch(() => { musicLabel.textContent = "点按背景音乐开启声音"; });
-    }
-    if (audio) {
-      audio.addEventListener("ended", nextTrack);
-      audio.addEventListener("error", () => {
-        if (lastTrack >= 0) failedTracks.add(lastTrack);
-        musicQueue = musicQueue.filter(position => !failedTracks.has(position));
-        nextTrack();
-      });
-    }
 
     function schedule() {
       clearTimeout(timer);
@@ -154,7 +109,6 @@
       play.setAttribute("aria-pressed", String(playing));
       root.classList.toggle("is-playing", playing && visible && !document.hidden);
       schedule();
-      syncMusic();
     }
     function showChapter(entry) {
       clearTimeout(chapterTimer);
@@ -308,11 +262,6 @@
       renderFilmstrip();
       show(index);
     });
-    musicButton.addEventListener("click", () => {
-      musicEnabled = !musicEnabled;
-      updateMusicButton();
-      syncMusic();
-    });
     play.addEventListener("click", () => { playing = !playing; updatePlayback(); });
     root.querySelector("#cinema-prev").addEventListener("click", () => show(index - 1));
     root.querySelector("#cinema-next").addEventListener("click", advance);
@@ -330,7 +279,6 @@
 
     renderFilmstrip();
     updateShuffleButton();
-    updateMusicButton();
     updatePlayback();
     show(0);
     return {

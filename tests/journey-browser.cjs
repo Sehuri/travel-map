@@ -70,6 +70,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       };
     });
     await page.goto(`${base}/journey.html?slug=2026-japan-kansai-kanto`, { waitUntil: 'networkidle' });
+    assert(await page.locator('#site-bgm-toggle').isDisabled());
 
     await page.locator('#journey-content').waitFor({ state: 'visible' });
     assert.equal(await page.locator('#journey-title').innerText(), '2026 日本关西关东之旅');

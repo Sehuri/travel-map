@@ -131,8 +131,8 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 
     await page.locator('#photo-cinema').scrollIntoViewIfNeeded();
     assert.equal(await page.locator('#cinema-shuffle').getAttribute('aria-pressed'), 'true');
-    assert(await page.locator('#cinema-music-toggle').isDisabled());
-    assert.match(await page.locator('#cinema-music-label').innerText(), /音频待添加/);
+    assert(await page.locator('#site-bgm-toggle').isDisabled());
+    assert.match(await page.locator('#site-bgm-label').innerText(), /音源待添加/);
     assert.equal(await page.locator('#cinema-filmstrip .cinema-thumb').count(), 67);
     const shuffledPhotos = await page.locator('#cinema-filmstrip .cinema-thumb img').evaluateAll(images => images.map(image => image.src));
     assert.equal(new Set(shuffledPhotos).size, 67);
