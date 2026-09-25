@@ -130,6 +130,23 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     await page.locator('#stats-dialog-close').click();
 
     await page.locator('#photo-cinema').scrollIntoViewIfNeeded();
+    assert.equal(await page.locator('#cinema-shuffle').getAttribute('aria-pressed'), 'true');
+    assert(await page.locator('#cinema-music-toggle').isDisabled());
+    assert.match(await page.locator('#cinema-music-label').innerText(), /音频待添加/);
+    assert.equal(await page.locator('#cinema-filmstrip .cinema-thumb').count(), 67);
+    const shuffledPhotos = await page.locator('#cinema-filmstrip .cinema-thumb img').evaluateAll(images => images.map(image => image.src));
+    assert.equal(new Set(shuffledPhotos).size, 67);
+    await page.locator('#cinema-filmstrip .cinema-thumb').last().click();
+    await page.waitForFunction(() => document.querySelector('#cinema-count').textContent.startsWith('67 / 67'));
+    const lastPhoto = await page.locator('#cinema-filmstrip .cinema-thumb[aria-current="true"] img').getAttribute('src');
+    await page.locator('#cinema-next').click();
+    await page.waitForFunction(() => document.querySelector('#cinema-count').textContent.startsWith('01 / 67'));
+    assert.notEqual(await page.locator('#cinema-filmstrip .cinema-thumb[aria-current="true"] img').getAttribute('src'), lastPhoto);
+    await page.locator('#cinema-shuffle').click();
+    assert.equal(await page.locator('#cinema-shuffle').getAttribute('aria-pressed'), 'false');
+    await page.locator('[data-cinema-mode="all"]').click();
+    const orderedPhotos = await page.locator('#cinema-filmstrip .cinema-thumb img').evaluateAll(images => images.map(image => image.src));
+    assert.notDeepEqual(shuffledPhotos, orderedPhotos);
     await page.waitForFunction(() => document.querySelector('#cinema-count').textContent.startsWith('01 / 67'));
     assert.equal(await page.locator('#cinema-filmstrip .cinema-thumb').count(), 67);
     await page.locator('#cinema-filmstrip .cinema-thumb').nth(2).click();

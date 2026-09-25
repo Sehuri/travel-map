@@ -8,6 +8,8 @@
 .cinema-scope-tabs button { min-height: 38px; padding: .45rem .9rem; border: 0; border-radius: 999px; color: #d9ddda; background: transparent; font: inherit; font-size: .72rem; cursor: pointer; }
 .cinema-scope-tabs button[aria-pressed="true"] { color: #12242a; background: #f0e4c9; }
 .cinema-scope-tabs button:disabled { opacity: .45; cursor: not-allowed; }
+.cinema-shuffle { min-height: 38px; padding: .45rem .8rem; border: 1px solid #e7dcc057; border-radius: 999px; color: #e6ddca; background: transparent; font: inherit; font-size: .72rem; cursor: pointer; }
+.cinema-shuffle[aria-pressed="true"] { color: #11252a; border-color: #dcebb1; background: #dcebb1; }
 .cinema-select { display: flex; align-items: center; gap: .55rem; color: #d3dcd6; font-size: .72rem; }
 .cinema-select[hidden] { display: none; }
 .cinema-select select { min-width: 170px; max-width: min(40vw, 310px); padding: .6rem .7rem; border: 1px solid #e7dcc057; border-radius: .4rem; color: #fff7e8; background: #16343b; font: inherit; }
@@ -37,6 +39,11 @@
 .cinema-counter .eyebrow { color: #c1bdad; font-size: .6rem; letter-spacing: .13em; }
 #cinema-count { margin: .25rem 0 0; color: #f4ead8; font-size: .78rem; font-variant-numeric: tabular-nums; }
 .cinema-buttons { display: flex; gap: .45rem; }
+.cinema-music { display: flex; align-items: center; gap: .55rem; min-width: 0; color: #bdc8c0; font-size: .7rem; }
+.cinema-music button { flex-shrink: 0; min-height: 38px; padding: .4rem .75rem; border: 1px solid #d9ccb655; border-radius: 99px; color: #f4ead8; background: transparent; font: inherit; cursor: pointer; }
+.cinema-music button[aria-pressed="true"] { color: #12242a; border-color: #f0e4c9; background: #f0e4c9; }
+.cinema-music button:disabled { opacity: .5; cursor: not-allowed; }
+.cinema-music span { max-width: 18rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cinema-buttons button, .photo-wall-toolbar button { min-height: 42px; padding: .6rem 1rem; border: 1px solid #d9ccb655; border-radius: 99px; background: transparent; color: #f4ead8; font: inherit; font-size: .75rem; cursor: pointer; }
 .cinema-buttons button:hover, .cinema-thumb:hover { border-color: #f0e4c9; }
 .cinema-buttons #cinema-play { min-width: 104px; color: #182223; background: #ede0c4; }
@@ -89,6 +96,7 @@
   .cinema-story h3 { font-size: 2.4rem; margin: .3rem 0 .5rem; }
   .cinema-player { padding: 1rem .85rem; }
   .cinema-controls { flex-wrap: wrap; }
+  .cinema-music { width: 100%; order: 3; }
   .cinema-buttons { width: 100%; }
   .cinema-buttons button { flex: 1; padding: .55rem .3rem; }
   .cinema-thumb { flex-basis: 74px; height: 58px; }

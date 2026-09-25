@@ -14,7 +14,7 @@
   <meta property="og:locale" content="zh_CN">
   <link rel="canonical" href="https://sehuri.github.io/travel-map/">
   <link rel="stylesheet" href="./assets/styles.css?v=20260920.3">
-  <link rel="stylesheet" href="./assets/photo-cinema.css?v=20260921.1">
+  <link rel="stylesheet" href="./assets/photo-cinema.css?v=20260925.1">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <title>Sehuri 的旅行足迹｜53 座城市与旅行记忆</title>
 </head>
@@ -89,9 +89,10 @@
             <button type="button" data-cinema-mode="journey" aria-pressed="false">按旅程</button>
             <button type="button" data-cinema-mode="city" aria-pressed="false">按城市</button>
           </div>
+          <button class="cinema-shuffle" id="cinema-shuffle" type="button" aria-pressed="true">随机播放：开</button>
           <label class="cinema-select" id="cinema-journey-wrap" hidden>选择旅程 <select id="cinema-journey"></select></label>
           <label class="cinema-select" id="cinema-city-wrap" hidden>选择城市 <select id="cinema-city-select"></select></label>
-          <span class="cinema-scope-note" id="cinema-scope-note">从第一张照片开始，重走所有旅途。</span>
+          <span class="cinema-scope-note" id="cinema-scope-note">把所有照片打乱，一轮内不重复。</span>
         </div>
         <div class="cinema-stage">
           <div class="cinema-screen" id="cinema-screen">
@@ -111,6 +112,7 @@
         <div class="cinema-player">
           <div class="cinema-controls">
             <div class="cinema-counter"><span class="eyebrow">一帧一帧，重回那些日子</span><p id="cinema-count" aria-live="off"></p></div>
+            <div class="cinema-music"><button id="cinema-music-toggle" type="button" aria-pressed="false" disabled>♪ 背景音乐</button><span id="cinema-music-label">音频待添加</span></div>
             <div class="cinema-buttons"><button id="cinema-prev" type="button" aria-label="上一张照片">← <span>上一张</span></button><button id="cinema-play" type="button" aria-pressed="false">播放</button><button id="cinema-next" type="button" aria-label="下一张照片"><span>下一张</span> →</button></div>
           </div>
           <progress class="cinema-progress" id="cinema-progress" value="0" max="1" aria-label="照片播放进度"></progress>
@@ -513,7 +515,8 @@
   <script src="./assets/wishlist-engine.js?v=20260915.1"></script>
   <script src="./assets/content.js?v=20260916.1"></script>
   <script src="./assets/community.js?v=20260901.1"></script>
-  <script src="./assets/photo-cinema.js?v=20260921.1"></script>
+  <script src="./assets/cinema-music.js?v=20260925.1"></script>
+  <script src="./assets/photo-cinema.js?v=20260925.1"></script>
   <script src="./assets/app.js?v=20260921.1"></script>
 </body>
 </html>

@@ -29,6 +29,12 @@
     const chapter = root.querySelector("#cinema-chapter");
     const journeySelect = root.querySelector("#cinema-journey");
     const citySelect = root.querySelector("#cinema-city-select");
+    const shuffleButton = root.querySelector("#cinema-shuffle");
+    const musicButton = root.querySelector("#cinema-music-toggle");
+    const musicLabel = root.querySelector("#cinema-music-label");
+    const tracks = (window.TRAVEL_CINEMA_TRACKS || []).filter(track => track.audioUrl);
+    const audio = tracks.length ? new Audio() : null;
+    if (audio) { audio.preload = "none"; audio.volume = .55; }
     const dates = new Map();
     (visits || []).forEach(visit => {
       const values = dates.get(visit.name) || [];
@@ -73,8 +79,20 @@
     cityGroups.forEach((entries, city) => citySelect.add(new Option(`${city} · ${entries.length} 张`, city)));
     root.querySelector('[data-cinema-mode="journey"]').disabled = journeyGroups.length === 0;
 
+    function shuffled(items, avoidFirst) {
+      const result = [...items];
+      for (let position = result.length - 1; position > 0; position--) {
+        const other = Math.floor(Math.random() * (position + 1));
+        [result[position], result[other]] = [result[other], result[position]];
+      }
+      if (result.length > 1 && avoidFirst !== undefined && avoidFirst !== null && result[0] === avoidFirst) {
+        [result[0], result[1]] = [result[1], result[0]];
+      }
+      return result;
+    }
+    const shuffleByMode = { all: true, journey: false, city: false };
     let mode = "all";
-    let entries = allEntries;
+    let entries = shuffled(allEntries);
     let index = 0;
     let active = -1;
     let activeEntry = null;
@@ -84,11 +102,51 @@
     let timer;
     let chapterTimer;
     let request = 0;
+    let musicEnabled = tracks.length > 0;
+    let musicQueue = [];
+    let lastTrack = -1;
+    const failedTracks = new Set();
+
+    function updateMusicButton() {
+      musicButton.disabled = !tracks.length || failedTracks.size === tracks.length;
+      musicButton.setAttribute("aria-pressed", String(musicEnabled && !musicButton.disabled));
+      if (!tracks.length) musicLabel.textContent = "四首音频待添加";
+      else if (musicButton.disabled) musicLabel.textContent = "背景音乐暂时无法播放";
+      else if (!musicEnabled) musicLabel.textContent = "音乐已关闭";
+      else if (lastTrack < 0) musicLabel.textContent = "播放照片时随机选曲";
+      else musicLabel.textContent = tracks[lastTrack].title;
+    }
+    function nextTrack() {
+      if (!audio || !musicEnabled) return;
+      const available = tracks.map((_, position) => position).filter(position => !failedTracks.has(position));
+      if (!available.length) { musicEnabled = false; updateMusicButton(); return; }
+      if (!musicQueue.length) musicQueue = shuffled(available, lastTrack);
+      lastTrack = musicQueue.shift();
+      audio.src = tracks[lastTrack].audioUrl;
+      updateMusicButton();
+      if (playing && visible && !document.hidden) audio.play().catch(() => {
+        musicLabel.textContent = "点按背景音乐开启声音";
+      });
+    }
+    function syncMusic() {
+      if (!audio) return;
+      if (!musicEnabled || !playing || !visible || document.hidden) { audio.pause(); return; }
+      if (lastTrack < 0) { nextTrack(); return; }
+      if (audio.paused) audio.play().catch(() => { musicLabel.textContent = "点按背景音乐开启声音"; });
+    }
+    if (audio) {
+      audio.addEventListener("ended", nextTrack);
+      audio.addEventListener("error", () => {
+        if (lastTrack >= 0) failedTracks.add(lastTrack);
+        musicQueue = musicQueue.filter(position => !failedTracks.has(position));
+        nextTrack();
+      });
+    }
 
     function schedule() {
       clearTimeout(timer);
       if (playing && visible && !document.hidden && !loading && entries.length > 1) {
-        timer = setTimeout(() => show(index + 1), 6500);
+        timer = setTimeout(advance, 6500);
       }
     }
     function updatePlayback() {
@@ -96,6 +154,7 @@
       play.setAttribute("aria-pressed", String(playing));
       root.classList.toggle("is-playing", playing && visible && !document.hidden);
       schedule();
+      syncMusic();
     }
     function showChapter(entry) {
       clearTimeout(chapterTimer);
@@ -197,22 +256,41 @@
       });
       updateFilmstrip();
     }
+    function sourceEntries() {
+      return mode === "journey"
+        ? journeyGroups.find(group => group.journey.slug === journeySelect.value)?.entries || []
+        : mode === "city" ? cityGroups.get(citySelect.value) || [] : allEntries;
+    }
+    function updateShuffleButton() {
+      const enabled = shuffleByMode[mode];
+      shuffleButton.textContent = `随机播放：${enabled ? "开" : "关"}`;
+      shuffleButton.setAttribute("aria-pressed", String(enabled));
+      root.querySelector("#cinema-scope-note").textContent = enabled
+        ? "照片已打乱，一轮内不重复。"
+        : mode === "journey" ? "按旅程里的城市顺序，放映已关联的照片。"
+          : mode === "city" ? "留在这一座城市，慢慢看完每张照片。"
+            : "从第一张照片开始，重走所有旅途。";
+    }
+    function advance() {
+      if (shuffleByMode[mode] && index === entries.length - 1 && entries.length > 1) {
+        entries = shuffled(sourceEntries(), entries[index]);
+        index = 0;
+        renderFilmstrip();
+        show(0);
+      } else show(index + 1);
+    }
     function selectMode(nextMode) {
       if (nextMode === "journey" && !journeyGroups.length) return;
       mode = nextMode;
       playing = false;
       updatePlayback();
-      entries = mode === "journey"
-        ? journeyGroups.find(group => group.journey.slug === journeySelect.value)?.entries || []
-        : mode === "city" ? cityGroups.get(citySelect.value) || [] : allEntries;
+      entries = shuffleByMode[mode] ? shuffled(sourceEntries()) : [...sourceEntries()];
       root.querySelectorAll("[data-cinema-mode]").forEach(button => {
         button.setAttribute("aria-pressed", String(button.dataset.cinemaMode === mode));
       });
       root.querySelector("#cinema-journey-wrap").hidden = mode !== "journey";
       root.querySelector("#cinema-city-wrap").hidden = mode !== "city";
-      root.querySelector("#cinema-scope-note").textContent = mode === "journey"
-        ? "按旅程里的城市顺序，放映已关联的照片。"
-        : mode === "city" ? "留在这一座城市，慢慢看完每张照片。" : "从第一张照片开始，重走所有旅途。";
+      updateShuffleButton();
       index = 0;
       renderFilmstrip();
       show(0, { chapter: mode !== "all" });
@@ -221,14 +299,28 @@
     root.querySelectorAll("[data-cinema-mode]").forEach(button => button.addEventListener("click", () => selectMode(button.dataset.cinemaMode)));
     journeySelect.addEventListener("change", () => selectMode("journey"));
     citySelect.addEventListener("change", () => selectMode("city"));
+    shuffleButton.addEventListener("click", () => {
+      shuffleByMode[mode] = !shuffleByMode[mode];
+      const currentUrl = activeEntry?.photo.imageUrl;
+      entries = shuffleByMode[mode] ? shuffled(sourceEntries()) : [...sourceEntries()];
+      index = Math.max(0, entries.findIndex(entry => entry.photo.imageUrl === currentUrl));
+      updateShuffleButton();
+      renderFilmstrip();
+      show(index);
+    });
+    musicButton.addEventListener("click", () => {
+      musicEnabled = !musicEnabled;
+      updateMusicButton();
+      syncMusic();
+    });
     play.addEventListener("click", () => { playing = !playing; updatePlayback(); });
     root.querySelector("#cinema-prev").addEventListener("click", () => show(index - 1));
-    root.querySelector("#cinema-next").addEventListener("click", () => show(index + 1));
+    root.querySelector("#cinema-next").addEventListener("click", advance);
     root.querySelector("#cinema-wall").addEventListener("click", () => { playing = false; updatePlayback(); openWall(); });
     root.addEventListener("keydown", event => {
       if (event.target.closest("select")) return;
       if (event.key === "ArrowLeft") { event.preventDefault(); show(index - 1); }
-      if (event.key === "ArrowRight") { event.preventDefault(); show(index + 1); }
+      if (event.key === "ArrowRight") { event.preventDefault(); advance(); }
     });
     document.addEventListener("visibilitychange", updatePlayback);
     if (window.IntersectionObserver) new IntersectionObserver(observations => {
@@ -237,6 +329,8 @@
     }, { threshold: .1 }).observe(root);
 
     renderFilmstrip();
+    updateShuffleButton();
+    updateMusicButton();
     updatePlayback();
     show(0);
     return {
