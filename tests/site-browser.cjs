@@ -62,9 +62,18 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
         getContent() { return this.element; }
       }
       class FakeDistrictCountry {
+        static instances = [];
+        constructor(options) {
+          this.options = options;
+          this.visible = options.visible !== false;
+          FakeDistrictCountry.instances.push(this);
+        }
         setStyles(styles) { this.styles = styles; }
+        show() { this.visible = true; }
+        hide() { this.visible = false; }
         on() {}
       }
+      window.__districtLayers = FakeDistrictCountry.instances;
       window.AMap = {
         Map: FakeMap,
         Marker: FakeMarker,
@@ -75,6 +84,20 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 
     await page.goto(`${base}/index.html?qa=site-browser`, { waitUntil: 'networkidle' });
     assert.equal(await page.locator('.amap-marker-button').count(), 53);
+    assert.equal(await page.locator('.map-switch-button[data-view="province"]').count(), 1);
+    await page.locator('.map-switch-button[data-view="province"]').click();
+    assert.equal(await page.locator('.map-switch-button[data-view="province"]').getAttribute('aria-pressed'), 'true');
+    assert.match(await page.locator('#map-primary-label').innerText(), /已点亮 23 个省级地区/);
+    assert.deepEqual(await page.evaluate(() => {
+      const layers = window.__districtLayers;
+      const chinese = layers.find(layer => layer.options.SOC === 'CHN' && layer.options.depth === 1);
+      const japanese = layers.find(layer => layer.options.SOC === 'JPN');
+      return [chinese.visible, japanese.visible,
+        chinese.styles.fill({ NAME_CHN: '江苏省' }),
+        chinese.styles.fill({ NAME_CHN: '广西壮族自治区' }),
+        japanese.styles.fill({ NAME_CHN: '神奈川县' })];
+    }), [true, true, 'rgba(14, 183, 199, .55)', 'rgba(255, 255, 255, 0)', 'rgba(14, 183, 199, .55)']);
+    await page.locator('.map-switch-button[data-view="china"]').click();
     assert.equal(await page.locator('.amap-wishlist-marker-button').count(), 0);
     assert(Number((await page.locator('#stat-travel-days').innerText()).replace(/,/g, '')) >= 4813);
     assert.match(await page.locator('#stat-trip-count').innerText(), /首站日照.*2013年7月9日.*今天/);
@@ -199,6 +222,12 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     await page.locator('#dialog-close').click();
 
     await page.locator('#year-filter').selectOption('2026');
+    await page.locator('.map-switch-button[data-view="province"]').click();
+    assert.deepEqual(await page.evaluate(() => {
+      const chinese = window.__districtLayers.find(layer => layer.options.SOC === 'CHN' && layer.options.depth === 1);
+      return [chinese.styles.fill({ NAME_CHN: '江苏省' }), chinese.styles.fill({ NAME_CHN: '浙江省' })];
+    }), ['rgba(255, 255, 255, 0)', 'rgba(14, 183, 199, .55)']);
+    await page.locator('.map-switch-button[data-view="china"]').click();
     assert.equal(await page.locator('.amap-marker-button').count(), 11);
     assert.equal(await page.locator('.city-card').count(), 11);
     assert.equal(await page.locator('#city-count').innerText(), '11');

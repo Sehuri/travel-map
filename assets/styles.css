@@ -231,6 +231,7 @@ h1 em { color: var(--accent); font-weight: 400; }
 .map-switch-button { padding: .55rem 1rem; border: 0; border-radius: 999px; color: var(--muted); background: transparent; font: inherit; font-size: .75rem; font-weight: 700; cursor: pointer; }
 .map-switch-button.active { color: #10262b; background: var(--accent); }
 .map-switch-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.map-switch-button:disabled { opacity: .45; cursor: not-allowed; }
 
 .map-section {
   max-width: none;

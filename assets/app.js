@@ -55,6 +55,7 @@
   let chinaMarkers = [];
   let wishlistMarkers = [];
   let chinaDistrictLayer;
+  let provinceDistrictLayers = new Map();
   let chinaMapPromise;
   let amapLoadPromise;
   let activeMarker = null;
@@ -879,10 +880,10 @@
   }
 
   function setMapView(view) {
-    mapView = view === "china" ? "china" : "world";
+    mapView = ["china", "province", "world"].includes(view) ? view : "china";
     if (mapView === "world" && !worldMap) mapView = "china";
     document.querySelector("#world-map").hidden = mapView !== "world";
-    document.querySelector("#china-map").hidden = mapView !== "china";
+    document.querySelector("#china-map").hidden = mapView === "world";
     document.querySelectorAll(".map-switch-button").forEach((button) => {
       const active = button.dataset.view === mapView;
       button.classList.toggle("active", active);
@@ -913,6 +914,10 @@
     } catch (error) {
       status.textContent = `${error.message || "高德地图暂时无法载入。"} ${worldMap ? "已自动切换到全球地图。" : "下方时间线仍可继续浏览。"}`;
       status.hidden = false;
+      document.querySelectorAll('.map-switch-button[data-view="china"], .map-switch-button[data-view="province"]').forEach((button) => {
+        button.disabled = true;
+        button.title = "高德地图暂时无法载入";
+      });
       if (worldMap) setMapView("world");
     }
   }
@@ -1010,6 +1015,32 @@
           openCity(visibleJourneyVisits.find((visible) => visible.name === visit.name) || visit);
         }
       });
+
+      const countryCodes = new Map([["中国", "CHN"], ["日本", "JPN"]]);
+      for (const country of new Set(uniqueVisits.map((visit) => visit.country))) {
+        const countryVisit = uniqueVisits.find((visit) => visit.country === country);
+        const soc = countryCodes.get(country) || countryVisit?.countryCode;
+        if (!/^[A-Z]{3}$/.test(soc || "")) continue;
+        const layer = new AMap.DistrictLayer.Country({
+          SOC: soc,
+          depth: 1,
+          zIndex: 13,
+          zooms: [2, 10],
+          visible: false
+        });
+        layer.setStyles(createProvinceDistrictStyles(country));
+        chinaMap.add(layer);
+        layer.on?.("click", (event) => {
+          if (mapView !== "province" || mapMode !== "journeys") return;
+          const properties = event?.properties || event?.props || event?.rawData || event?.data || event?.feature?.properties;
+          const regionName = window.TRAVEL_ADMIN_REGION_ENGINE?.districtRegion(properties);
+          const regionCities = getVisibleProvinceRegions().get(country)?.get(regionName);
+          if (regionCities?.length) {
+            document.querySelector("#map-interaction-hint").textContent = `${country} · ${properties?.NAME_CHN || regionName}：${regionCities.join("、")}`;
+          }
+        });
+        provinceDistrictLayers.set(country, layer);
+      }
 
       const getAmapCoordinate = mapEngine.getAmapCoordinate || ((place) => place.coord);
       chinaMarkers = eastAsiaVisits.map((visit) => {
@@ -1125,6 +1156,40 @@
     )));
   }
 
+  function getVisibleProvinceRegions() {
+    const engine = window.TRAVEL_ADMIN_REGION_ENGINE;
+    return engine?.regionsByCountry(
+      visibleJourneyVisits,
+      window.TRAVEL_STATS_ENGINE?.provinceByCity
+    ) || new Map();
+  }
+
+  function createProvinceDistrictStyles(country) {
+    const regions = getVisibleProvinceRegions().get(country) || new Map();
+    const districtRegion = window.TRAVEL_ADMIN_REGION_ENGINE?.districtRegion || (() => "");
+    return {
+      "stroke-width": 1.2,
+      "nation-stroke": "rgba(15, 78, 96, .8)",
+      "coastline-stroke": "rgba(15, 119, 143, .7)",
+      "province-stroke": "rgba(15, 119, 143, .58)",
+      fill(properties) {
+        if (mapView !== "province" || mapMode !== "journeys") return "rgba(255, 255, 255, 0)";
+        return regions.has(districtRegion(properties))
+          ? "rgba(14, 183, 199, .55)"
+          : "rgba(255, 255, 255, 0)";
+      }
+    };
+  }
+
+  function refreshProvinceDistrictStyles() {
+    const show = mapView === "province" && mapMode === "journeys";
+    chinaDistrictLayer?.[show ? "hide" : "show"]?.();
+    provinceDistrictLayers.forEach((layer, country) => {
+      layer.setStyles(createProvinceDistrictStyles(country));
+      layer[show ? "show" : "hide"]?.();
+    });
+  }
+
   function setActiveMarker(marker) {
     if (activeMarker) {
       const previousElement = activeMarker.getElement?.() || activeMarker.getContent?.();
@@ -1153,22 +1218,25 @@
     const mapRoot = document.querySelector("#travel-map");
     mapRoot.dataset.mapMode = mapMode;
     mapRoot.setAttribute("aria-label", isWishlist ? "想去目的地互动地图" : "旅行城市互动地图");
-    document.querySelector("#china-map").setAttribute("aria-label", isWishlist ? "想去目的地高德地图" : "中国足迹高德地图");
+    document.querySelector("#china-map").setAttribute("aria-label", isWishlist ? "想去目的地高德地图" : mapView === "province" ? "中国省级地区与日本都道府县足迹地图" : "中国足迹高德地图");
     document.querySelector("#world-map").setAttribute("aria-label", isWishlist ? "全球想去目的地地图" : "全球旅行足迹地图");
     document.querySelector("#map-title").textContent = isWishlist ? "把愿望放到地图上" : "把旅程摊开来看";
     document.querySelector("#map-primary-label").textContent = isWishlist
       ? "想去目的地"
-      : (filtersActive ? `筛选结果 ${uniqueCityVisits(visibleJourneyVisits).length}` : "已到访");
+      : mapView === "province"
+        ? `已点亮 ${[...getVisibleProvinceRegions().values()].reduce((sum, regions) => sum + regions.size, 0)} 个省级地区`
+        : (filtersActive ? `筛选结果 ${uniqueCityVisits(visibleJourneyVisits).length}` : "已到访");
     document.querySelector("#map-secondary-label").textContent = isWishlist ? "当前选择" : "当前城市";
     document.querySelector("#map-primary-dot").className = `legend-dot ${isWishlist ? "wishlist" : "visited"}`;
     document.querySelector("#map-interaction-hint").textContent = isWishlist
       ? "光点越大代表越想去，点击可查看对应旅行攻略"
       : (filtersActive
           ? `地图已同步展示筛选后的 ${uniqueCityVisits(visibleJourneyVisits).length} 座城市`
-          : (mapView === "world" ? "中国与海外足迹都能在全球地图上查看" : "中国足迹按市域填色，日本足迹以城市光点标记"));
+          : (mapView === "world" ? "中国与海外足迹都能在全球地图上查看" : mapView === "province" ? "去过任一城市，即点亮所属省级地区或日本都道府县" : "中国足迹按市域填色，日本足迹以城市光点标记"));
     document.querySelector("#footprint-extremes").hidden = isWishlist || !visibleJourneyVisits.length;
     updateWorldMapMode();
     refreshChinaDistrictStyles();
+    refreshProvinceDistrictStyles();
     if (!chinaMap) return;
 
     const visibleJourneyNames = new Set(visibleJourneyVisits.map((visit) => visit.name));
