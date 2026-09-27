@@ -73,10 +73,22 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
         hide() { this.visible = false; }
         on() {}
       }
+      class FakePolygon {
+        static instances = [];
+        constructor(options) {
+          this.options = options;
+          this.map = null;
+          FakePolygon.instances.push(this);
+        }
+        setMap(map) { this.map = map; }
+        on() {}
+      }
       window.__districtLayers = FakeDistrictCountry.instances;
+      window.__prefecturePolygons = FakePolygon.instances;
       window.AMap = {
         Map: FakeMap,
         Marker: FakeMarker,
+        Polygon: FakePolygon,
         ToolBar: class {},
         DistrictLayer: { Country: FakeDistrictCountry }
       };
@@ -91,13 +103,15 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.deepEqual(await page.evaluate(() => {
       const layers = window.__districtLayers;
       const chinese = layers.find(layer => layer.options.SOC === 'CHN' && layer.options.depth === 1);
-      const japanese = layers.find(layer => layer.options.SOC === 'JPN');
-      return [chinese.visible, japanese.visible,
+      const japanRegions = [...new Set(window.__prefecturePolygons
+        .filter(polygon => polygon.map)
+        .map(polygon => polygon.options.extData.region))].sort();
+      return [chinese.visible, layers.some(layer => layer.options.SOC === 'JPN'), japanRegions,
         chinese.styles.fill({ NAME_CHN: '江苏省' }),
-        chinese.styles.fill({ NAME_CHN: '广西壮族自治区' }),
-        japanese.styles.fill({ NAME_CHN: '神奈川县' })];
-    }), [true, true, 'rgba(14, 183, 199, .55)', 'rgba(255, 255, 255, 0)', 'rgba(14, 183, 199, .55)']);
+        chinese.styles.fill({ NAME_CHN: '广西壮族自治区' })];
+    }), [true, false, ['东京', '京都', '大阪', '神奈川'], 'rgba(14, 183, 199, .55)', 'rgba(255, 255, 255, 0)']);
     await page.locator('.map-switch-button[data-view="china"]').click();
+    assert.equal(await page.evaluate(() => window.__prefecturePolygons.filter(polygon => polygon.map).length), 0);
     assert.equal(await page.locator('.amap-wishlist-marker-button').count(), 0);
     assert(Number((await page.locator('#stat-travel-days').innerText()).replace(/,/g, '')) >= 4813);
     assert.match(await page.locator('#stat-trip-count').innerText(), /首站日照.*2013年7月9日.*今天/);
@@ -223,6 +237,9 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 
     await page.locator('#year-filter').selectOption('2026');
     await page.locator('.map-switch-button[data-view="province"]').click();
+    assert.deepEqual(await page.evaluate(() => [...new Set(window.__prefecturePolygons
+      .filter(polygon => polygon.map)
+      .map(polygon => polygon.options.extData.region))].sort()), ['东京', '京都', '大阪', '神奈川']);
     assert.deepEqual(await page.evaluate(() => {
       const chinese = window.__districtLayers.find(layer => layer.options.SOC === 'CHN' && layer.options.depth === 1);
       return [chinese.styles.fill({ NAME_CHN: '江苏省' }), chinese.styles.fill({ NAME_CHN: '浙江省' })];

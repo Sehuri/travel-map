@@ -56,6 +56,7 @@
   let wishlistMarkers = [];
   let chinaDistrictLayer;
   let provinceDistrictLayers = new Map();
+  let japanesePrefecturePolygons = new Map();
   let chinaMapPromise;
   let amapLoadPromise;
   let activeMarker = null;
@@ -979,7 +980,7 @@
   async function initializeChinaMap() {
     if (chinaMap) return chinaMap;
     if (chinaMapPromise) return chinaMapPromise;
-    chinaMapPromise = loadAmap().then((AMap) => {
+    chinaMapPromise = loadAmap().then(async (AMap) => {
       chinaMap = new AMap.Map("china-map", {
         viewMode: "2D",
         mapStyle: "amap://styles/normal",
@@ -1016,13 +1017,10 @@
         }
       });
 
-      const countryCodes = new Map([["中国", "CHN"], ["日本", "JPN"]]);
-      for (const country of new Set(uniqueVisits.map((visit) => visit.country))) {
-        const countryVisit = uniqueVisits.find((visit) => visit.country === country);
-        const soc = countryCodes.get(country) || countryVisit?.countryCode;
-        if (!/^[A-Z]{3}$/.test(soc || "")) continue;
+      // 高德的 JPN depth:1 返回“近畿地方”等大区，不能用于都道府县填色。
+      for (const country of ["中国"]) {
         const layer = new AMap.DistrictLayer.Country({
-          SOC: soc,
+          SOC: "CHN",
           depth: 1,
           zIndex: 13,
           zooms: [2, 10],
@@ -1041,6 +1039,7 @@
         });
         provinceDistrictLayers.set(country, layer);
       }
+      await initializeJapanesePrefecturePolygons(AMap);
 
       const getAmapCoordinate = mapEngine.getAmapCoordinate || ((place) => place.coord);
       chinaMarkers = eastAsiaVisits.map((visit) => {
@@ -1181,6 +1180,55 @@
     };
   }
 
+  async function initializeJapanesePrefecturePolygons(AMap) {
+    try {
+      const response = await fetch("assets/japan-visited-prefectures.geojson");
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const geojson = await response.json();
+      for (const feature of geojson.features || []) {
+        const region = window.TRAVEL_ADMIN_REGION_ENGINE?.normalizeRegionName(feature.properties?.name);
+        if (!region || !["Polygon", "MultiPolygon"].includes(feature.geometry?.type)) continue;
+        const parts = feature.geometry.type === "MultiPolygon"
+          ? feature.geometry.coordinates
+          : [feature.geometry.coordinates];
+        const polygons = parts.map((rings) => {
+          const polygon = new AMap.Polygon({
+            path: rings,
+            strokeColor: "#0f778f",
+            strokeOpacity: .82,
+            strokeWeight: 1,
+            fillColor: "#0eb7c7",
+            fillOpacity: .55,
+            zIndex: 14,
+            bubble: true,
+            extData: { region, nameJa: feature.properties.nameJa }
+          });
+          polygon.on?.("click", () => {
+            if (mapView !== "province" || mapMode !== "journeys") return;
+            const cities = getVisibleProvinceRegions().get("日本")?.get(region);
+            if (cities?.length) {
+              document.querySelector("#map-interaction-hint").textContent = `日本 · ${feature.properties.nameJa}：${cities.join("、")}`;
+            }
+          });
+          return polygon;
+        });
+        japanesePrefecturePolygons.set(region, polygons);
+      }
+      refreshJapanesePrefecturePolygons();
+    } catch (error) {
+      console.warn("日本都道府县边界暂时无法加载。", error);
+    }
+  }
+
+  function refreshJapanesePrefecturePolygons() {
+    const visible = mapView === "province" && mapMode === "journeys"
+      ? getVisibleProvinceRegions().get("日本") || new Map()
+      : new Map();
+    japanesePrefecturePolygons.forEach((polygons, region) => {
+      polygons.forEach((polygon) => polygon.setMap(visible.has(region) ? chinaMap : null));
+    });
+  }
+
   function refreshProvinceDistrictStyles() {
     const show = mapView === "province" && mapMode === "journeys";
     chinaDistrictLayer?.[show ? "hide" : "show"]?.();
@@ -1188,6 +1236,7 @@
       layer.setStyles(createProvinceDistrictStyles(country));
       layer[show ? "show" : "hide"]?.();
     });
+    refreshJapanesePrefecturePolygons();
   }
 
   function setActiveMarker(marker) {
