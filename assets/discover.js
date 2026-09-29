@@ -4,6 +4,7 @@
   const data = window.TRAVEL_DISCOVER_DATA, engine = window.TRAVEL_DISCOVER_ENGINE;
   const endpoint = window.TRAVEL_DISCOVER_CONFIG?.endpoint || "";
   let cities = [], origins = [], preview = false, busy = false, map = null, current = null, mapRevision = 0;
+  let itinerary = null;
   const seen = new Set();
   let signature = "";
   const wishlistStorageKey = "sehuri.travelWishlist.v1";
@@ -148,7 +149,7 @@
     $("comparison").focus({ preventScroll: true });
     $("comparison").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   }
-  async function showMap(city, places, interests) {
+  async function showMap(city, places, interests, routes = []) {
     const revision = ++mapRevision;
     if (map) { map.destroy ? map.destroy() : map.remove(); map = null; }
     $("resource-map").replaceChildren(); $("map-status").textContent = "正在加载资源地图…";
@@ -162,7 +163,10 @@
           const pin = text("button", p.mapNumber, `resource-pin ${p.category}`);
           pin.type = "button"; pin.setAttribute("aria-label", p.name);
           pin.onclick = () => { const card = document.getElementById(`place-${p.mapNumber}`); card?.scrollIntoView({behavior:"smooth",block:"center"}); card?.focus({preventScroll:true}); };
-          return new AMap.Marker({ position:p.coord, content:pin, title:p.name, offset:new AMap.Pixel(-15,-15), map });
+          return new AMap.Marker({ position:p.coord, content:pin, title:p.name, offset:new AMap.Pixel(-17,-17), map });
+        });
+        routes.filter(day=>day.stops.length>1).forEach(day=>{
+          new AMap.Polyline({map, path:day.stops.map(p=>p.coord), strokeColor:day.color, strokeWeight:5, strokeOpacity:.85, strokeStyle:"dashed", showDir:true});
         });
         if (markers.length) map.setFitView(markers, false, [45,45,45,45], 14);
       } else {
@@ -177,22 +181,28 @@
         });
         layer.on("tileerror", () => { tileFailed = true; if (map === localMap) $("map-status").textContent = "部分底图未加载，请使用外部城市地图查看。"; }).addTo(map);
         const bounds = [];
-        places.forEach((p, i) => { const coord = [p.coord[1],p.coord[0]]; bounds.push(coord); L.marker(coord,{icon:L.divIcon({className:"resource-pin",html:String(i+1),iconSize:[30,30],iconAnchor:[15,15]})}).addTo(map).bindPopup(text("span",`${i+1}. ${p.name}`)); });
+        places.filter(p=>engine.validCoord(p.coord)).forEach(p => { const coord = [p.coord[1],p.coord[0]]; bounds.push(coord); L.marker(coord,{icon:L.divIcon({className:`resource-pin ${p.category}`,html:p.mapNumber,iconSize:[30,30],iconAnchor:[15,15]})}).addTo(map).bindPopup(text("span",`${p.mapNumber}. ${p.name}`)); });
+        routes.filter(day=>day.stops.length>1).forEach(day=>L.polyline(day.stops.map(p=>[p.coord[1],p.coord[0]]),{color:day.color,weight:4,dashArray:"8 6"}).addTo(map));
         if (bounds.length) map.fitBounds(bounds, { padding:[30,30], maxZoom:13 });
         else map.setView([city.coord[1],city.coord[0]],11);
         await tilesReady;
         if (revision !== mapRevision) return;
         if (tileFailed) { $("map-status").textContent = "部分底图未加载，请使用外部城市地图查看。"; return; }
       }
-      $("map-status").textContent = "";
+      const missing = places.filter(p=>!engine.validCoord(p.coord)).length;
+      $("map-status").textContent = missing ? `${missing} 个点位缺少有效坐标，保留文字介绍。` : places.length ? `已展示 ${places.length} 个点位；标记重叠时请放大地图或切换分类、日期。` : "本日暂无可定位点位，地图保留城市中心。";
     } catch (error) { if (revision === mapRevision) $("map-status").textContent = `${error.message} 景点、美食列表仍可查看。`; }
   }
   async function render(city, places, opts, interests) {
+    itinerary = null; $("itinerary-result").hidden = true;
+    $("itinerary-days").replaceChildren(); $("itinerary-tabs").replaceChildren();
+    $("generate-itinerary").textContent = `一键生成 ${opts.days} 天攻略`;
+    $("map-filters").querySelectorAll("button").forEach(button=>button.setAttribute("aria-pressed", String(button.dataset.mapCategory === "all")));
     places = places.map(p=>({...p,category:["food","sight"].includes(p.category) ? p.category : /餐饮|餐厅|美食|小吃/.test(`${p.type || ""} ${p.category || ""}`) ? "food" : "sight"}));
     places = ["sight","food"].flatMap(category=>places.filter(p=>p.category === category).slice(0,10)).map((p,i)=>({...p,mapNumber:String(i+1).padStart(2,"0")}));
     const curated = data.cities.find(c => c.province === city.province && normalName(c.name) === normalName(city.name));
     const intro = curated?.intro || `${city.label}。这次可从${places.slice(0,3).map(p=>p.name).join("、")}开始探索，按所在区域组合游览，避免在同一天跨城奔波。`;
-    current = { city, places, intro, days:opts.days, origin:opts.origin.name, month:opts.month, routes:city.routes, budget:city.budget, preview };
+    current = { city, places, intro, days:opts.days, pace:opts.pace, interests, origin:opts.origin.name, month:opts.month, routes:city.routes, budget:city.budget, preview };
     $("result").hidden = false;
     $("result-region").textContent = city.label;
     $("result-title").textContent = city.name;
@@ -231,6 +241,52 @@
     $("result").scrollIntoView({ behavior:matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start" });
     showMap(city,places,interests);
   }
+  function showItineraryDay(selected) {
+    if (!itinerary || !current) return;
+    const days = selected ? itinerary.filter(day=>day.day === selected) : itinerary;
+    $("itinerary-tabs").querySelectorAll("button").forEach(button=>button.setAttribute("aria-pressed",String(Number(button.dataset.day) === selected)));
+    $("map-filters").querySelectorAll("button").forEach(button=>button.setAttribute("aria-pressed","false"));
+    $("itinerary-days").replaceChildren(...days.map(day=>{
+      const card = text("article","","itinerary-day"); card.style.setProperty("--day-color",day.color);
+      card.append(text("h4",`第 ${day.day} 天 · ${day.stops.length ? "按顺序慢慢探索" : "自由安排"}`));
+      const list = document.createElement("ol");
+      day.stops.forEach(p=>{
+        const item = text("li",`${p.category === "food" ? "用餐候选" : "景点"} ${p.mapNumber} · `);
+        item.append(link(p.name,mapLink(current.city,p))); list.append(item);
+      });
+      card.append(list);
+      if (day.stops.length>1) card.append(text("p",`点位间直线合计约 ${day.distance.toFixed(1)} 公里（非实际交通里程）。`,"small"));
+      day.notes.forEach(note=>card.append(text("p",note,"small")));
+      return card;
+    }));
+    $("itinerary-status").textContent = selected ? `正在查看第 ${selected} 天，地图仅显示当天点位与顺序连线。` : `共 ${itinerary.length} 天，不同颜色区分每日顺序；点击某一天可单独查看。`;
+    showMap(current.city,days.flatMap(day=>day.stops),current.interests,days);
+  }
+  $("generate-itinerary").addEventListener("click",()=>{
+    if (!current) return;
+    itinerary = window.TRAVEL_DISCOVER_ITINERARY.build(current.places,current.days,current.pace);
+    $("itinerary-result").hidden = false;
+    $("itinerary-tabs").replaceChildren(...[0,...itinerary.map(day=>day.day)].map(day=>{
+      const button = text("button",day ? `第 ${day} 天` : "全部天数"); button.type="button"; button.dataset.day=day;
+      button.onclick=()=>showItineraryDay(day); return button;
+    }));
+    $("generate-itinerary").textContent="重新生成攻略";
+    showItineraryDay(0);
+  });
+  $("map-filters").addEventListener("click",event=>{
+    const button=event.target.closest("button[data-map-category]"); if(!button || !current) return;
+    $("map-filters").querySelectorAll("button").forEach(item=>item.setAttribute("aria-pressed",String(item === button)));
+    $("itinerary-tabs").querySelectorAll("button").forEach(item=>item.setAttribute("aria-pressed","false"));
+    if(itinerary) $("itinerary-status").textContent="地图已切回资源浏览，点击攻略日期可恢复每日路线。";
+    const category=button.dataset.mapCategory;
+    showMap(current.city,current.places.filter(p=>category === "all" || p.category === category),current.interests);
+  });
+  $("copy-itinerary").addEventListener("click",async()=>{
+    if(!itinerary || !current) return;
+    const value=`${current.city.name} · ${current.days} 天攻略草案\n`+itinerary.map(day=>`第 ${day.day} 天：${day.stops.map(p=>`${p.category === "food" ? "用餐候选" : "景点"} ${p.name}`).join(" → ") || "自由安排"}\n${day.notes.join(" ")}`).join("\n\n")+"\n按直线距离就近组合，非导航路线；请出发前核验交通、营业、预约和菜单。";
+    try { await navigator.clipboard.writeText(value); $("itinerary-status").textContent="每日攻略已复制。"; }
+    catch { $("itinerary-status").textContent="浏览器未允许复制，请选中文字手动复制。"; }
+  });
   function savedWishlist() {
     try {
       const value = JSON.parse(localStorage.getItem(wishlistStorageKey) || "[]");

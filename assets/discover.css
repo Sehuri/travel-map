@@ -70,6 +70,16 @@
 .resource-category { margin-top:2rem; }
 .resource-category h3 { padding-bottom:.8rem; border-bottom:1px solid #b0c8bd; }
 .resource-category.food .place-number { color:#a44c25; }
-#resource-map button.resource-pin { width:30px; height:30px; cursor:pointer; padding:0; border:2px solid white; color:white; }
+#resource-map button.resource-pin { width:34px; height:34px; cursor:pointer; padding:0; border:2px solid white; color:white; background:#266651; border-radius:50%; font-size:13px; font-weight:700; line-height:30px; opacity:1; }
 #resource-map .resource-pin.food { background:#a44c25; }
 .place-grid li:focus { outline:3px solid #a44c25; outline-offset:3px; }
+.map-filters { display:flex; flex-wrap:wrap; gap:.5rem; margin:1rem 0; }
+.map-filters button[aria-pressed="true"] { background:#214b42; color:white; }
+.itinerary-panel { margin:2rem 0; padding:1.5rem; background:#ffffff80; border:1px solid #b0c8bd; border-radius:18px; }
+.itinerary-panel .resource-heading { margin-top:0; }
+.itinerary-day { border-left:4px solid var(--day-color); padding:1rem 1.2rem; margin:1rem 0; background:#fff9; border-radius:0 12px 12px 0; }
+.itinerary-day h4 { margin:0 0 .7rem; font-size:1.2rem; }
+.itinerary-day ol { padding-left:1.5rem; }
+.itinerary-day li { padding:.35rem 0; }
+.itinerary-day a { text-decoration:underline; }
+@media(max-width:700px) { .itinerary-panel { padding:1rem; } .itinerary-panel .resource-heading { align-items:flex-start; } }

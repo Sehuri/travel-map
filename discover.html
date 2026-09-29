@@ -9,7 +9,7 @@
   <link rel="apple-touch-icon" href="./assets/favicon-fuji.png?v=20260914.1">
   <title>下一站去哪｜Sehuri 的旅行灵感</title>
   <link rel="stylesheet" href="./assets/styles.css?v=20260904.1">
-  <link rel="stylesheet" href="./assets/discover.css?v=20260929.1">
+  <link rel="stylesheet" href="./assets/discover.css?v=20260929.2">
   <link rel="stylesheet" href="./assets/site-bgm.css?v=20260925.2">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
@@ -45,7 +45,14 @@
       <dl class="trip-facts" id="trip-facts"></dl>
       <p id="result-intro"></p><p id="result-reason" class="result-reason"></p><p id="result-tip" class="small"></p>
       <div class="resource-heading"><h3>把旅游资源摊开来看</h3><a id="city-map-link" target="_blank" rel="noopener noreferrer">打开城市互动地图 ↗</a></div>
-      <p class="small" id="map-caption"></p><div id="resource-map" aria-label="旅游资源地图"></div><p id="map-status" role="status"></p>
+      <p class="small" id="map-caption"></p>
+      <div id="map-filters" class="map-filters" aria-label="地图点位分类"><button type="button" data-map-category="all" aria-pressed="true">全部点位</button><button type="button" data-map-category="sight" aria-pressed="false">只看景点</button><button type="button" data-map-category="food" aria-pressed="false">只看美食</button></div>
+      <div id="resource-map" aria-label="旅游资源地图"></div><p id="map-status" role="status"></p>
+      <section class="itinerary-panel" aria-labelledby="itinerary-title">
+        <div class="resource-heading"><div><p class="eyebrow">DAY BY DAY / 把灵感排成旅程</p><h3 id="itinerary-title">我的城市攻略</h3></div><button id="generate-itinerary" type="button">一键生成攻略</button></div>
+        <p class="small">基于已收录景点、餐饮点和直线距离生成草案，优先就近组合。未核验开放时间、预约、交通与用餐时段；连线仅表示游览顺序，不是导航道路。</p>
+        <div id="itinerary-result" hidden><div id="itinerary-tabs" class="map-filters" aria-label="选择攻略天数"></div><p id="itinerary-status" role="status"></p><div id="itinerary-days"></div><button id="copy-itinerary" type="button">复制每日攻略</button></div>
+      </section>
       <div id="places"></div>
       <div class="result-actions"><button id="again" type="button">换一组，继续探索 ↻</button><button id="save-wishlist" type="button">保存到愿望清单 ☆</button><button id="copy-result" type="button">复制旅行灵感</button><a id="memory-link" hidden>看看我的旅行记录 ↗</a></div>
       <p class="small">这是旅行灵感，不是已核实的完整行程。营业、预约、门票、季节与实际路程请出发前向景区确认；地图保留来源署名。</p>
@@ -53,8 +60,9 @@
     <noscript>请启用 JavaScript 使用随机推荐；现有旅行地图不受影响。</noscript>
   </main>
   <script src="./assets/discover-data.js"></script><script src="./assets/discover-engine.js?v=20260910.1"></script><script src="./assets/discover-config.js"></script>
+  <script src="./assets/discover-itinerary.js?v=20260929.2"></script>
   <script src="./assets/amap-map-config.js"></script><script src="./assets/discover-amap.js?v=20260929.1"></script>
-  <script src="./assets/data.js?v=20260916.1"></script><script src="./assets/discover.js?v=20260929.1"></script>
+  <script src="./assets/data.js?v=20260916.1"></script><script src="./assets/discover.js?v=20260929.2"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
   <script src="./assets/site-bgm-config.js?v=20260925.2"></script>
   <script src="./assets/site-bgm.js?v=20260925.2"></script>

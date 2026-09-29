@@ -85,7 +85,7 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.jpg
       if(q.get('action')==='route')return r.fulfill({json:{driving:{durationMinutes:95,distanceKm:110,tolls:35},rail:{durationMinutes:42,cost:58,trip:'G7001'},source:'高德路线规划'}});
       return r.fulfill({status:503,json:{error:'测试：地图服务暂不可用'}});
     });
-    await page.addInitScript(()=>{window.AMap={Map:class{constructor(id,opts){window.mapOptions=opts;} addControl(){} setFitView(markers){window.mapMarkers=markers.length;} destroy(){window.mapDestroyed=true;}},Marker:class{constructor(opts){this.options=opts;}},Pixel:class{},ToolBar:class{},Scale:class{}};});
+    await page.addInitScript(()=>{window.AMap={Map:class{constructor(id,opts){window.mapOptions=opts;window.testLines=[];} addControl(){} setFitView(markers){window.mapMarkers=markers.length;} destroy(){window.mapDestroyed=true;}},Marker:class{constructor(opts){this.options=opts;document.querySelector('#resource-map').append(opts.content);}},Polyline:class{constructor(opts){window.testLines.push(opts.path);}},Pixel:class{},ToolBar:class{},Scale:class{}};});
     await page.reload({waitUntil:'networkidle'});
     await page.locator('#origin').fill('江苏省 · 南京市');
     await page.locator('#draw').click();
@@ -101,6 +101,24 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.jpg
     assert.equal(await page.evaluate(()=>window.mapOptions.scrollWheel),true);
     assert.equal(await page.locator('#places .sight li').count(),10);
     assert.equal(await page.locator('#places .food li').count(),10);
+    const pinStyle=await page.locator('.resource-pin.sight').first().evaluate(e=>({bg:getComputedStyle(e).backgroundColor,color:getComputedStyle(e).color}));
+    assert.deepEqual(pinStyle,{bg:'rgb(38, 102, 81)',color:'rgb(255, 255, 255)'});
+    await page.locator('[data-map-category="food"]').click();
+    await page.waitForFunction(()=>window.mapMarkers===10);
+    assert.equal(await page.locator('.resource-pin.sight').count(),0);
+    await page.locator('#generate-itinerary').click();
+    await page.waitForFunction(()=>window.testLines.length===3);
+    assert.equal(await page.locator('.itinerary-day').count(),3);
+    assert.equal(await page.locator('#itinerary-tabs button').count(),4);
+    assert.match(await page.locator('#itinerary-days').innerText(),/用餐候选/);
+    await page.locator('[data-day="2"]').click();
+    await page.waitForFunction(()=>window.testLines.length===1);
+    assert.equal(await page.locator('.itinerary-day').count(),1);
+    assert.match(await page.locator('.itinerary-day h4').innerText(),/第 2 天/);
+    assert.equal(await page.evaluate(()=>window.mapMarkers),3);
+    await page.locator('[data-map-category="all"]').click();
+    await page.waitForFunction(()=>window.mapMarkers===20);
+    assert.equal(await page.evaluate(()=>window.testLines.length),0);
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
     await page.locator('#result').screenshot({path:path.join(os.tmpdir(),'travel-discover-categories.png')});
     assert.deepEqual(errors,[]);
@@ -118,9 +136,12 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.jpg
     await page.locator('.choose-candidate').click();
     await page.waitForFunction(()=>document.querySelector('#map-status').textContent.includes('地图服务暂不可用'));
     assert.equal(foodRequests,1);
+    assert(await page.locator('#itinerary-result').isHidden());
     assert.equal(await page.locator('#places .sight li').count(),10);
     assert.equal(await page.locator('#places .food li').count(),10);
     assert.equal(await page.evaluate(()=>window.mapDestroyed),true);
+    await page.locator('#generate-itinerary').click();
+    assert.equal(await page.locator('.itinerary-day').count(),3);
     assert.deepEqual(errors,[]);
     console.log('Browser checks passed: preview, mobile, grouped and legacy APIs (10+10), interactive map configuration, cleanup, map-error fallback.');
   }finally{await browser?.close();await new Promise(r=>server.close(r));}
