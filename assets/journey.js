@@ -608,7 +608,7 @@
     byId("journey-route-inline").textContent = journey.stops.map((stop) => stop.cityName).join(" → ");
     byId("journey-summary").textContent = journey.summary || "这趟旅程的总结正在整理。";
     byId("journey-days").textContent = `${journey.days} 天`;
-    byId("journey-city-count").textContent = `${journey.stops.length} 座`;
+    byId("journey-city-count").textContent = `${new Set(journey.stops.map((stop) => stop.cityName)).size} 座`;
     byId("journey-distance").textContent = journey.distanceKm
       ? `${journey.distanceEstimated ? "约 " : ""}${new Intl.NumberFormat("zh-CN").format(journey.distanceKm)} km`
       : "待补充";

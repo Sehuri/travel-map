@@ -19,7 +19,7 @@ function loadFixtures() {
 test('built-in journeys become complete ordered archives', () => {
   const { data, photos } = loadFixtures();
   const journeys = engine.mergeJourneys(data.journeys, [], [], [], [], photos);
-  assert.equal(journeys.length, 5);
+  assert.equal(journeys.length, 6);
   const japan = journeys.find((journey) => journey.slug === '2026-japan-kansai-kanto');
   assert.equal(japan.days, 10);
   assert.deepEqual(japan.stops.map((stop) => stop.cityName), ['大阪', '京都', '东京', '镰仓']);
@@ -47,8 +47,26 @@ test('built-in journeys become complete ordered archives', () => {
     ['2025-08-09', '2025-08-10'],
     ['2025-08-10', '2025-08-11']
   ]);
+  const internship = journeys.find((journey) => journey.slug === '2025-xiamen-internship');
+  assert.equal(internship.days, 46);
+  assert.deepEqual(internship.stops.map((stop) => [stop.cityName, stop.arrivalDate, stop.departureDate]), [
+    ['厦门', '2025-07-07', '2025-07-26'],
+    ['福州', '2025-07-26', '2025-07-27'],
+    ['厦门', '2025-07-27', '2025-08-09'],
+    ['香港', '2025-08-09', '2025-08-10'],
+    ['深圳', '2025-08-10', '2025-08-11'],
+    ['厦门', '2025-08-11', '2025-08-20'],
+    ['漳州', '2025-08-20', '2025-08-20'],
+    ['厦门', '2025-08-20', '2025-08-21'],
+    ['南京', '2025-08-21', '2025-08-21']
+  ]);
+  assert.equal(engine.validateJourneyStops(internship.startDate, internship.endDate, internship.stops), '');
+  assert.equal(internship.stops.filter((stop) => stop.cityName === '厦门').length, 4);
+  assert.equal(new Set(internship.stops.map((stop) => stop.cityName)).size, 6);
   assert.equal(engine.journeysForCity(journeys, '东京').length, 1);
   assert.equal(engine.journeysForCity(journeys, '上海').length, 1);
+  assert.equal(engine.journeysForCity(journeys, '厦门').length, 1);
+  assert.equal(engine.journeysForCity(journeys, '香港').length, 2);
 });
 
 test('journey dates clamp an impossible departure but preserve same-day city transfers', () => {
@@ -87,7 +105,7 @@ test('database journey overrides the fallback and can be unpublished', () => {
   assert.equal(overridden.distanceEstimated, false);
   assert.equal(overridden.stops.length, 1);
   assert.equal(overridden.guides.length, 1);
-  assert.equal(engine.mergeJourneys(data.journeys, [{ ...row, is_published: false }], [], [], [], photos).length, 4);
+  assert.equal(engine.mergeJourneys(data.journeys, [{ ...row, is_published: false }], [], [], [], photos).length, 5);
 });
 
 test('journey migration protects owner writes and expands guide types', () => {

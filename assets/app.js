@@ -1377,7 +1377,8 @@
       const distance = journey.distanceKm
         ? `${journey.distanceEstimated ? "约 " : ""}${new Intl.NumberFormat("zh-CN").format(journey.distanceKm)} 公里`
         : "里程待补充";
-      meta.textContent = `${journey.days} 天 · ${journey.stops.length} 座城市 · ${distance}`;
+      const cityCount = new Set(journey.stops.map((stop) => stop.cityName)).size;
+      meta.textContent = `${journey.days} 天 · ${cityCount} 座城市 · ${distance}`;
       const action = document.createElement("span");
       action.className = "journey-card-action";
       action.textContent = "打开旅程档案 ↗";

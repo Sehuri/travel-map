@@ -179,6 +179,37 @@ window.TRAVEL_DATA = {
         { cityName: "香港", stopOrder: 0, arrivalDate: "2025-08-09", departureDate: "2025-08-10", transportToNext: "跨境高铁", distanceToNextKm: 39, notes: "8 月 9 日至 10 日在香港，10 日晚跨境前往深圳。" },
         { cityName: "深圳", stopOrder: 1, arrivalDate: "2025-08-10", departureDate: "2025-08-11", transportToNext: "", distanceToNextKm: 0, notes: "10 日晚抵达深圳，11 日继续游览深圳湾与现代城市空间。" }
       ]
+    },
+    {
+      id: "base-xiamen-internship-2025",
+      slug: "2025-xiamen-internship",
+      title: "2025 厦门实习",
+      startDate: "2025-07-07",
+      endDate: "2025-08-21",
+      coverUrl: "",
+      summary: "以厦门实习为主线，穿插福州短途、港深双城与漳州一日游，最后从厦门返回南京。",
+      distanceKm: 0,
+      distanceEstimated: true,
+      accommodation: "",
+      budgetAmount: null,
+      budgetCurrency: "CNY",
+      companions: "",
+      planningNotes: "",
+      travelNotes: "7 月 7 日到达厦门；7 月 26 日去福州、27 日返回；8 月 9 日去香港、10 日晚到深圳、11 日返回厦门；8 月 20 日漳州一日往返；21 日返回南京。",
+      reflection: "",
+      sortOrder: 5,
+      photoCities: ["厦门", "福州", "香港", "深圳", "漳州"],
+      stops: [
+        { cityName: "厦门", stopOrder: 0, arrivalDate: "2025-07-07", departureDate: "2025-07-26", transportToNext: "", distanceToNextKm: 0, notes: "7 月 7 日抵达厦门，开始实习；26 日前往福州。" },
+        { cityName: "福州", stopOrder: 1, arrivalDate: "2025-07-26", departureDate: "2025-07-27", transportToNext: "", distanceToNextKm: 0, notes: "7 月 26 日至 27 日在福州，27 日返回厦门。" },
+        { cityName: "厦门", stopOrder: 2, arrivalDate: "2025-07-27", departureDate: "2025-08-09", transportToNext: "", distanceToNextKm: 0, notes: "从福州返回厦门，继续实习；8 月 9 日前往香港。" },
+        { cityName: "香港", stopOrder: 3, arrivalDate: "2025-08-09", departureDate: "2025-08-10", transportToNext: "", distanceToNextKm: 0, notes: "8 月 9 日至 10 日在香港，10 日晚前往深圳。" },
+        { cityName: "深圳", stopOrder: 4, arrivalDate: "2025-08-10", departureDate: "2025-08-11", transportToNext: "", distanceToNextKm: 0, notes: "8 月 10 日晚抵达深圳，11 日返回厦门。" },
+        { cityName: "厦门", stopOrder: 5, arrivalDate: "2025-08-11", departureDate: "2025-08-20", transportToNext: "", distanceToNextKm: 0, notes: "从深圳返回厦门，继续实习；20 日前往漳州一日游。" },
+        { cityName: "漳州", stopOrder: 6, arrivalDate: "2025-08-20", departureDate: "2025-08-20", transportToNext: "", distanceToNextKm: 0, notes: "8 月 20 日漳州一日游，当天返回厦门。" },
+        { cityName: "厦门", stopOrder: 7, arrivalDate: "2025-08-20", departureDate: "2025-08-21", transportToNext: "", distanceToNextKm: 0, notes: "漳州一日游后回到厦门，21 日启程返回南京。" },
+        { cityName: "南京", stopOrder: 8, arrivalDate: "2025-08-21", departureDate: "2025-08-21", transportToNext: "", distanceToNextKm: 0, notes: "8 月 21 日从厦门返回南京，结束这段实习旅程。" }
+      ]
     }
   ],
   wishlist: [
