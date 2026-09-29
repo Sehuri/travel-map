@@ -506,6 +506,7 @@
       dates.textContent = stop.departureDate
         ? `${formatDate(stop.arrivalDate)} — ${formatDate(stop.departureDate)}`
         : formatDate(stop.arrivalDate);
+      if (stop.departureEstimated) dates.textContent += "（按行程推算）";
       const notes = document.createElement("p");
       notes.className = "journey-stop-notes";
       notes.textContent = stop.notes || "城市停留记录待补充。";

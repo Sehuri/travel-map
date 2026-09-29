@@ -161,7 +161,7 @@ window.TRAVEL_DATA = {
       slug: "2025-hong-kong-shenzhen",
       title: "2025 港深双城之旅",
       startDate: "2025-08-09",
-      endDate: "2025-08-10",
+      endDate: "2025-08-11",
       coverUrl: "",
       summary: "先看维港山海与香港街巷，再跨境来到深圳，在相邻两座湾区城市之间感受不同的城市节奏。",
       distanceKm: 39,
@@ -171,13 +171,13 @@ window.TRAVEL_DATA = {
       budgetCurrency: "CNY",
       companions: "2 人",
       planningNotes: "",
-      travelNotes: "两天串联香港与深圳，以便捷的跨境交通体验大湾区相邻城市的鲜明反差。",
+      travelNotes: "8 月 9 日至 10 日在香港，10 日晚跨境前往深圳，11 日结束旅程；两座城市在换城当天共享一段回忆。",
       reflection: "一边是山海与老街，一边是年轻而快速的城市，两座城靠得很近，却各有节奏。",
       sortOrder: 2,
       photoCities: ["香港", "深圳"],
       stops: [
-        { cityName: "香港", stopOrder: 0, arrivalDate: "2025-08-09", departureDate: "2025-08-09", transportToNext: "跨境高铁", distanceToNextKm: 39, notes: "从维多利亚港、太平山与街巷出发，先看香港的山海城市感。" },
-        { cityName: "深圳", stopOrder: 1, arrivalDate: "2025-08-10", departureDate: "2025-08-10", transportToNext: "", distanceToNextKm: 0, notes: "跨境抵达深圳，在深圳湾与现代城市空间里完成双城切换。" }
+        { cityName: "香港", stopOrder: 0, arrivalDate: "2025-08-09", departureDate: "2025-08-10", transportToNext: "跨境高铁", distanceToNextKm: 39, notes: "8 月 9 日至 10 日在香港，10 日晚跨境前往深圳。" },
+        { cityName: "深圳", stopOrder: 1, arrivalDate: "2025-08-10", departureDate: "2025-08-11", transportToNext: "", distanceToNextKm: 0, notes: "10 日晚抵达深圳，11 日继续游览深圳湾与现代城市空间。" }
       ]
     }
   ],

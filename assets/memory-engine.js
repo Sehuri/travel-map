@@ -56,14 +56,54 @@
     }).sort((a, b) => b.latest.date.localeCompare(a.latest.date) || a.name.localeCompare(b.name, "zh-CN"));
   }
 
+  function anniversaryWithin(startDate, endDate, today) {
+    const start = parseDate(startDate);
+    const end = parseDate(endDate || startDate);
+    if (!start || !end || end.time < start.time) return null;
+    for (let year = Math.min(end.year, today.year - 1); year >= start.year; year -= 1) {
+      const candidate = parseDate(`${year}-${String(today.month).padStart(2, "0")}-${String(today.day).padStart(2, "0")}`);
+      if (candidate && candidate.time >= start.time && candidate.time <= end.time) return candidate.value;
+    }
+    return null;
+  }
+
+  function journeyMemoriesOnThisDay(journeys, today) {
+    const matches = (journeys || []).flatMap((journey) => (journey.stops || []).flatMap((stop) => {
+      if (!stop.cityName) return [];
+      const date = anniversaryWithin(stop.arrivalDate, stop.departureDate, today);
+      return date ? [{
+        name: stop.cityName,
+        date,
+        arrivalDate: stop.arrivalDate,
+        departureDate: stop.departureDate || stop.arrivalDate,
+        journeySlug: journey.slug,
+        journeyTitle: journey.title,
+        stopOrder: Number(stop.stopOrder || 0)
+      }] : [];
+    })).sort((a, b) => b.date.localeCompare(a.date)
+      || b.arrivalDate.localeCompare(a.arrivalDate)
+      || b.stopOrder - a.stopOrder);
+    // The arrival city takes precedence when two stops share a transfer day.
+    const seenJourneyDays = new Set();
+    return matches.filter((match) => {
+      const key = `${match.journeySlug}:${match.date}`;
+      if (seenJourneyDays.has(key)) return false;
+      seenJourneyDays.add(key);
+      return true;
+    });
+  }
+
   function buildMemorySnapshot(visits, journeys, today = new Date()) {
     const todayValue = localToday(today);
     const current = parseDate(todayValue);
     const items = validVisits(visits);
-    const onThisDay = items.filter((visit) => {
+    const arrivalMatches = items.filter((visit) => {
       const date = parseDate(visit.date);
       return date.year < current.year && date.month === current.month && date.day === current.day;
     }).sort((a, b) => b.date.localeCompare(a.date));
+    const onThisDay = arrivalMatches.length
+      ? arrivalMatches
+      : journeyMemoriesOnThisDay(journeys, current);
     const monthVisits = items.filter((visit) => {
       const date = parseDate(visit.date);
       return date.time < current.time && date.month === current.month;

@@ -673,6 +673,15 @@
       status(elements.journey_status, "请至少添加一座有效城市。", true);
       return;
     }
+    const stopDateError = window.TRAVEL_JOURNEY_ENGINE.validateJourneyStops(
+      elements.journey_start_date.value,
+      elements.journey_end_date.value,
+      journeyStopsDraft
+    );
+    if (stopDateError) {
+      status(elements.journey_status, stopDateError, true);
+      return;
+    }
     const existing = journeyRows.get(currentJourneySlug || slug);
     const payload = {
       slug,

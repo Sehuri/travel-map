@@ -486,8 +486,8 @@ h1 em { color: var(--accent); font-weight: 400; }
 .memory-rewind-card--journey > strong small { margin-left: .35rem; color: var(--muted); font-family: var(--sans); font-size: .72rem; }
 .memory-rewind-card--journey > a { width: fit-content; margin-top: 1.25rem; color: var(--accent); font-size: .65rem; font-weight: 700; text-decoration: none; }
 .memory-chip-list, .memory-month-list { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.3rem; }
-.memory-chip-list button, .memory-month-list button { padding: .55rem .72rem; border: 1px solid rgba(228,255,117,.28); border-radius: 999px; color: var(--ink); background: rgba(228,255,117,.05); cursor: pointer; font-size: .65rem; }
-.memory-chip-list button:hover, .memory-month-list button:hover { border-color: var(--accent); color: var(--accent); }
+.memory-chip-list button, .memory-chip-list a, .memory-month-list button { padding: .55rem .72rem; border: 1px solid rgba(228,255,117,.28); border-radius: 999px; color: var(--ink); background: rgba(228,255,117,.05); cursor: pointer; font-size: .65rem; text-decoration: none; }
+.memory-chip-list button:hover, .memory-chip-list a:hover, .memory-month-list button:hover { border-color: var(--accent); color: var(--accent); }
 .memory-month-list { max-height: 130px; overflow: auto; padding-right: .25rem; }
 .memory-random-copy { position: relative; z-index: 1; display: flex; min-width: 0; flex-direction: column; }
 .memory-random-copy small { margin-top: .65rem; color: var(--faint); font-size: .63rem; }

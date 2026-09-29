@@ -1534,10 +1534,21 @@
     todayList.replaceChildren();
     if (memorySnapshot.onThisDay.length) {
       const cityNames = [...new Set(memorySnapshot.onThisDay.map((visit) => visit.name))];
+      const fromJourneys = Boolean(memorySnapshot.onThisDay[0]?.journeySlug);
       document.querySelector("#memory-today-title").textContent = `往年今天，我在${cityNames.join("、")}`;
-      document.querySelector("#memory-today-copy").textContent = `找到 ${memorySnapshot.onThisDay.length} 段与今天月日相同的旅行记录。`;
+      document.querySelector("#memory-today-copy").textContent = fromJourneys
+        ? `根据旅程档案的城市停留日期，找到 ${memorySnapshot.onThisDay.length} 段往年此刻的行程。`
+        : `找到 ${memorySnapshot.onThisDay.length} 段与今天月日相同的城市到达记录。`;
       memorySnapshot.onThisDay.forEach((visit) => {
-        todayList.append(visitButton(visit, `${visit.date.slice(0, 4)} · ${visit.name}`));
+        if (visit.journeySlug) {
+          const link = document.createElement("a");
+          link.href = journeyHref(visit.journeySlug);
+          link.textContent = `${visit.date.slice(0, 4)} · ${visit.name} · 查看旅程 ↗`;
+          link.title = `${visit.journeyTitle} · ${visit.arrivalDate}—${visit.departureDate}`;
+          todayList.append(link);
+        } else {
+          todayList.append(visitButton(visit, `${visit.date.slice(0, 4)} · ${visit.name}`));
+        }
       });
     } else {
       document.querySelector("#memory-today-title").textContent = "今天没有重合的坐标";

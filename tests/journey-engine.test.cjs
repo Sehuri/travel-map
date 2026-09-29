@@ -40,8 +40,34 @@ test('built-in journeys become complete ordered archives', () => {
     journeys.find((journey) => journey.slug === '2025-hong-kong-shenzhen').stops.map((stop) => stop.cityName),
     ['香港', '深圳']
   );
+  const bay = journeys.find((journey) => journey.slug === '2025-hong-kong-shenzhen');
+  assert.equal(bay.endDate, '2025-08-11');
+  assert.equal(bay.days, 3);
+  assert.deepEqual(bay.stops.map((stop) => [stop.arrivalDate, stop.departureDate]), [
+    ['2025-08-09', '2025-08-10'],
+    ['2025-08-10', '2025-08-11']
+  ]);
   assert.equal(engine.journeysForCity(journeys, '东京').length, 1);
   assert.equal(engine.journeysForCity(journeys, '上海').length, 1);
+});
+
+test('journey dates clamp an impossible departure but preserve same-day city transfers', () => {
+  const stops = engine.effectiveStopDates([
+    { cityName: '西安', stopOrder: 0, arrivalDate: '2025-09-27', departureDate: '2026-09-30' },
+    { cityName: '银川', stopOrder: 1, arrivalDate: '2025-09-30', departureDate: '2025-10-01' }
+  ], '2025-10-01');
+  assert.equal(stops[0].departureDate, '2025-09-29');
+  assert.equal(stops[0].departureEstimated, true);
+  assert.equal(stops[1].departureDate, '2025-10-01');
+  assert.equal(engine.validateJourneyStops('2025-09-27', '2025-10-01', stops), '');
+  assert.match(engine.validateJourneyStops('2025-09-27', '2025-10-01', [
+    { arrivalDate: '2025-09-27', departureDate: '2026-09-30' },
+    { arrivalDate: '2025-09-30', departureDate: '2025-10-01' }
+  ]), /第 1 站/);
+  assert.equal(engine.validateJourneyStops('2025-08-09', '2025-08-11', [
+    { arrivalDate: '2025-08-09', departureDate: '2025-08-10' },
+    { arrivalDate: '2025-08-10', departureDate: '2025-08-11' }
+  ]), '');
 });
 
 test('database journey overrides the fallback and can be unpublished', () => {

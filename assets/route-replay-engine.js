@@ -91,7 +91,7 @@
       const profile = profiles.get(stop.cityName) || {};
       const next = rawStops[index + 1];
       let departureDate = stop.departureDate || "";
-      let departureEstimated = false;
+      let departureEstimated = Boolean(stop.departureEstimated);
       if (!departureDate && next?.arrivalDate) {
         departureDate = dateBefore(next.arrivalDate);
         departureEstimated = Boolean(departureDate);
