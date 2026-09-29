@@ -49,7 +49,8 @@ async function catalogue() {
 }
 async function places(city:any, interests:string[]) {
   return cached(`places:${city.id}:${interests.join(",")}`,3600000,async()=>{
-    const queries = interests.length ? interests.map(i=>keywords[i]) : [{types:"110000"}];
+    const sightInterests = interests.filter(i=>i !== "food");
+    const queries = [...(sightInterests.length ? sightInterests.map(i=>keywords[i]) : [{types:"110000|140100"}]), keywords.food];
     const results = [];
     for (const query of queries) {
       const result = await amap("v5/place/text",{...query,region:city.id,city_limit:"true",page_size:"25",page_num:"1"});
@@ -64,9 +65,11 @@ async function places(city:any, interests:string[]) {
       // The API accepts district adcodes, but verify county-city boundaries ourselves too.
       if ((city.level === "district" || !city.id.endsWith("00")) && p.adcode !== city.id) continue;
       const scalar = (v:unknown) => typeof v === "string" ? v : "";
-      unique.set(p.id,{id:p.id,name:p.name,coord,type:scalar(p.type).replaceAll(";"," · "),area:scalar(p.adname),address:scalar(p.address)});
+      const category = /^05/.test(scalar(p.typecode)) || /餐饮|美食|餐厅|小吃/.test(scalar(p.type)) ? "food" : "sight";
+      unique.set(p.id || `${p.name}:${p.location}`,{id:p.id,name:p.name,coord,category,type:scalar(p.type).replaceAll(";"," · "),area:scalar(p.adname),address:scalar(p.address)});
     }
-    return {places:[...unique.values()].slice(0,10),source:"高德地点搜索",retrievedAt:new Date().toISOString()};
+    const all = [...unique.values()];
+    return {places:[...all.filter(p=>p.category === "sight").slice(0,10),...all.filter(p=>p.category === "food").slice(0,10)],source:"高德地点搜索",retrievedAt:new Date().toISOString()};
   });
 }
 function firstPath(data:any) {

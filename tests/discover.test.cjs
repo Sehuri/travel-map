@@ -69,7 +69,8 @@ function server({key='test-only-key',budget=true,providerError=false}={}){
       if(u.pathname.includes('staticmap')) return new Response(new Uint8Array([1,2]),{headers:{'content-type':'image/png'}});
       if(u.pathname.includes('direction/driving')) return Response.json({status:'1',route:{paths:[{distance:'300000',cost:{duration:'14400',tolls:'80'}}]}});
       if(u.pathname.includes('direction/transit')) return Response.json({status:'1',route:{transits:[{duration:'10800',cost:'180',segments:[{railway:{type:'2011',trip:'G1'}}]}]}});
-      return Response.json({status:'1',pois:[{id:'good',name:'亭林园',location:'120.95,31.39',adcode:'320583',type:'风景名胜',adname:'昆山市',address:'测试地址'},{id:'wrong',name:'外地景点',location:'121,31',adcode:'320508'}]});
+      const food = u.searchParams.get('types') === '050000';
+      return Response.json({status:'1',pois:[...Array.from({length:15},(_,i)=>({id:`${food?'food':'sight'}-${i}`,name:food?`地方餐厅${i}`:`公园${i}`,location:'120.95,31.39',adcode:'320583',type:food?'餐饮服务':'风景名胜',typecode:food?'050100':'110000',adname:'昆山市',address:'测试地址'})),{id:'wrong',name:'外地景点',location:'121,31',adcode:'320508'}]});
     }
   });
   vm.runInContext(fs.readFileSync(path.join(root,'assets/discover-engine.js'),'utf8'),context);
@@ -80,7 +81,12 @@ function server({key='test-only-key',budget=true,providerError=false}={}){
 test('server returns nationwide directory, caches it, and validates county-city POIs',async()=>{
   const s=server(); const a=await s.call({action:'catalogue'}); assert.equal(a.status,200); assert.equal((await a.json()).cities.length,301);
   await s.call({action:'catalogue'}); assert.equal(s.calls(),1);
-  const b=await s.call({action:'places',city:'320583',interests:'culture'}); assert.equal(b.status,200); assert.equal((await b.json()).places.length,1);
+  const b=await s.call({action:'places',city:'320583',interests:'culture'}); assert.equal(b.status,200);
+  const entries=(await b.json()).places;
+  assert.equal(entries.length,20); assert.equal(entries.filter(p=>p.category==='food').length,10);
+  assert.equal(new Set(entries.map(p=>p.id)).size,20); assert(!entries.some(p=>p.id==='wrong'));
+  const foodOnly=await s.call({action:'places',city:'320583',interests:'food'});
+  assert.equal((await foodOnly.json()).places.filter(p=>p.category==='sight').length,10);
   const image=await s.call({action:'map',city:'320583',interests:'culture',limit:1}); assert.equal(image.headers.get('content-type'),'image/png');
   const route=await s.call({action:'route',from:'320100',to:'320583'}); assert.equal(route.status,200);
   const routeBody=await route.json(); assert.equal(routeBody.driving.durationMinutes,240); assert.equal(routeBody.rail.trip,'G1');

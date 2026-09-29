@@ -67,3 +67,9 @@
 .discover-page [hidden] { display:none!important; }
 @media(max-width:900px) { .candidate-grid { grid-template-columns:1fr; } .candidate-region { min-height:0; } .trip-facts { grid-template-columns:1fr 1fr; } }
 @media(max-width:700px) { .discover-shell { width:92vw; margin-top:.5rem; } .discover-header { padding:1rem 4vw; } .discover-header .brand { font-size:.65rem; } .discover-panel { padding:1.2rem; border-radius:18px; } .field-grid { grid-template-columns:1fr 1fr; } .field-grid label:first-child,.field-grid .exclude-field { grid-column:1/-1; } .draw-bar,.comparison-heading { align-items:stretch; flex-direction:column; } .comparison-heading button { align-self:flex-start; } .place-grid { grid-template-columns:1fr; } #resource-map { height:300px; } .result-stamp { font-size:.8rem; min-width:95px; padding:1rem; } }
+.resource-category { margin-top:2rem; }
+.resource-category h3 { padding-bottom:.8rem; border-bottom:1px solid #b0c8bd; }
+.resource-category.food .place-number { color:#a44c25; }
+#resource-map button.resource-pin { width:30px; height:30px; cursor:pointer; padding:0; border:2px solid white; color:white; }
+#resource-map .resource-pin.food { background:#a44c25; }
+.place-grid li:focus { outline:3px solid #a44c25; outline-offset:3px; }

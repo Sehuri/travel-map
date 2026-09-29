@@ -3,7 +3,7 @@
   const $ = id => document.getElementById(id);
   const data = window.TRAVEL_DISCOVER_DATA, engine = window.TRAVEL_DISCOVER_ENGINE;
   const endpoint = window.TRAVEL_DISCOVER_CONFIG?.endpoint || "";
-  let cities = [], origins = [], preview = false, busy = false, map = null, current = null, mapObjectUrl = null;
+  let cities = [], origins = [], preview = false, busy = false, map = null, current = null, mapRevision = 0;
   const seen = new Set();
   let signature = "";
   const wishlistStorageKey = "sehuri.travelWishlist.v1";
@@ -149,17 +149,22 @@
     $("comparison").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   }
   async function showMap(city, places, interests) {
-    if (map) { map.remove(); map = null; }
-    if (mapObjectUrl) { URL.revokeObjectURL(mapObjectUrl); mapObjectUrl = null; }
+    const revision = ++mapRevision;
+    if (map) { map.destroy ? map.destroy() : map.remove(); map = null; }
     $("resource-map").replaceChildren(); $("map-status").textContent = "正在加载资源地图…";
     try {
       if (!preview) {
-        const blob = await request({ action: "map", city: city.id, interests: interests.join(","), limit: places.length }, true);
-        if (!blob.type.startsWith("image/")) throw new Error("地图响应格式异常。");
-        mapObjectUrl = URL.createObjectURL(blob);
-        const img = new Image(); img.className = "live-map"; img.alt = `${city.name}旅游资源地图，编号对应下方景点`;
-        const loaded = new Promise((resolve, reject) => { img.onload = resolve; img.onerror = () => reject(new Error("地图图片加载失败。")); });
-        img.src = mapObjectUrl; $("resource-map").append(img); await loaded;
+        const AMap = await window.loadDiscoverAmap();
+        if (revision !== mapRevision) return;
+        map = new AMap.Map("resource-map", { center:city.coord, zoom:12, dragEnable:true, zoomEnable:true, scrollWheel:true, viewMode:"2D" });
+        map.addControl(new AMap.ToolBar()); map.addControl(new AMap.Scale());
+        const markers = places.filter(p=>engine.validCoord(p.coord)).map(p => {
+          const pin = text("button", p.mapNumber, `resource-pin ${p.category}`);
+          pin.type = "button"; pin.setAttribute("aria-label", p.name);
+          pin.onclick = () => { const card = document.getElementById(`place-${p.mapNumber}`); card?.scrollIntoView({behavior:"smooth",block:"center"}); card?.focus({preventScroll:true}); };
+          return new AMap.Marker({ position:p.coord, content:pin, title:p.name, offset:new AMap.Pixel(-15,-15), map });
+        });
+        if (markers.length) map.setFitView(markers, false, [45,45,45,45], 14);
       } else {
         if (!window.L) throw new Error("地图组件未加载，请刷新；仍可使用“打开城市互动地图”。");
         map = L.map("resource-map", { scrollWheelZoom:false });
@@ -176,14 +181,15 @@
         if (bounds.length) map.fitBounds(bounds, { padding:[30,30], maxZoom:13 });
         else map.setView([city.coord[1],city.coord[0]],11);
         await tilesReady;
+        if (revision !== mapRevision) return;
         if (tileFailed) { $("map-status").textContent = "部分底图未加载，请使用外部城市地图查看。"; return; }
       }
       $("map-status").textContent = "";
-    } catch (error) { $("map-status").textContent = `${error.message} 景点列表仍可查看。`; }
+    } catch (error) { if (revision === mapRevision) $("map-status").textContent = `${error.message} 景点、美食列表仍可查看。`; }
   }
   async function render(city, places, opts, interests) {
-    const count = Math.min(10, opts.days * (opts.pace === "relaxed" ? 1 : 2));
-    places = places.slice(0,count);
+    places = places.map(p=>({...p,category:["food","sight"].includes(p.category) ? p.category : /餐饮|餐厅|美食|小吃/.test(`${p.type || ""} ${p.category || ""}`) ? "food" : "sight"}));
+    places = ["sight","food"].flatMap(category=>places.filter(p=>p.category === category).slice(0,10)).map((p,i)=>({...p,mapNumber:String(i+1).padStart(2,"0")}));
     const curated = data.cities.find(c => c.province === city.province && normalName(c.name) === normalName(city.name));
     const intro = curated?.intro || `${city.label}。这次可从${places.slice(0,3).map(p=>p.name).join("、")}开始探索，按所在区域组合游览，避免在同一天跨城奔波。`;
     current = { city, places, intro, days:opts.days, origin:opts.origin.name, month:opts.month, routes:city.routes, budget:city.budget, preview };
@@ -201,12 +207,21 @@
     $("result-reason").textContent = `${preview ? "示例抽签" : "城市抽签"} · 从${opts.origin.name}出发 · ${opts.days} 天游玩${opts.month ? ` · ${opts.month} 月出行` : ""} · ${interests.length ? interests.map(t=>data.tags[t].label).join(" / ") : "偏好不限"}。${city.season.note}`;
     $("result-tip").textContent = `${curated?.tip || "以下为按类型检索的旅游资源线索，分类不等于实地品质评价。"} 本次列出 ${places.length} 个重点，并非覆盖 ${opts.days} 天的完整行程。`;
     $("city-map-link").href = mapLink(city);
-    $("map-caption").textContent = preview ? "示例点位为近似位置，仅供浏览；实际入口请查看景区指引。" : "高德静态旅游资源地图 · 编号对应景点；可打开互动地图继续缩放与导航。";
-    $("places").replaceChildren(...places.map((p,i) => {
+    $("map-caption").textContent = preview ? "示例点位为近似位置，仅供浏览；实际入口请查看景区指引。" : "按住鼠标拖动地图，滚轮缩放 · 绿色为景点，橙色为美食 · 点击编号查看下方介绍。";
+    $("places").replaceChildren(...["sight","food"].map(category => {
+      const section = document.createElement("section"), entries = places.filter(p=>p.category === category);
+      section.className = `resource-category ${category}`;
+      section.append(text("h3",`${category === "food" ? "美食 · 寻味这座城" : "景点 · 探索这座城"}（${entries.length}）`));
+      if (!entries.length) section.append(text("p",preview ? "示例资料暂未收录此类推荐。" : "暂未检索到此类点位，可在外部城市地图继续搜索。", "small"));
+      const list = document.createElement("ol"); list.className = "place-grid";
+      list.append(...entries.map(p => {
       const item = document.createElement("li");
-      item.append(text("span", !preview && i === 9 ? "A" : String(i+1).padStart(2,"0"), "place-number"),text("h4",p.name),text("p",p.description || `${p.type || "旅游资源"}。位于${p.area || city.name}，可作为此次探索的一站。`),text("p",p.address || p.area || "地址请查看地图", "small"), link("在地图中查看 ↗",mapLink(city,p)));
+      item.id = `place-${p.mapNumber}`; item.tabIndex = -1;
+      item.append(text("span",p.mapNumber,"place-number"),text("h4",p.name),text("p",p.description || `${p.type || "旅游资源"}。位于${p.area || city.name}，可作为此次探索的一站。`),text("p",p.address || p.area || "地址请查看地图", "small"), link("在地图中查看 ↗",mapLink(city,p)));
       const source = data.sources[p.source]; if (source) item.append(link("官方介绍 ↗",source[1]));
       return item;
+      }));
+      section.append(list); return section;
     }));
     const visit = window.TRAVEL_DATA?.visits?.find(v => v.country === "中国" && normalName(v.name) === normalName(city.name));
     $("memory-link").hidden = !visit;
@@ -270,9 +285,20 @@
     $("save-wishlist").disabled = true;
     $("candidate-grid").querySelectorAll("button").forEach(button => { button.disabled = true; });
     try {
-      const places = preview
-        ? candidate.places.filter(place => !interests.length || place.interests.some(tag => interests.includes(tag)))
-        : (await request({ action: "places", city: candidate.id, interests: interests.join(",") })).places;
+      let places;
+      if (preview) places = candidate.places;
+      else {
+        const sights = interests.filter(value=>value !== "food");
+        places = (await request({ action:"places", city:candidate.id, interests:(sights.length ? sights : ["nature","culture"]).join(",") })).places;
+        // Older deployed functions return ten ungrouped POIs. Request food separately
+        // until the grouped endpoint is deployed; never require a synchronized rollout.
+        if (!places.length || !places.every(p=>["sight","food"].includes(p.category))) {
+          const food = (await request({ action:"places", city:candidate.id, interests:"food" })).places;
+          const unique = new Map();
+          [...places,...food].forEach(p=>unique.set(p.id || `${p.name}:${p.coord}`,p));
+          places = [...unique.values()];
+        }
+      }
       if (!places.length) throw new Error(`${candidate.name}暂未检索到匹配资源，请从另外两个候选中选择。`);
       $("comparison").hidden = true;
       $("draw-status").textContent = preview ? "已展开示例目的地。" : "目的地资料已展开；交通来自高德路线规划，景点不代表品质排名。";

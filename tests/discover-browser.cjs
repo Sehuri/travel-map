@@ -81,10 +81,11 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.jpg
       const q=new URL(r.request().url()).searchParams;
       const cities=[{id:'320100',name:'南京市',province:'江苏省',label:'江苏省 · 南京市',coord:[118.8,32.06]}, {id:'320583',name:'昆山市',province:'江苏省',parent:'苏州市',label:'江苏省 · 苏州市 · 昆山市',coord:[120.98,31.38],level:'district'}];
       if(q.get('action')==='catalogue')return r.fulfill({json:{cities,updated:'测试目录'}});
-      if(q.get('action')==='places')return r.fulfill({json:{places:[{name:'亭林园',coord:[120.95,31.39],type:'公园',area:'昆山市'}]}});
+      if(q.get('action')==='places')return r.fulfill({json:{places:Array.from({length:20},(_,i)=>({name:`测试点位${i}`,coord:[120.95,31.39],category:i<10?'sight':'food',type:i<10?'公园':'餐饮服务',area:'昆山市'}))}});
       if(q.get('action')==='route')return r.fulfill({json:{driving:{durationMinutes:95,distanceKm:110,tolls:35},rail:{durationMinutes:42,cost:58,trip:'G7001'},source:'高德路线规划'}});
       return r.fulfill({status:503,json:{error:'测试：地图服务暂不可用'}});
     });
+    await page.addInitScript(()=>{window.AMap={Map:class{constructor(id,opts){window.mapOptions=opts;} addControl(){} setFitView(markers){window.mapMarkers=markers.length;} destroy(){window.mapDestroyed=true;}},Marker:class{constructor(opts){this.options=opts;}},Pixel:class{},ToolBar:class{},Scale:class{}};});
     await page.reload({waitUntil:'networkidle'});
     await page.locator('#origin').fill('江苏省 · 南京市');
     await page.locator('#draw').click();
@@ -95,9 +96,32 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.jpg
     await page.waitForFunction(()=>!document.querySelector('#result').hidden);
     assert.equal(await page.locator('#result-title').innerText(),'昆山市');
     assert.match(await page.locator('#result-region').innerText(),/苏州市 · 昆山市/);
-    assert.match(await page.locator('#map-status').innerText(),/地图服务暂不可用/);
-    assert.equal(await page.locator('#places li').count(),1);
+    await page.waitForFunction(()=>window.mapMarkers===20);
+    assert.equal(await page.evaluate(()=>window.mapOptions.dragEnable),true);
+    assert.equal(await page.evaluate(()=>window.mapOptions.scrollWheel),true);
+    assert.equal(await page.locator('#places .sight li').count(),10);
+    assert.equal(await page.locator('#places .food li').count(),10);
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
+    await page.locator('#result').screenshot({path:path.join(os.tmpdir(),'travel-discover-categories.png')});
     assert.deepEqual(errors,[]);
-    console.log('Browser checks passed: preview, repeat draw, invalid origin, mobile overflow, nationwide county-city result, map-error fallback.');
+    // Old deployed API: separate requests still produce ten sights and ten foods.
+    let foodRequests=0;
+    await page.route('https://resource.test/**',async(route)=>{
+      const q=new URL(route.request().url()).searchParams;
+      if(q.get('action')!=='places')return route.fallback();
+      const food=q.get('interests')==='food'; if(food)foodRequests++;
+      return route.fulfill({json:{places:Array.from({length:10},(_,i)=>({id:`${food}-${i}`,name:`${food?'餐厅':'景点'}${i}`,coord:[120.95,31.39],type:food?'餐饮服务 · 中餐厅':'风景名胜'}))}});
+    });
+    await page.evaluate(()=>{window.loadDiscoverAmap=()=>Promise.reject(new Error('地图服务暂不可用'));});
+    await page.locator('#again').click();
+    await page.waitForFunction(()=>!document.querySelector('#draw').disabled);
+    await page.locator('.choose-candidate').click();
+    await page.waitForFunction(()=>document.querySelector('#map-status').textContent.includes('地图服务暂不可用'));
+    assert.equal(foodRequests,1);
+    assert.equal(await page.locator('#places .sight li').count(),10);
+    assert.equal(await page.locator('#places .food li').count(),10);
+    assert.equal(await page.evaluate(()=>window.mapDestroyed),true);
+    assert.deepEqual(errors,[]);
+    console.log('Browser checks passed: preview, mobile, grouped and legacy APIs (10+10), interactive map configuration, cleanup, map-error fallback.');
   }finally{await browser?.close();await new Promise(r=>server.close(r));}
 })().catch(error=>{console.error(error);process.exitCode=1;});
