@@ -1646,6 +1646,8 @@
     document.querySelector("#dialog-date").dateTime = visit.date;
     document.querySelector("#dialog-date").textContent = dateFormatter.format(new Date(`${visit.date}T00:00:00`));
     document.querySelector("#dialog-title").textContent = visit.name;
+    const attractionLink = document.querySelector("#city-attractions-link");
+    if (attractionLink) attractionLink.href = `./attractions.html?city=${encodeURIComponent(visit.name)}&country=${encodeURIComponent(visit.country)}`;
     document.querySelector("#dialog-description").textContent = visit.desc;
     const cover = document.querySelector("#dialog-cover");
     cover.hidden = !visit.coverUrl;

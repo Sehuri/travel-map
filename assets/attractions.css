@@ -1,0 +1,46 @@
+.attractions-page { min-height:100vh; background:#0b1b23; color:#ecf0e5; }
+.attraction-header { display:flex; justify-content:space-between; gap:1rem; padding:1.5rem 5vw; }
+.attraction-header>a:last-child { font-size:.85rem; }
+.attraction-shell { width:min(1200px,90vw); margin:2rem auto 5rem; }
+.attraction-intro h1 { font-size:clamp(2.6rem,6vw,5rem); line-height:1.2; margin:1rem 0; }
+.attraction-intro h1 span { color:var(--accent); }
+.attraction-help,.attraction-catalogue-note { max-width:70ch; color:#aabcc2; font-size:.85rem; line-height:1.8; }
+.attraction-toolbar { display:grid; grid-template-columns:1.2fr 2fr 1fr auto; gap:1rem; align-items:end; margin:2rem 0; }
+.attraction-toolbar label { display:flex; flex-direction:column; gap:.5rem; font-size:.8rem; min-width:0; }
+.attractions-page input,.attractions-page select,.attractions-page button { font:inherit; }
+.attraction-toolbar input,.attraction-toolbar select,.attractions-page button { border:1px solid #587179; background:#132b34; color:#ecf0e5; border-radius:9px; padding:.8rem; min-height:44px; }
+.attraction-toolbar input,.attraction-toolbar select { width:100%; }
+.attractions-page button { cursor:pointer; }
+.attractions-page button:disabled { opacity:.5; cursor:not-allowed; }
+.attractions-page :focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+#attraction-service-status { padding:1rem; border:1px solid #36535c; border-radius:10px; color:#c7d6d7; }
+#attraction-service-status.error { color:#ffd4be; border-color:#925e4c; }
+.attraction-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1.2rem; }
+.attraction-card { min-width:0; padding:1.5rem; border:1px solid #36505a; border-radius:18px; background:linear-gradient(145deg,#142c36,#10222d); }
+.attraction-card h2 { font-size:1.6rem; line-height:1.35; margin:.35rem 0 1rem; overflow-wrap:anywhere; }
+.attraction-card .place-index { font:italic 1rem Georgia,serif; color:#95b4bb; }
+.attraction-links { display:flex; gap:1rem; margin-bottom:1rem; font-size:.8rem; color:#c7d6d7; }
+.attraction-links a { text-decoration:underline; }
+.vote-total { font-size:.82rem; color:#b6c9cd; }
+.vote-stack { display:flex; height:12px; border-radius:8px; overflow:hidden; background:#253e49; margin:.8rem 0; }
+.vote-stack span { flex-basis:var(--share); background:var(--tier-color); }
+.vote-distribution { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.35rem; margin:1rem 0 1.3rem; }
+.vote-distribution div { display:flex; flex-direction:column; gap:.2rem; }
+.vote-distribution dt { font-size:.72rem; color:var(--tier-color); }
+.vote-distribution dd { margin:0; font-size:1.05rem; }
+.vote-distribution small { color:#93abb5; font-size:.7rem; }
+.attraction-card fieldset { padding:0; margin:0; border:0; min-width:0; }
+.attraction-card legend { font-size:.85rem; margin-bottom:.6rem; }
+.tier-options { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.4rem; }
+.tier-option { position:relative; display:flex; align-items:center; justify-content:center; border:1px solid #49606a; border-radius:9px; padding:.7rem .15rem; min-height:44px; font-size:.78rem; cursor:pointer; }
+.tier-option input { position:absolute; opacity:0; width:1px; height:1px; }
+.tier-option:has(input:checked) { background:var(--tier-color); border-color:var(--tier-color); color:#14232c; font-weight:700; }
+.tier-option:has(input:focus-visible) { outline:3px solid var(--accent); outline-offset:3px; }
+.tier-option:has(input:disabled) { cursor:default; }
+.vote-submit { width:100%; margin-top:.8rem; }
+.attractions-page .vote-submit:not(:disabled) { background:#e6ff78; color:#152c30; border-color:#e6ff78; font-weight:700; }
+.vote-status { font-size:.8rem; min-height:1.5em; line-height:1.6; color:#c6d7cb; margin:.8rem 0 0; }
+.vote-status.error { color:#ffbaa6; }
+#attraction-more { display:block; margin:1.5rem auto; }
+.attractions-page [hidden] { display:none!important; }
+@media(max-width:700px) { .attraction-toolbar { grid-template-columns:1fr 1fr; } .attraction-toolbar label:nth-child(2) { grid-column:1/-1; grid-row:2; } .attraction-list { grid-template-columns:1fr; } .attraction-card { padding:1.1rem; } .attraction-shell { width:92vw; } .attraction-header { padding:1rem 4vw; } .attraction-header .brand { font-size:.7rem; } }

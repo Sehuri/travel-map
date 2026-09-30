@@ -1,5 +1,16 @@
 # Supabase 配置
 
+## 景点评等级
+
+在现有项目的 SQL Editor 中运行一次 [supabase/attraction_ratings.sql](./supabase/attraction_ratings.sql)，无需修改原有城市评分表。保持 Anonymous Sign-Ins 开启（与城市评分共用匿名浏览器身份）。
+
+- 新建景点目录、景点投票、公开聚合计数三个表；只公开人数和等级汇总，访客只能读取自己的具体选票。
+- 每个匿名用户／正式用户对每个景点仅可 INSERT 一次，复合主键防重复；不授予访客 UPDATE 或 DELETE 权限。
+- 自动计数触发器使用原子更新，重复提交不会增加人数。删除用户时其选票级联删除，对应计数同步减一。
+- 目录源文件为 `assets/attraction-data.js`；执行 `node scripts/build-attraction-sql.cjs` 同步生成初始化 SQL 与迁移文件。重复运行初始化只更新目录元数据，不清空选票。
+- 景点 ID 由国家、城市、名称构成；已上线景点更名时务必保留原 ID，避免丢失投票关联。目录为名称索引，不提供实时营业、票价或官方景区等级承诺。
+- 未运行初始化或服务连接失败时，页面允许浏览目录但禁用投票，投票占比显示“待连接”，不会误显示为零票。
+
 网站的城市资料和公众评分使用 Supabase 保存。前端只使用可公开的 Publishable Key；不要把 `service_role` 密钥写入仓库。
 
 ## 1. 创建项目并运行数据库脚本

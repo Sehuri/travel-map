@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>景点评等级｜Sehuri 的旅行足迹</title>
+  <meta name="description" content="给城市中的景点选择你的等级，看看大家的旅行体验。">
+  <link rel="icon" type="image/png" href="./assets/favicon-fuji.png">
+  <link rel="stylesheet" href="./assets/styles.css?v=20260904.1">
+  <link rel="stylesheet" href="./assets/attractions.css?v=20260930.1">
+  <link rel="stylesheet" href="./assets/site-bgm.css?v=20260925.2">
+</head>
+<body class="attractions-page">
+  <a class="skip-link" href="#attraction-list">跳到景点评级</a>
+  <header class="attraction-header"><a class="brand" href="./index.html"><span class="brand-mark">S</span> SEHURI / PLACES</a><a id="back-city" href="./index.html">返回城市详情 ↗</a></header>
+  <main class="attraction-shell">
+    <div class="attraction-intro"><p class="eyebrow">A PLACE, YOUR TAKE / 留下你的体验</p><h1><span id="attraction-city">城市</span>，<br>哪些地方值得？</h1><p>夯 · 顶级 · 人上人 · NPC · 拉完了</p><p class="attraction-help">每个浏览器对每个景点仅可提交一次，提交后不能修改。换设备或清除浏览器数据后会被视为新访客。</p></div>
+    <div class="attraction-toolbar">
+      <label>切换城市<select id="attraction-city-select"></select></label>
+      <label>寻找景点<input id="attraction-search" type="search" placeholder="输入景点名称" autocomplete="off"></label>
+      <label>查看<select id="attraction-filter"><option value="all">全部景点</option><option value="voted">我已评价</option><option value="unvoted">我未评价</option></select></label>
+      <button id="attraction-refresh" type="button">刷新投票结果 ↻</button>
+    </div>
+    <p id="attraction-service-status" role="status" aria-live="polite">正在连接景点投票服务…</p>
+    <p class="attraction-catalogue-note">收录景区、博物馆、公园及街区等游览点，包含城市辖区内的周边目的地。等级反映参与者的体验；尚未体验过的景点可以先浏览结果。</p>
+    <p id="attraction-result-count" aria-live="polite"></p>
+    <div id="attraction-list" class="attraction-list"></div>
+    <button id="attraction-more" type="button" hidden>显示更多景点</button>
+    <noscript>请启用 JavaScript 浏览景点并参与评价。</noscript>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+  <script src="./assets/supabase-config.js"></script>
+  <script src="./assets/attraction-data.js?v=20260930.1"></script>
+  <script src="./assets/attraction-engine.js?v=20260930.1"></script>
+  <script src="./assets/attractions.js?v=20260930.1"></script>
+  <script src="./assets/site-bgm-config.js?v=20260925.2"></script>
+  <script src="./assets/site-bgm.js?v=20260925.2"></script>
+</body>
+</html>

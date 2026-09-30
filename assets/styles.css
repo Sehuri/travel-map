@@ -992,3 +992,7 @@ dialog h2 { margin: 1rem 0; font-size: clamp(2.8rem, 7vw, 5rem); letter-spacing:
   html { scroll-behavior: auto; }
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+.city-attraction-entry { margin:2rem 0; padding:1.5rem; border:1px solid #49606a; border-radius:12px; background:#132b34; }
+.city-attraction-entry h3 { margin:.6rem 0; }
+.city-attraction-entry p:not(.eyebrow) { color:#b6c9cd; font-size:.9rem; }
+.city-attraction-entry a { display:inline-block; padding:.8rem 1.2rem; background:#e6ff78; color:#14232c; border-radius:8px; }
