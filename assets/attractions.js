@@ -13,7 +13,7 @@
   function status(text,error=false){el['service-status'].textContent=text;el['service-status'].classList.toggle('error',error);}
   function render(){
     const filtered=places.filter(p=>p.name.includes(el.search.value.trim()) && (el.filter.value==='all'||(el.filter.value==='voted'?own.has(p.id):!own.has(p.id))));
-    el['result-count'].textContent=`共 ${places.length} 个景点 · 当前显示 ${filtered.length} 个`;
+    el['result-count'].textContent=`共 ${places.length} 个景点 · 匹配 ${filtered.length} 个 · 已显示 ${Math.min(limit,filtered.length)} 个`;
     el.more.hidden=filtered.length<=limit;
     el.list.innerHTML=filtered.slice(0,limit).map(p=>{
       const result=engine.distribution(summaries.get(p.id)||[]), vote=own.get(p.id), locked=!!vote||pending.has(p.id)||!available||!registered.has(p.id)||!user;
