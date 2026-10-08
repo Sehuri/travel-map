@@ -11,7 +11,7 @@
   const wishlistEngine = window.TRAVEL_WISHLIST_ENGINE || {};
   const normalizeWishPriority = wishlistEngine.normalizePriority || ((value) => [1, 2, 3].includes(Number(value)) ? Number(value) : 2);
   const wishPriorityMeta = wishlistEngine.priorityMeta || ((value) => ({ label: ({ 1: "有机会去", 2: "很想去", 3: "最想去" })[normalizeWishPriority(value)] }));
-  const baseVisitMap = new Map(baseVisits.map((visit) => [visit.name, visit]));
+  const baseVisitMap = new Map(window.TRAVEL_VISIT_ENGINE.uniqueCities(baseVisits).map((visit) => [visit.name, visit]));
   const baseWishMap = new Map(baseWishlist.map((wish, index) => [wish.name, {
     ...wish,
     priorityLevel: normalizeWishPriority(wish.priorityLevel),
@@ -181,7 +181,9 @@
     const seen = new Set();
     return [
       { id: "", city_name: name, visit_date: city.date, primary: true },
-      ...visitRows.filter((row) => row.city_name === name).map((row) => ({ ...row, primary: false }))
+      ...visitRows.filter((row) => row.city_name === name).map((row) => ({ ...row, primary: false })),
+      ...baseVisits.filter((visit) => visit.name === name && visit.date !== baseVisitMap.get(name)?.date)
+        .map((visit) => ({id:"",city_name:name,visit_date:visit.date,primary:false,fromCode:true}))
     ].filter((row) => row.visit_date && !seen.has(row.visit_date) && seen.add(row.visit_date))
       .sort((a, b) => b.visit_date.localeCompare(a.visit_date));
   }
@@ -210,10 +212,10 @@
       time.textContent = new Intl.DateTimeFormat("zh-CN", { dateStyle: "long" })
         .format(new Date(`${row.visit_date}T00:00:00`));
       const label = document.createElement("span");
-      label.textContent = row.primary ? "首次到访" : "再次到访";
+      label.textContent = row.primary ? "首次到访" : row.fromCode ? "再次到访 · 代码记录" : "再次到访";
       copy.append(time, label);
       item.append(copy);
-      if (!row.primary) {
+      if (!row.primary && !row.fromCode) {
         const remove = document.createElement("button");
         remove.type = "button";
         remove.textContent = "删除";

@@ -65,14 +65,14 @@ test('the built-in archive produces stable headline statistics', () => {
   require('../assets/photos.js');
   const stats = buildTravelStats(global.window.TRAVEL_DATA.visits, global.window.PHOTO_MANIFEST, { today: '2026-09-11' });
   global.window = previousWindow;
-  assert.equal(stats.tripCount, 29);
+  assert.equal(stats.tripCount, 30);
   assert.equal(stats.elapsedDays, 4813);
   assert.equal(stats.firstVisitDate, '2013-07-09');
   assert.equal(stats.firstVisitName, '日照');
-  assert.equal(stats.distanceKm, 36900);
+  assert.equal(stats.distanceKm, 47400);
   assert.equal(stats.provinceCount, 19);
-  assert.equal(stats.countryCount, 2);
+  assert.equal(stats.countryCount, 4);
   assert.equal(stats.photoCount, 67);
   assert.equal(stats.photoCityCount, 8);
-  assert.deepEqual(stats.monthCounts, [9, 7, 4, 7, 2, 1, 6, 7, 4, 4, 0, 2]);
+  assert.deepEqual(stats.monthCounts, [9, 7, 4, 7, 2, 1, 6, 7, 4, 9, 0, 2]);
 });

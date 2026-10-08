@@ -21,12 +21,15 @@
   const regionGroups = {
     "中国 · 华东": ["日照", "滁州", "淮安", "青岛", "南京", "杭州", "泰州", "上海", "苏州", "扬州", "合肥", "九江", "南昌", "芜湖", "上饶", "黄山", "泰安", "镇江", "济南", "烟台", "马鞍山", "无锡", "常州", "嘉兴", "厦门", "福州", "漳州", "威海", "宁波", "台州", "六安", "绍兴"],
     "中国 · 华中": ["武汉", "洛阳", "郑州", "长沙", "湘潭", "衡阳"],
-    "中国 · 华南": ["三亚", "香港", "深圳"],
+    "中国 · 华南": ["三亚", "香港", "深圳", "广州"],
     "中国 · 华北": ["北京"],
     "中国 · 东北": ["大连", "哈尔滨", "沈阳"],
     "中国 · 西北": ["渭南", "西安", "银川", "阿拉善盟"],
     "日本 · 关西": ["大阪", "京都"],
-    "日本 · 关东": ["东京", "镰仓"]
+    "日本 · 关东": ["东京", "镰仓"],
+    "新加坡": ["新加坡"],
+    "印度尼西亚 · 雅加达": ["雅加达"],
+    "印度尼西亚 · 东爪哇": ["泗水"]
   };
   const regionByCity = new Map(
     Object.entries(regionGroups).flatMap(([region, cities]) => cities.map((city) => [city, region]))
@@ -993,7 +996,6 @@
       const normalizeDistrictName = mapEngine.normalizeChinaDistrictName || ((name) => String(name || "").replace(/市$/u, ""));
       const uniqueVisits = uniqueCityVisits(visits);
       const chinaVisits = uniqueVisits.filter((visit) => visit.country === "中国");
-      const eastAsiaVisits = uniqueVisits.filter((visit) => visit.country === "中国" || visit.country === "日本");
       const visitsByDistrict = new Map(chinaVisits.map((visit) => [normalizeDistrictName(visit.name), visit]));
       const getDistrictVisit = (properties) => visitsByDistrict.get(normalizeDistrictName(properties?.NAME_CHN)) || null;
       const getDistrictEventVisit = (event) => {
@@ -1042,7 +1044,7 @@
       await initializeJapanesePrefecturePolygons(AMap);
 
       const getAmapCoordinate = mapEngine.getAmapCoordinate || ((place) => place.coord);
-      chinaMarkers = eastAsiaVisits.map((visit) => {
+      chinaMarkers = uniqueVisits.map((visit) => {
         const content = document.createElement("button");
         content.type = "button";
         content.className = "amap-marker-button";
@@ -1053,7 +1055,7 @@
         dot.className = "travel-marker";
         dot.setAttribute("aria-hidden", "true");
         content.append(dot);
-        if (visit.country === "日本") {
+        if (visit.country !== "中国") {
           content.classList.add("amap-japan-marker-button");
           const label = document.createElement("span");
           label.className = "amap-japan-marker-label";
@@ -1273,7 +1275,7 @@
     document.querySelector("#map-primary-label").textContent = isWishlist
       ? "想去目的地"
       : mapView === "province"
-        ? `已点亮 ${[...getVisibleProvinceRegions().values()].reduce((sum, regions) => sum + regions.size, 0)} 个省级地区`
+        ? `已点亮 ${[...getVisibleProvinceRegions()].filter(([country]) => ["中国", "日本"].includes(country)).reduce((sum, [, regions]) => sum + regions.size, 0)} 个省级地区`
         : (filtersActive ? `筛选结果 ${uniqueCityVisits(visibleJourneyVisits).length}` : "已到访");
     document.querySelector("#map-secondary-label").textContent = isWishlist ? "当前选择" : "当前城市";
     document.querySelector("#map-primary-dot").className = `legend-dot ${isWishlist ? "wishlist" : "visited"}`;
@@ -1281,7 +1283,7 @@
       ? "光点越大代表越想去，点击可查看对应旅行攻略"
       : (filtersActive
           ? `地图已同步展示筛选后的 ${uniqueCityVisits(visibleJourneyVisits).length} 座城市`
-          : (mapView === "world" ? "中国与海外足迹都能在全球地图上查看" : mapView === "province" ? "去过任一城市，即点亮所属省级地区或日本都道府县" : "中国足迹按市域填色，日本足迹以城市光点标记"));
+          : (mapView === "world" ? "中国与海外足迹都能在全球地图上查看" : mapView === "province" ? "去过任一城市，即点亮所属省级地区或日本都道府县" : "中国足迹按市域填色，海外足迹以城市光点标记"));
     document.querySelector("#footprint-extremes").hidden = isWishlist || !visibleJourneyVisits.length;
     updateWorldMapMode();
     refreshChinaDistrictStyles();
@@ -1297,8 +1299,12 @@
       ? wishlistMarkers
       : chinaMarkers.filter(({ visit }) => visibleJourneyNames.has(visit.name)))
       .map(({ marker }) => marker);
-    if (visibleMarkers.length) {
-      chinaMap.setFitView(visibleMarkers, false, [54, 54, 54, 54], isWishlist ? 5 : 7);
+    // Keep the default China-detail framing; an overseas filter still fits its cities.
+    const fittedMarkers = !isWishlist && !filtersActive && mapView === "china"
+      ? chinaMarkers.filter(({visit}) => visibleJourneyNames.has(visit.name) && ["中国", "日本"].includes(visit.country)).map(({marker}) => marker)
+      : visibleMarkers;
+    if (fittedMarkers.length) {
+      chinaMap.setFitView(fittedMarkers, false, [54, 54, 54, 54], isWishlist ? 5 : 7);
     }
     if (!isWishlist && activeCity) {
       const selected = chinaMarkers.find((entry) => entry.visit.name === activeCity.name);
@@ -1648,6 +1654,8 @@
     document.querySelector("#dialog-title").textContent = visit.name;
     const attractionLink = document.querySelector("#city-attractions-link");
     if (attractionLink) attractionLink.href = `./attractions.html?city=${encodeURIComponent(visit.name)}&country=${encodeURIComponent(visit.country)}`;
+    const attractionEntry = attractionLink?.closest(".city-attraction-entry");
+    if (attractionEntry) attractionEntry.hidden = !window.TRAVEL_ATTRACTION_DATA?.attractions.some(place => place.city === visit.name && place.country === visit.country);
     document.querySelector("#dialog-description").textContent = visit.desc;
     const cover = document.querySelector("#dialog-cover");
     cover.hidden = !visit.coverUrl;

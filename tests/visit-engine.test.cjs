@@ -43,6 +43,11 @@ test('duplicate dates are ignored and hidden cities remove all visits', () => {
   assert.deepEqual(hidden, []);
 });
 
+test('city markers and admin profiles keep first arrival even when visits are unordered',()=>{
+  const visits=[{name:'雅加达',date:'2026-10-04'},{name:'新加坡',date:'2026-10-01'},{name:'雅加达',date:'2026-10-02'}];
+  assert.equal(uniqueCities(visits).find(v=>v.name==='雅加达').date,'2026-10-02');
+});
+
 test('visit migration and admin UI protect shared city data', () => {
   const sql = read('supabase/city_visits.sql');
   const admin = read('admin.html');
@@ -65,7 +70,11 @@ test('Chuzhou is included in the built-in journey archive', () => {
   const visits = global.window.TRAVEL_DATA.visits;
   global.window = previousWindow;
   const chuzhou = visits.find((visit) => visit.name === '滁州');
-  assert.equal(visits.length, 53);
+  assert.equal(visits.length, 58);
   assert.equal(chuzhou.date, '2023-01-24');
   assert.deepEqual(chuzhou.coord, [118.32, 32.30]);
+  assert.equal(new Set(visits.map(visit=>visit.name)).size,57);
+  assert.deepEqual(visits.filter(visit=>['新加坡','雅加达','泗水','广州'].includes(visit.name)).map(visit=>[visit.name,visit.date]),[
+    ['新加坡','2026-10-01'],['雅加达','2026-10-02'],['泗水','2026-10-03'],['雅加达','2026-10-04'],['广州','2026-10-06']
+  ]);
 });

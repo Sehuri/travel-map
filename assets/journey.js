@@ -6,6 +6,7 @@
   const numberFormatter = new Intl.NumberFormat("zh-CN");
   let lastPhotoButton = null;
   let allJourneys = [];
+  let allVisits = [];
   let activeJourney = null;
   let replay = null;
   let replayIndex = 0;
@@ -36,7 +37,7 @@
   function cityHref(cityName, date = "") {
     const url = new URL("./index.html", window.location.href);
     url.searchParams.set("city", cityName);
-    if (date) url.searchParams.set("visit", date);
+    if (date && allVisits.some(visit => visit.name === cityName && visit.date === date)) url.searchParams.set("visit", date);
     return url.toString();
   }
 
@@ -633,6 +634,7 @@
     byId("journey-current-year").textContent = new Date().getFullYear();
     if (window.TRAVEL_CONTENT?.ready) await window.TRAVEL_CONTENT.ready;
     const content = window.TRAVEL_CONTENT?.getState?.() || {};
+    allVisits = content.visits || [];
     const journeys = content.journeys || [];
     allJourneys = journeys;
     const slug = new URL(window.location.href).searchParams.get("slug") || "";

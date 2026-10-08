@@ -81,7 +81,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('.journey-photo-grid figure').count(), 32);
     assert.match(await page.locator('.journey-stop a').first().getAttribute('href'), /index\.html\?city=%E5%A4%A7%E9%98%AA&visit=2026-02-03/);
 
-    assert.equal(await page.locator('#route-replay-journey option').count(), 6);
+    assert.equal(await page.locator('#route-replay-journey option').count(), 7);
     assert.equal(await page.locator('#route-replay-map').getAttribute('data-map-provider'), 'amap');
     assert.equal(await page.locator('#route-replay-map').getAttribute('data-segment-count'), '3');
     assert.equal(await page.locator('.route-map-stop').count(), 4);
@@ -131,6 +131,22 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.match(await page.locator('#route-replay-date').innerText(), /2025年7月7日/);
     await page.locator('#route-replay-next').click();
     assert.equal(await page.locator('#route-replay-panel-city').innerText(), '福州');
+
+    await page.goto(`${base}/journey.html?slug=2026-singapore-indonesia-national-day&replay=1`, {waitUntil:'networkidle'});
+    assert.equal(await page.locator('#journey-title').innerText(),'2026 新加坡与印尼国庆之旅');
+    assert.equal(await page.locator('#journey-days').innerText(),'7 天');
+    assert.equal(await page.locator('.journey-stop').count(),7);
+    assert.equal(await page.locator('.route-map-stop').count(),7);
+    assert.equal(await page.locator('#route-replay-map').getAttribute('data-segment-count'),'6');
+    assert(!(new URL(await page.locator('.journey-stop a').first().getAttribute('href'))).searchParams.has('visit'));
+    await page.locator('#route-replay-next').click();
+    assert.equal(await page.locator('#route-replay-panel-city').innerText(),'新加坡');
+    assert.match(await page.locator('#route-replay-date').innerText(),/2026年10月1日/);
+    await page.locator('#route-replay-next').click();await page.locator('#route-replay-next').click();
+    assert.equal(await page.locator('#route-replay-panel-city').innerText(),'泗水');
+    await page.locator('#route-replay-next').click();
+    assert.equal(await page.locator('#route-replay-panel-city').innerText(),'雅加达');
+    assert.match(await page.locator('#route-replay-date').innerText(),/2026年10月4日/);
 
     await page.setViewportSize({ width: 390, height: 844 });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));

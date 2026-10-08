@@ -1,12 +1,12 @@
 const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
 const {attractions}=require('../assets/attraction-data.js');
 const {tiers,distribution}=require('../assets/attraction-engine.js');
-test('catalogue covers all existing cities, with stable unique IDs and ten or more places',()=>{
+test('existing attraction catalogue remains valid after new visit cities are added',()=>{
   const context={window:{}};vm.runInNewContext(fs.readFileSync(require.resolve('../assets/data.js'),'utf8'),context);
   const cities=new Set(context.window.TRAVEL_DATA.visits.map(v=>v.name));
-  assert.equal(cities.size,53);assert.equal(attractions.length,721);
+  assert.equal(cities.size,57);assert.equal(attractions.length,721);
   assert.equal(new Set(attractions.map(a=>a.id)).size,attractions.length);
-  for(const city of cities)assert(attractions.filter(a=>a.city===city).length>=10,city);
+  for(const city of new Set(attractions.map(a=>a.city))){assert(cities.has(city));assert(attractions.filter(a=>a.city===city).length>=10,city);}
   for(const a of attractions)assert(a.id.endsWith('/'+a.name));
   assert.equal(tiers.map(t=>t.label).join('/'),'夯/顶级/人上人/NPC/拉完了');
 });

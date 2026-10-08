@@ -12,7 +12,7 @@
   function uniqueCities(visits) {
     const cities = new Map();
     (visits || []).forEach((visit) => {
-      if (visit?.name) cities.set(visit.name, visit);
+      if (visit?.name && (!cities.has(visit.name) || visit.date < cities.get(visit.name).date)) cities.set(visit.name, visit);
     });
     return [...cities.values()];
   }

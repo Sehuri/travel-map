@@ -52,9 +52,43 @@ window.TRAVEL_DATA = {
     { name:"长沙", country:"中国", date:"2026-04-02", coord:[112.97,28.23], desc:"岳麓山、橘子洲、太平街与湖南博物院，星城的夜晚总有热度。" },
     { name:"湘潭", country:"中国", date:"2026-04-03", coord:[112.94,27.83], desc:"韶山与盘龙大观园，在伟人故里了解一段近现代历史。" },
     { name:"衡阳", country:"中国", date:"2026-04-04", coord:[112.57,26.89], desc:"南岳衡山与石鼓书院，在雁城之南为春日旅程收尾。" },
-    { name:"绍兴", country:"中国", date:"2026-06-26", coord:[120.58,30.00], desc:"鲁迅故里、沈园、仓桥直街与东湖，在乌篷船与青石板路之间感受古越水乡。" }
+    { name:"绍兴", country:"中国", date:"2026-06-26", coord:[120.58,30.00], desc:"鲁迅故里、沈园、仓桥直街与东湖，在乌篷船与青石板路之间感受古越水乡。" },
+    { name:"新加坡", country:"新加坡", region:"新加坡", date:"2026-10-01", coord:[103.8545,1.2868], desc:"10 月 1 日抵达樟宜机场，次日在滨海湾、鱼尾狮公园、旧禧街、福康宁与牛车水之间串联花园城市，晚间飞往雅加达。" },
+    { name:"雅加达", country:"印度尼西亚", region:"印度尼西亚 · 雅加达", admin1:"雅加达", date:"2026-10-02", coord:[106.8272,-6.1754], desc:"10 月 2 日首次抵达，10 月 4 日从泗水返回；行程串联国家纪念塔、Kota Tua 老城、独立广场周边与 Thamrin 商圈。" },
+    { name:"泗水", country:"印度尼西亚", region:"印度尼西亚 · 东爪哇", admin1:"东爪哇", date:"2026-10-03", coord:[112.7871,-7.3798], desc:"10 月 3 日抵达朱安达机场，作为布罗莫火山日出行程的接驳点；10 月 4 日返回机场，再飞往雅加达。地图标记采用行程书中的到达机场坐标。" },
+    { name:"雅加达", country:"印度尼西亚", region:"印度尼西亚 · 雅加达", admin1:"雅加达", date:"2026-10-04", coord:[106.8272,-6.1754], desc:"10 月 2 日首次抵达，10 月 4 日从泗水返回；行程串联国家纪念塔、Kota Tua 老城、独立广场周边与 Thamrin 商圈。" },
+    { name:"广州", country:"中国", region:"中国 · 华南", date:"2026-10-06", coord:[113.2644,23.1291], desc:"10 月 6 日从雅加达抵达广州，次日以陈家祠、永庆坊、西关与沙面串联城市停留，晚间返回南京。" }
   ],
   journeys: [
+    {
+      id: "base-singapore-indonesia-2026",
+      slug: "2026-singapore-indonesia-national-day",
+      title: "2026 新加坡与印尼国庆之旅",
+      startDate: "2026-10-01",
+      endDate: "2026-10-07",
+      coverUrl: "",
+      summary: "南京出发，经新加坡抵达雅加达，再由泗水接驳布罗莫火山日出；返回雅加达后经广州停留，最后回到南京。",
+      distanceKm: 10465,
+      distanceEstimated: true,
+      accommodation: "",
+      budgetAmount: null,
+      budgetCurrency: "CNY",
+      companions: "1 人",
+      planningNotes: "依据《印尼7天-调整版-2026-10-01-行程书》整理。计划预算 ¥8,302，不代表实际花费；实际支出与住宿可在后台补充。约 10,465 公里为六段城市／到达点之间的直线估算，不含市内交通与布罗莫团车，不代表实际飞行里程。航班时刻按行程书中的当地时间记录，新加坡及中国为 UTC+8，印度尼西亚本段为 UTC+7。",
+      travelNotes: "10/1 南京出发，22:20 抵达新加坡；10/2 新加坡城市停留，21:25 抵达雅加达；10/3 雅加达城市停留，18:50 抵达泗水，晚间团车前往布罗莫；10/4 布罗莫日出后返回泗水，20:00 再次抵达雅加达；10/5 雅加达城市停留；10/6 19:35 抵达广州；10/7 广州城市停留，21:00 返回南京。以上由行程书整理，具体游览体验可继续补充。",
+      reflection: "",
+      sortOrder: 0,
+      photoCities: ["新加坡", "雅加达", "泗水", "广州"],
+      stops: [
+        { cityName:"南京", stopOrder:0, arrivalDate:"2026-10-01", departureDate:"2026-10-01", transportToNext:"飞机 · 酷航 TR181 · 17:05—22:20", distanceToNextKm:0, notes:"南京禄口机场出发。行程书航班：10 月 1 日 17:05 起飞，22:20 抵达新加坡樟宜机场。" },
+        { cityName:"新加坡", stopOrder:1, arrivalDate:"2026-10-01", departureDate:"2026-10-02", transportToNext:"飞机 · 酷航 TR272 · 20:30—21:25（当地时间）", distanceToNextKm:0, notes:"10 月 1 日 22:20 抵达樟宜。10 月 2 日行程串联滨海湾花园、鱼尾狮公园、旧禧街、福康宁公园、牛车水与星耀樟宜，晚间飞往雅加达。" },
+        { cityName:"雅加达", stopOrder:2, arrivalDate:"2026-10-02", departureDate:"2026-10-03", transportToNext:"飞机 · 佩利塔航空 IP210 · 17:15—18:50", distanceToNextKm:0, notes:"10 月 2 日 21:25 首次抵达雅加达。10 月 3 日行程包括独立广场、国家纪念塔与 Kota Tua 老城，下午飞往泗水。" },
+        { cityName:"泗水", stopOrder:3, arrivalDate:"2026-10-03", departureDate:"2026-10-04", transportToNext:"飞机 · 佩利塔航空 IP207 · 18:25—20:00", distanceToNextKm:0, notes:"10 月 3 日 18:50 抵达朱安达机场；晚间团车接驳布罗莫。10 月 4 日行程包括 Penanjakan 观景台、布罗莫火山口与沙海，下午返回泗水机场，晚间飞回雅加达。布罗莫属于本段周边游，不作为新增城市计数。" },
+        { cityName:"雅加达", stopOrder:4, arrivalDate:"2026-10-04", departureDate:"2026-10-06", transportToNext:"飞机 · 南方航空 CZ3038 · 13:15—19:35（当地时间）", distanceToNextKm:0, notes:"10 月 4 日 20:00 再次抵达。10 月 5 日行程串联 Jatinegara 市场、雅加达大教堂、伊斯蒂克拉尔清真寺、Thamrin 商圈与观景台夜景；10 月 6 日飞往广州。" },
+        { cityName:"广州", stopOrder:5, arrivalDate:"2026-10-06", departureDate:"2026-10-07", transportToNext:"飞机 · 南方航空 CZ3507 · 18:40—21:00", distanceToNextKm:0, notes:"10 月 6 日 19:35 抵达白云机场。10 月 7 日行程包括陈家祠、永庆坊、西关与沙面，晚间飞回南京。" },
+        { cityName:"南京", stopOrder:6, arrivalDate:"2026-10-07", departureDate:"2026-10-07", transportToNext:"", distanceToNextKm:0, notes:"10 月 7 日 21:00 返回南京禄口机场，为七天国庆旅程收尾。" }
+      ]
+    },
     {
       id: "base-japan-2026",
       slug: "2026-japan-kansai-kanto",

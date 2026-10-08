@@ -17,8 +17,8 @@
 </p>
 
 <p align="center">
-  <img alt="53 座城市" src="https://img.shields.io/badge/足迹-53_座城市-e4ff75?style=flat-square&labelColor=07111f">
-  <img alt="2 个国家" src="https://img.shields.io/badge/版图-2_个国家-8adbd1?style=flat-square&labelColor=07111f">
+  <img alt="57 座城市" src="https://img.shields.io/badge/足迹-57_座城市-e4ff75?style=flat-square&labelColor=07111f">
+  <img alt="4 个国家" src="https://img.shields.io/badge/版图-4_个国家-8adbd1?style=flat-square&labelColor=07111f">
   <img alt="原生前端" src="https://img.shields.io/badge/构建-HTML_·_CSS_·_JavaScript-ffad66?style=flat-square&labelColor=07111f">
   <img alt="GitHub Pages" src="https://img.shields.io/badge/部署-GitHub_Pages-f5f1df?style=flat-square&labelColor=07111f">
 </p>
@@ -29,7 +29,7 @@
   </a>
 </p>
 
-从 2013 年黄海边的第一次远行，到 2026 年绍兴初夏的水乡漫步。这里不只记录打卡数字，也保存城市、路线、照片、攻略，以及仍在期待的下一站。
+从 2013 年黄海边的第一次远行，到 2026 年国庆的新加坡与印尼之旅。这里不只记录打卡数字，也保存城市、路线、照片、攻略，以及仍在期待的下一站。
 
 ## ✨ 项目亮点
 
@@ -98,7 +98,7 @@
 - 持续旅行的年份数量
 - 根据城市经纬度自动计算最北、最南、最东和最西足迹，并可点击查看城市详情
 
-当前已记录 **53 座城市、2 个国家、5 个旅行年份**。
+当前已记录 **57 座城市、4 个国家、5 个旅行年份**。新增 2026 年国庆新加坡、雅加达、泗水与广州足迹，保留雅加达两次到访；正式旅程记录 10 月 1 日至 7 日的南京出发与返回、六段航班和布罗莫火山接驳。日期与航班来自用户提供的行程书，预算仅记为计划值，未推断实际花费。
 
 ### 年度旅行时间线
 
