@@ -2,7 +2,22 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const vm = require("node:vm");
 const engine = require("../assets/wishlist-engine.js");
+
+test("completed destinations leave the wishlist without removing visits or their journey", () => {
+  const context = { window: {} };
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../assets/data.js"), "utf8"), context);
+  const data = context.window.TRAVEL_DATA;
+  assert.equal(data.wishlist.length, 27);
+  for (const name of ["广东 · 广州", "新加坡", "印度尼西亚 · 布罗莫火山与雅加达"]) {
+    assert(!data.wishlist.some((item) => item.name === name));
+  }
+  for (const name of ["广州", "新加坡", "雅加达", "泗水"]) {
+    assert(data.visits.some((item) => item.name === name));
+  }
+  assert(data.journeys.some((item) => item.slug === "2026-singapore-indonesia-national-day"));
+});
 
 test("wishlist priority normalizes unknown values without changing existing wishes", () => {
   assert.equal(engine.normalizePriority(3), 3);

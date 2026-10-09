@@ -74,7 +74,7 @@ test('every built-in wishlist card has a map location',()=>{
   require('../assets/data.js');
   const destinations=global.window.TRAVEL_DATA.wishlist;
   global.window=previousWindow;
-  assert.equal(destinations.length,30);
+  assert.equal(destinations.length,27);
   assert.deepEqual(
     destinations.filter((destination)=>!getWishlistMapLocation(destination)).map((destination)=>destination.name),
     []

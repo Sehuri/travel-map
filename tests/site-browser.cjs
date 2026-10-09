@@ -276,15 +276,19 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert(!(await page.locator('#clear-filters').isVisible()));
 
     await page.getByRole('tab', { name: /仍在期待/ }).click();
-    assert.equal(await page.locator('.amap-wishlist-marker-button').count(), 30);
+    assert.equal(await page.locator('.amap-wishlist-marker-button').count(), 27);
+    for (const name of ['广东 · 广州', '新加坡', '印度尼西亚 · 布罗莫火山与雅加达']) {
+      assert.equal(await page.locator(`.wish-card[data-destination="${name}"]`).count(), 0);
+      assert.equal(await page.locator(`.amap-wishlist-marker-button[data-destination="${name}"]`).count(), 0);
+    }
     assert.equal(await page.locator('.amap-marker-button').count(), 0);
     assert.equal(await page.locator('.wish-priority-group').count(), 3);
     assert.match(await page.locator('.wish-priority-board').innerText(), /最想去 · 优先计划.*很想去 · 等待合适时机.*有机会去 · 慢慢收藏/s);
     assert.equal(await page.locator('.wish-card[data-priority="3"]').count(), 2);
-    assert.equal(await page.locator('.wish-card[data-priority="2"]').count(), 22);
+    assert.equal(await page.locator('.wish-card[data-priority="2"]').count(), 19);
     assert.equal(await page.locator('.wish-card[data-priority="1"]').count(), 6);
     assert.equal(await page.locator('.amap-wishlist-marker-button[data-priority="3"]').count(), 2);
-    assert.equal(await page.locator('.amap-wishlist-marker-button[data-priority="2"]').count(), 22);
+    assert.equal(await page.locator('.amap-wishlist-marker-button[data-priority="2"]').count(), 19);
     assert.equal(await page.locator('.amap-wishlist-marker-button[data-priority="1"]').count(), 6);
     assert.equal(await page.locator('#map-title').innerText(), '把愿望放到地图上');
     assert.match(await page.locator('#map-interaction-hint').innerText(), /光点越大代表越想去/);
@@ -312,9 +316,9 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       country: '中国', coord: [120.98, 31.38], coordinateSystem: 'GCJ-02', mapLabel: '昆山市'
     }])));
     await page.reload({ waitUntil: 'networkidle' });
-    assert.equal(await page.locator('#wishlist-count').innerText(), '31');
+    assert.equal(await page.locator('#wishlist-count').innerText(), '28');
     await page.getByRole('tab', { name: /仍在期待/ }).click();
-    assert.equal(await page.locator('.amap-wishlist-marker-button').count(), 31);
+    assert.equal(await page.locator('.amap-wishlist-marker-button').count(), 28);
     assert(await page.locator('[data-destination="江苏省 · 昆山市"]').count());
     assert.equal(await page.locator('.wish-priority-group').count(), 3);
     assert.equal(await page.locator('.wish-card[data-priority="1"]').count(), 7);
@@ -325,7 +329,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       contentType: 'text/javascript',
       body: `${dataSource}\nwindow.TRAVEL_DATA.guideDocuments = [
         { placeType: 'visited', placeName: '日照', title: '日照海滨攻略', fileType: 'pdf', fileUrl: 'https://example.com/rizhao-guide.pdf' },
-        { placeType: 'wishlist', placeName: '新加坡', title: '新加坡自由行', fileType: 'html', fileUrl: 'https://dbmuozbkzkxgigblsgmz.supabase.co/storage/v1/object/public/travel-guides/wishlist/test-guide.html' }
+        { placeType: 'wishlist', placeName: '法国', title: '法国自由行', fileType: 'html', fileUrl: 'https://dbmuozbkzkxgigblsgmz.supabase.co/storage/v1/object/public/travel-guides/wishlist/test-guide.html' }
       ];
       window.TRAVEL_DATA.visits.push({ ...window.TRAVEL_DATA.visits.find((visit) => visit.name === '南京'), date: '2026-10-08' });`
     }));
@@ -354,13 +358,13 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await visitedGuide.getAttribute('href'), 'https://example.com/rizhao-guide.pdf');
     await page.locator('#dialog-close').click();
     await page.getByRole('tab', { name: /仍在期待/ }).click();
-    await page.getByRole('button', { name: '查看新加坡旅行笔记' }).click();
+    await page.getByRole('button', { name: '查看法国旅行笔记' }).click();
     const wishlistGuide = page.locator('#wishlist-guide-documents a');
-    assert.match(await wishlistGuide.innerText(), /HTML\s+新加坡自由行/);
+    assert.match(await wishlistGuide.innerText(), /HTML\s+法国自由行/);
     const viewerHref = await wishlistGuide.getAttribute('href');
     const viewerUrl = new URL(viewerHref);
     assert.equal(viewerUrl.pathname, '/guide-viewer.html');
-    assert.equal(viewerUrl.searchParams.get('title'), '新加坡自由行');
+    assert.equal(viewerUrl.searchParams.get('title'), '法国自由行');
     assert.match(viewerUrl.searchParams.get('src'), /\/travel-guides\/wishlist\/test-guide\.html$/);
 
     await page.route('https://dbmuozbkzkxgigblsgmz.supabase.co/storage/v1/object/public/travel-guides/wishlist/test-guide.html', (route) => route.fulfill({
@@ -369,7 +373,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     }));
     await page.goto(viewerHref, { waitUntil: 'networkidle' });
     await page.frameLocator('#guide-frame').getByText('安全阅读器测试攻略').waitFor();
-    assert.equal(await page.locator('#viewer-title').innerText(), '新加坡自由行');
+    assert.equal(await page.locator('#viewer-title').innerText(), '法国自由行');
 
     assert.deepEqual(errors, []);
     console.log('Homepage browser checks passed: filters, maps, local wishes, mobile navigation, and visited/wishlist guide links.');
