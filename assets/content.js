@@ -90,6 +90,7 @@
       const current = wishes.get(row.name) || {};
       wishes.set(row.name, {
         ...current,
+        ...window.TRAVEL_MAP_ENGINE?.wishlistRowMapFields(row),
         name: row.name,
         icon: row.icon || current.icon || "○",
         desc: row.description ?? current.desc ?? "",
@@ -103,6 +104,9 @@
   }
 
   async function loadWishlistRows(client) {
+    const withMap = await client.from("travel_wishlist")
+      .select("name,icon,description,guide,planned_time,priority_level,sort_order,is_hidden,country,longitude,latitude,coordinate_system,map_label");
+    if (!withMap.error) return withMap;
     const withPriority = await client.from("travel_wishlist")
       .select("name,icon,description,guide,planned_time,priority_level,sort_order,is_hidden");
     if (!withPriority.error) return withPriority;

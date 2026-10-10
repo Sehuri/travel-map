@@ -26,6 +26,7 @@
     "remove-city-override", "photo-city", "photo-files", "upload-photos", "import-photos", "photo-admin-status",
     "admin-photo-grid", "wish-picker", "wish-form", "wish-name", "wish-icon", "wish-order", "wish-description",
     "wish-guide", "wish-planned-time", "wish-priority", "wish-hidden", "wish-status", "new-wish", "remove-wish-override", "rating-city-filter",
+    "wish-country", "wish-longitude", "wish-latitude", "wish-coordinate-system", "wish-map-label", "wish-map-status",
     "guide-upload-form", "guide-place-type", "guide-place-name", "guide-title", "guide-file", "upload-guide",
     "guide-admin-status", "guide-admin-list", "rating-admin-status", "ratings-table",
     "journey-picker", "journey-form", "journey-title-input", "journey-slug", "journey-order", "journey-start-date",
@@ -102,6 +103,9 @@
       plannedTime: row?.planned_time ?? base?.plannedTime ?? "",
       priorityLevel: normalizeWishPriority(row?.priority_level ?? base?.priorityLevel),
       sortOrder: Number(row?.sort_order ?? base?.sortOrder ?? 0),
+      mapLocation: window.TRAVEL_MAP_ENGINE.getWishlistMapLocation({
+        ...base, name, ...window.TRAVEL_MAP_ENGINE.wishlistRowMapFields(row)
+      }),
       hidden: Boolean(row?.is_hidden)
     };
   }
@@ -1161,6 +1165,12 @@
     elements.wish_planned_time.value = wish.plannedTime;
     elements.wish_priority.value = String(wish.priorityLevel);
     elements.wish_hidden.checked = wish.hidden;
+    elements.wish_country.value = wish.mapLocation?.country || "";
+    elements.wish_longitude.value = wish.mapLocation?.coord[0] ?? "";
+    elements.wish_latitude.value = wish.mapLocation?.coord[1] ?? "";
+    elements.wish_coordinate_system.value = wish.mapLocation?.coordinateSystem || "WGS84";
+    elements.wish_map_label.value = wish.mapLocation?.label || "";
+    updateWishMapStatus();
     elements.remove_wish_override.hidden = !wishRows.has(name) && baseWishMap.has(name);
     elements.remove_wish_override.textContent = baseWishMap.has(name) ? "恢复代码版本" : "永久删除新增目的地";
     status(elements.wish_status, wishRows.has(name) ? "当前显示后台保存的版本。" : "当前使用代码中的备用版本。" );
@@ -1173,9 +1183,38 @@
     elements.wish_name.readOnly = false;
     elements.wish_order.value = baseWishMap.size + wishRows.size;
     elements.wish_priority.value = "2";
+    updateWishMapStatus();
     elements.remove_wish_override.hidden = true;
     status(elements.wish_status, "填写后保存，新目的地会出现在愿望清单。" );
     elements.wish_name.focus();
+  }
+
+  function wishMapDraft() {
+    const longitude = elements.wish_longitude.value.trim();
+    const latitude = elements.wish_latitude.value.trim();
+    return {
+      name: elements.wish_name.value.trim(),
+      country: elements.wish_country.value.trim(),
+      coord: longitude || latitude ? [longitude === "" ? NaN : Number(longitude), latitude === "" ? NaN : Number(latitude)] : undefined,
+      coordinateSystem: elements.wish_coordinate_system.value,
+      mapLabel: elements.wish_map_label.value.trim()
+    };
+  }
+
+  function updateWishMapStatus() {
+    const draft = wishMapDraft();
+    if (draft.coord && !window.TRAVEL_MAP_ENGINE.isValidCoordinate(draft.coord)) {
+      status(elements.wish_map_status, "请完整填写经纬度：经度 -180～180，纬度 -90～90。", true);
+      return;
+    }
+    const location = window.TRAVEL_MAP_ENGINE.getWishlistMapLocation(draft);
+    if (draft.coord && !draft.country) {
+      status(elements.wish_map_status, "请填写国家/地区，以便正确处理地图坐标。", true);
+      return;
+    }
+    status(elements.wish_map_status, location
+      ? `${draft.coord ? "自定义" : "预设"}位置：${location.label} · 经度 ${location.coord[0]} / 纬度 ${location.coord[1]}`
+      : "尚未定位：保存后卡片可查看，但地图不会出现光点。请补充经纬度。", !location);
   }
 
   async function saveWish(event) {
@@ -1183,6 +1222,11 @@
     const name = elements.wish_name.value.trim();
     if (creatingWish && (baseWishMap.has(name) || wishRows.has(name))) {
       status(elements.wish_status, "这个目的地已经存在。", true);
+      return;
+    }
+    const mapDraft = wishMapDraft();
+    if (mapDraft.coord && (!window.TRAVEL_MAP_ENGINE.isValidCoordinate(mapDraft.coord) || !mapDraft.country)) {
+      status(elements.wish_status, "地图定位未完成，请填写国家/地区和有效的经纬度。", true);
       return;
     }
     setBusy(elements.wish_form, true);
@@ -1195,6 +1239,11 @@
       priority_level: normalizeWishPriority(elements.wish_priority.value),
       sort_order: Number(elements.wish_order.value),
       is_hidden: elements.wish_hidden.checked,
+      country: mapDraft.country || null,
+      longitude: mapDraft.coord?.[0] ?? null,
+      latitude: mapDraft.coord?.[1] ?? null,
+      coordinate_system: mapDraft.coordinateSystem,
+      map_label: mapDraft.mapLabel || null,
       updated_by: user.id,
       updated_at: new Date().toISOString()
     };
@@ -1202,9 +1251,11 @@
       .upsert(payload, { onConflict: "name" }).select().single();
     setBusy(elements.wish_form, false);
     if (error) {
-      const migrationHint = /priority_level/i.test(error.message || "")
-        ? "请先在 Supabase SQL Editor 运行 supabase/wishlist_priority.sql。"
-        : "";
+      const migrationHint = /longitude|latitude|coordinate_system|map_label|country/i.test(error.message || "")
+        ? "请先运行 supabase/wishlist_map_location.sql，启用地图定位字段。"
+        : /priority_level/i.test(error.message || "")
+          ? "请先在 Supabase SQL Editor 运行 supabase/wishlist_priority.sql。"
+          : "";
       status(elements.wish_status, `保存失败：${error.message}${migrationHint ? ` ${migrationHint}` : ""}`, true);
       return;
     }
@@ -1212,7 +1263,8 @@
     currentWishName = name;
     populateWishPicker();
     renderWishForm(name);
-    status(elements.wish_status, "愿望清单已保存。" );
+    const located = Boolean(window.TRAVEL_MAP_ENGINE.getWishlistMapLocation(mapDraft));
+    status(elements.wish_status, located ? "愿望清单与地图位置已保存。" : "愿望清单已保存；尚未设置地图位置，请补充经纬度。", !located);
   }
 
   async function removeWishOverride() {
@@ -1391,6 +1443,8 @@
     elements.wish_form.addEventListener("submit", saveWish);
     elements.new_wish.addEventListener("click", startNewWish);
     elements.remove_wish_override.addEventListener("click", removeWishOverride);
+    [elements.wish_name, elements.wish_country, elements.wish_longitude, elements.wish_latitude,
+      elements.wish_coordinate_system, elements.wish_map_label].forEach((input) => input.addEventListener("input", updateWishMapStatus));
     elements.guide_place_type.addEventListener("change", populateGuidePlaces);
     elements.guide_place_name.addEventListener("change", renderGuideRows);
     elements.guide_upload_form.addEventListener("submit", uploadGuide);

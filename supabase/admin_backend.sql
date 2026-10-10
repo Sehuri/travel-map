@@ -28,6 +28,21 @@ create table if not exists public.travel_wishlist (
 );
 alter table public.travel_wishlist add column if not exists planned_time text;
 alter table public.travel_wishlist add column if not exists priority_level smallint not null default 2;
+alter table public.travel_wishlist add column if not exists country text;
+alter table public.travel_wishlist add column if not exists longitude numeric(9,6);
+alter table public.travel_wishlist add column if not exists latitude numeric(8,6);
+alter table public.travel_wishlist add column if not exists coordinate_system text not null default 'WGS84';
+alter table public.travel_wishlist add column if not exists map_label text;
+alter table public.travel_wishlist drop constraint if exists travel_wishlist_map_coordinates_check;
+alter table public.travel_wishlist add constraint travel_wishlist_map_coordinates_check check (
+  (longitude is null and latitude is null)
+  or (longitude is not null and latitude is not null
+      and longitude between -180 and 180 and latitude between -90 and 90
+      and country is not null and btrim(country) <> '')
+);
+alter table public.travel_wishlist drop constraint if exists travel_wishlist_coordinate_system_check;
+alter table public.travel_wishlist add constraint travel_wishlist_coordinate_system_check
+  check (coordinate_system in ('WGS84', 'GCJ-02'));
 alter table public.travel_wishlist drop constraint if exists travel_wishlist_priority_level_check;
 alter table public.travel_wishlist
   add constraint travel_wishlist_priority_level_check check (priority_level between 1 and 3);

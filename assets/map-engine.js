@@ -7,6 +7,8 @@
   const WISHLIST_MAP_LOCATIONS = Object.freeze({
     "意大利": { country: "意大利", coord: [12.50, 41.90], label: "意大利" },
     "法国": { country: "法国", coord: [2.35, 48.86], label: "法国" },
+    // Representative point from the owner's 2027 plan: Grindelwald / Jungfrau region.
+    "瑞士": { country: "瑞士", coord: [8.0341, 46.6243], label: "瑞士" },
     "印度尼西亚 · 布罗莫火山与雅加达": { country: "印度尼西亚", coord: [112.95, -7.94], label: "布罗莫火山" },
     "新加坡": { country: "新加坡", coord: [103.82, 1.35], label: "新加坡" },
     "新疆 · 伊犁与赛里木湖": { country: "中国", coord: [81.18, 44.61], label: "赛里木湖" },
@@ -95,10 +97,27 @@
     )) || null;
   }
 
+  function isValidCoordinate(coord) {
+    return Array.isArray(coord) && coord.length === 2 && coord.every(Number.isFinite)
+      && Math.abs(coord[0]) <= 180 && Math.abs(coord[1]) <= 90;
+  }
+
+  function wishlistRowMapFields(row) {
+    const hasCoordinates = row?.longitude !== null && row?.longitude !== undefined
+      && String(row.longitude).trim() !== ""
+      && row?.latitude !== null && row?.latitude !== undefined && String(row.latitude).trim() !== "";
+    const coord = hasCoordinates ? [Number(row.longitude), Number(row.latitude)] : null;
+    return {
+      ...(row?.country ? { country: row.country } : {}),
+      ...(isValidCoordinate(coord) ? { coord, coordinateSystem: row.coordinate_system || "WGS84" } : {}),
+      ...(row?.map_label ? { mapLabel: row.map_label } : {})
+    };
+  }
+
   function getWishlistMapLocation(destination) {
     const configured = WISHLIST_MAP_LOCATIONS[destination?.name];
     const coord = destination?.coord || configured?.coord;
-    if (!Array.isArray(coord) || coord.length !== 2 || !coord.every(Number.isFinite)) return null;
+    if (!isValidCoordinate(coord)) return null;
     return {
       country: destination?.country || configured?.country || "",
       coord: [...coord],
@@ -114,6 +133,8 @@
     getAmapCoordinate,
     normalizeChinaDistrictName,
     findVisitByDistrictName,
+    isValidCoordinate,
+    wishlistRowMapFields,
     getWishlistMapLocation,
     WISHLIST_MAP_LOCATIONS
   };

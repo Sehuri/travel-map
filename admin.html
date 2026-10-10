@@ -192,6 +192,18 @@
               </label>
             </div>
             <p class="hint">公开网站会先按想去程度分组，再按“排序”数字排列；数字越小越靠前。</p>
+            <section class="journey-editor-block" aria-labelledby="wish-map-heading">
+              <h3 id="wish-map-heading">地图定位</h3>
+              <p class="hint">已有预设的目的地可直接使用；其他新增目的地请填写国家/地区及经纬度。一个目的地显示一个代表光点，不是整条旅行路线。</p>
+              <div class="field-grid">
+                <label>国家/地区<input id="wish-country" maxlength="80" placeholder="例如：瑞士、中国"></label>
+                <label>经度<input id="wish-longitude" type="number" min="-180" max="180" step="any" placeholder="例如：8.0341"></label>
+                <label>纬度<input id="wish-latitude" type="number" min="-90" max="90" step="any" placeholder="例如：46.6243"></label>
+                <label>坐标来源<select id="wish-coordinate-system"><option value="WGS84">WGS-84 · GPS / Google 地图</option><option value="GCJ-02">GCJ-02 · 高德 / 腾讯地图</option></select></label>
+                <label>地图标签<input id="wish-map-label" maxlength="120" placeholder="留空时使用目的地名称"></label>
+              </div>
+              <p class="status" id="wish-map-status" aria-live="polite"></p>
+            </section>
             <label>一句话描述<textarea id="wish-description" rows="3" maxlength="500" required></textarea></label>
             <label>计划去的时间<input id="wish-planned-time" maxlength="120" placeholder="例如：2027 年春季、下一个国庆假期（可留空）"></label>
             <label>旅行建议<textarea id="wish-guide" rows="6" maxlength="3000" required></textarea></label>
@@ -253,6 +265,7 @@
   <script src="./assets/journey-engine.js?v=20260929.1"></script>
   <script src="./assets/wishlist-engine.js?v=20260915.1"></script>
   <script src="./assets/visit-engine.js?v=20261008.1"></script>
-  <script src="./assets/admin.js?v=20261008.1"></script>
+  <script src="./assets/map-engine.js?v=20261010.1"></script>
+  <script src="./assets/admin.js?v=20261010.1"></script>
 </body>
 </html>

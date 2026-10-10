@@ -8,6 +8,8 @@ const {
   normalizeChinaDistrictName,
   findVisitByDistrictName,
   getWishlistMapLocation,
+  wishlistRowMapFields,
+  isValidCoordinate,
   WISHLIST_MAP_LOCATIONS
 } = require('../assets/map-engine.js');
 
@@ -58,7 +60,7 @@ test('AMap district names match visited city names across administrative suffixe
 });
 
 test('every configured wishlist destination resolves to a valid map location',()=>{
-  assert.equal(Object.keys(WISHLIST_MAP_LOCATIONS).length,30);
+  assert.equal(Object.keys(WISHLIST_MAP_LOCATIONS).length,31);
   Object.keys(WISHLIST_MAP_LOCATIONS).forEach((name)=>{
     const location=getWishlistMapLocation({name});
     assert.equal(location.coord.length,2);
@@ -101,4 +103,25 @@ test('wishlist records can override their fallback map metadata',()=>{
     coordinateSystem:'WGS84'
   });
   assert.equal(getWishlistMapLocation({name:'未配置地点'}),null);
+});
+
+test('manually added Switzerland uses the planned Jungfrau-region representative point',()=>{
+  const location = getWishlistMapLocation({name:'瑞士'});
+  assert.deepEqual(location, {country:'瑞士', coord:[8.0341,46.6243], label:'瑞士', coordinateSystem:'WGS84'});
+  assert.deepEqual(getAmapCoordinate({name:'瑞士', ...location}), location.coord);
+});
+
+test('database map fields preserve valid zero values and never turn missing values into zero',()=>{
+  assert.deepEqual(wishlistRowMapFields({country:'测试', longitude:'0', latitude:'0', coordinate_system:'WGS84', map_label:'赤道'}),
+    {country:'测试', coord:[0,0], coordinateSystem:'WGS84', mapLabel:'赤道'});
+  for (const row of [{}, {longitude:null,latitude:null}, {longitude:'',latitude:''}, {longitude:8,latitude:null}, {longitude:181,latitude:46}]) {
+    assert.equal(wishlistRowMapFields(row).coord, undefined);
+  }
+  for (const coord of [[181,46], [8,91], [8,NaN], ['8',46], [8], null]) {
+    assert.equal(isValidCoordinate(coord), false);
+    assert.equal(getWishlistMapLocation({name:'未知目的地',coord}), null);
+  }
+  const place={name:'瑞士',...wishlistRowMapFields({country:'瑞士',longitude:'8.5417',latitude:'47.3769',map_label:'苏黎世'})};
+  assert.deepEqual(getWishlistMapLocation(place).coord,[8.5417,47.3769]);
+  assert.equal(getWishlistMapLocation(place).label,'苏黎世');
 });

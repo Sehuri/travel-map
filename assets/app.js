@@ -1284,6 +1284,12 @@
       : (filtersActive
           ? `地图已同步展示筛选后的 ${uniqueCityVisits(visibleJourneyVisits).length} 座城市`
           : (mapView === "world" ? "中国与海外足迹都能在全球地图上查看" : mapView === "province" ? "去过任一城市，即点亮所属省级地区或日本都道府县" : "中国足迹按市域填色，海外足迹以城市光点标记"));
+    if (isWishlist) {
+      const missing = wishlist.filter((destination) => !window.TRAVEL_MAP_ENGINE?.getWishlistMapLocation(destination));
+      if (missing.length) {
+        document.querySelector("#map-interaction-hint").textContent += `；${missing.length} 个目的地尚未设置地图位置，卡片仍可查看，请在后台补充坐标`;
+      }
+    }
     document.querySelector("#footprint-extremes").hidden = isWishlist || !visibleJourneyVisits.length;
     updateWorldMapMode();
     refreshChinaDistrictStyles();
