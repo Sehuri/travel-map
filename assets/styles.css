@@ -14,6 +14,9 @@
   --accent-warm: #ffb36b;
   --display: Georgia, "Times New Roman", "Noto Serif SC", serif;
   --sans: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --site-background-image: url("./osaka-mario-hero.jpg");
+  --site-background-position: center 58%;
+  --site-background-mobile-position: 64% center;
 }
 
 * { box-sizing: border-box; }
@@ -21,7 +24,12 @@ html { scroll-behavior: smooth; }
 body {
   margin: 0;
   color: var(--ink);
-  background: #73c8ef url("./osaka-mario-hero.jpg") center 58% / cover fixed no-repeat;
+  background-color: #102d3f;
+  background-image: linear-gradient(rgba(5,24,40,.42), rgba(5,24,40,.42)), var(--site-background-image);
+  background-position: center, var(--site-background-position);
+  background-size: cover;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   font-family: var(--sans);
   line-height: 1.65;
 }
@@ -99,7 +107,7 @@ nav a:hover { color: var(--accent); }
   position: absolute;
   z-index: 0;
   inset: 0;
-  background: url("./osaka-mario-hero.jpg") center 58% / cover no-repeat;
+  background: var(--site-background-image) var(--site-background-position) / cover no-repeat;
   content: "";
   pointer-events: none;
 }
@@ -108,7 +116,7 @@ nav a:hover { color: var(--accent); }
   z-index: 0;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(15,62,96,.32), transparent 28%, transparent 68%, rgba(12,53,43,.42)),
+    linear-gradient(180deg, rgba(15,62,96,.5), transparent 28%, transparent 68%, rgba(12,53,43,.42)),
     linear-gradient(90deg, rgba(5,24,40,.78) 0%, rgba(5,24,40,.62) 30%, rgba(5,24,40,.24) 57%, rgba(5,24,40,.08) 100%);
   content: "";
   pointer-events: none;
@@ -170,6 +178,7 @@ h1 {
   letter-spacing: -.055em;
 }
 h1 em { color: var(--accent); font-weight: 400; }
+.hero h1 em span { display: inline-block; white-space: nowrap; }
 .hero-intro {
   max-width: 590px;
   margin: 2.3rem 0;
@@ -202,13 +211,16 @@ h1 em { color: var(--accent); font-weight: 400; }
 .hero-stats span { color: var(--faint); font-size: .7rem; letter-spacing: .12em; }
 .hero-coordinate {
   position: absolute;
-  right: 2rem;
-  bottom: 1.2rem;
+  right: 0;
+  bottom: 7.25rem;
   margin: 0;
-  color: var(--faint);
-  font-size: .6rem;
-  letter-spacing: .14em;
-  writing-mode: vertical-rl;
+  padding: .28rem .6rem;
+  border: 1px solid rgba(238,243,234,.25);
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(5,24,40,.55);
+  font-size: .65rem;
+  letter-spacing: .08em;
 }
 .hero-wishlist-panel { padding-bottom: 1rem; }
 .hero-wishlist-heading { display: flex; align-items: end; justify-content: space-between; gap: 2rem; margin-bottom: 2rem; }
@@ -877,7 +889,7 @@ dialog h2 { margin: 1rem 0; font-size: clamp(2.8rem, 7vw, 5rem); letter-spacing:
 .mobile-dock { display: none; }
 
 @media (max-width: 900px) {
-  .hero::before { background-position: center 58%; }
+  .hero::before { background-position: var(--site-background-position); }
   .hero-copy { max-width: 720px; }
   .hero-journeys-panel { min-height: 650px; grid-template-columns: 1fr; align-content: center; }
   .hero-stats { position: static; display: grid; grid-template-columns: repeat(3, 1fr); align-self: auto; margin: 1rem 0 0; }
@@ -900,12 +912,12 @@ dialog h2 { margin: 1rem 0; font-size: clamp(2.8rem, 7vw, 5rem); letter-spacing:
 }
 
 @media (max-width: 640px) {
-  body { padding-bottom: calc(4.4rem + env(safe-area-inset-bottom)); background-attachment: scroll; background-position: 64% center; }
+  body { padding-bottom: calc(4.4rem + env(safe-area-inset-bottom)); background-attachment: scroll; background-position: center, var(--site-background-mobile-position); }
   .site-header nav { display: none; }
   .header-actions { gap: 0; }
   .admin-entry { padding: .42rem .58rem; font-size: .62rem; }
   .hero { min-height: 860px; padding: 6.8rem 1.25rem 3rem; }
-  .hero::before { background-position: 64% center; }
+  .hero::before { background-position: var(--site-background-mobile-position); }
   .hero::after { background: linear-gradient(180deg, rgba(5,24,40,.78), rgba(5,24,40,.48) 48%, rgba(8,48,38,.62)); }
   .hero-tabs { gap: 1.15rem; margin-bottom: 2.4rem; }
   .hero-journeys-panel { min-height: 650px; }
@@ -917,6 +929,7 @@ dialog h2 { margin: 1rem 0; font-size: clamp(2.8rem, 7vw, 5rem); letter-spacing:
   .hero-stats { gap: .5rem; }
   .hero-stats div { min-width: 0; padding-left: .7rem; }
   .hero-stats strong { font-size: 2rem; }
+  .hero-coordinate { bottom: 9rem; }
   .section-heading { display: grid; align-items: start; }
   .route-overview { grid-template-columns: 4.8rem minmax(0, 1fr); gap: 1rem; padding: 1.1rem; }
   .compass-rose { width: 4.5rem; height: 4.5rem; }
