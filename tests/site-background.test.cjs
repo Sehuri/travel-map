@@ -30,3 +30,18 @@ test('home copy no longer ends at the old Jiangnan visit; shared backgrounds ini
   assert(!script.includes('setInterval'));
   assert(!script.includes('localStorage'));
 });
+
+test('shared pages render one viewport-fixed photo instead of body and section backgrounds',()=>{
+  for(const filename of ['index.html','discover.html']){
+    const page=fs.readFileSync(filename,'utf8');
+    assert.match(page,/<body class="[^"]*has-site-background[^"]*">/);
+    assert.equal((page.match(/class="site-background"/g)||[]).length,1);
+    assert.match(page,/<div class="site-background" aria-hidden="true"><\/div>/);
+  }
+  const styles=fs.readFileSync('assets/styles.css','utf8');
+  assert.match(styles,/body\.has-site-background\s*\{\s*isolation:\s*isolate;/);
+  assert.match(styles,/\.site-background\s*\{[^}]*position:\s*fixed;[^}]*inset:\s*0;[^}]*background-image:\s*var\(--site-background-image\)/);
+  assert.equal((styles.match(/background(?:-image)?:[^;]*var\(--site-background-image\)/g)||[]).length,1);
+  assert(!styles.includes('.hero::before'));
+  assert(!styles.includes('background-attachment: scroll'));
+});

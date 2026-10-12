@@ -3,6 +3,41 @@ const http=require('node:http'),fs=require('node:fs/promises'),path=require('nod
 const {BACKGROUNDS}=require('../assets/site-background.js');
 const root=path.resolve(__dirname,'..');
 
+async function readBackground(page){
+  assert.equal(await page.locator('.site-background').count(),1);
+  return page.locator('.site-background').evaluate(el=>{
+    const style=getComputedStyle(el),rect=el.getBoundingClientRect(),hero=document.querySelector('.hero');
+    return {
+      image:style.backgroundImage,position:style.backgroundPosition,size:style.backgroundSize,
+      positioning:style.position,pointerEvents:style.pointerEvents,isolation:getComputedStyle(document.body).isolation,
+      bounds:{left:rect.left,top:rect.top,width:rect.width,height:rect.height},
+      bodyImage:getComputedStyle(document.body).backgroundImage,
+      heroImages:hero?[getComputedStyle(hero).backgroundImage,getComputedStyle(hero,'::before').backgroundImage,getComputedStyle(hero,'::after').backgroundImage]:[]
+    };
+  });
+}
+async function checkBackground(page,bg,mobile=false){
+  const state=await readBackground(page);
+  assert(state.image.includes(bg.file));
+  assert.equal(state.position,(mobile?bg.mobilePosition:bg.desktopPosition).replace('center','50%'));
+  assert.equal(state.positioning,'fixed');assert.equal(state.size,'cover');
+  assert.equal(state.pointerEvents,'none');assert.equal(state.isolation,'isolate');
+  assert.deepEqual(state.bounds,{left:0,top:0,...page.viewportSize()});
+  assert.equal(state.bodyImage,'none');assert(state.heroImages.every(x=>x==='none'));
+  return state;
+}
+async function checkScroll(page,expected){
+  const before=await page.evaluate(()=>scrollY);
+  await page.mouse.move(5,100);
+  await page.mouse.wheel(0,550);
+  await page.waitForFunction(previous=>scrollY>previous+10,before);
+  assert.deepEqual(await readBackground(page),expected,'scrolling content must not move, enlarge or recrop the photo');
+}
+async function scrollTop(page){await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));}
+async function preview(page,name){
+  if(process.env.BACKGROUND_PREVIEW_DIR)await page.screenshot({path:path.join(process.env.BACKGROUND_PREVIEW_DIR,name+'.jpg'),type:'jpeg',quality:85});
+}
+
 (async()=>{
   const server=http.createServer(async(req,res)=>{
     const file=path.resolve(root,`.${new URL(req.url,'http://localhost').pathname}`);
@@ -27,19 +62,39 @@ const root=path.resolve(__dirname,'..');
       await page.evaluate(()=>window.TRAVEL_BACKGROUND.ready);
       assert.equal(await page.locator('html').getAttribute('data-background-id'),bg.id);
       assert.equal(await page.locator('[data-background-caption]').innerText(),bg.label);
-      const styles=await page.locator('.hero').evaluate(el=>({hero:getComputedStyle(el,'::before').backgroundImage,body:getComputedStyle(document.body).backgroundImage,position:getComputedStyle(el,'::before').backgroundPosition}));
-      assert(styles.hero.includes(bg.file));assert(styles.body.includes(bg.file));
+      const desktop=await checkBackground(page,bg);
       assert.deepEqual([...requests],[bg.file],'only the selected background is downloaded');
       assert.match(await page.locator('.hero-intro').innerText(),/火山云海与异国街巷/);
-      if(process.env.BACKGROUND_PREVIEW_DIR)await page.screenshot({path:path.join(process.env.BACKGROUND_PREVIEW_DIR,`${bg.id}-desktop.jpg`),type:'jpeg',quality:85});
+      await preview(page,`${bg.id}-desktop`);
       await page.getByRole('tab',{name:/仍在期待/}).click();
       assert.equal(await page.locator('html').getAttribute('data-background-id'),bg.id);
+      assert(await page.locator('.hero').evaluate(el=>el.offsetHeight>innerHeight),'wishlist should exercise a section taller than the viewport');
+      assert.deepEqual(await readBackground(page),desktop,'expanding the wishlist must not enlarge the photo');
+      await scrollTop(page);await checkScroll(page,desktop);
+      await preview(page,`${bg.id}-wishlist-desktop`);
       await page.getByRole('tab',{name:'旅行足迹',exact:true}).click();
+      await page.evaluate(()=>window.scrollTo({top:document.querySelector('.hero').offsetHeight-innerHeight/2,behavior:'instant'}));
+      assert.deepEqual(await readBackground(page),desktop);
+      await preview(page,`${bg.id}-transition-desktop`);
+      await checkScroll(page,desktop);
       await page.setViewportSize({width:390,height:844});
+      await scrollTop(page);
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-      const mobile=await page.locator('.hero').evaluate(el=>getComputedStyle(el,'::before').backgroundPosition);
-      assert.equal(mobile,bg.mobilePosition.replace('center','50%'));
-      if(process.env.BACKGROUND_PREVIEW_DIR)await page.screenshot({path:path.join(process.env.BACKGROUND_PREVIEW_DIR,`${bg.id}-mobile.jpg`),type:'jpeg',quality:85});
+      const mobile=await checkBackground(page,bg,true);
+      await preview(page,`${bg.id}-mobile`);
+      await page.getByRole('tab',{name:/仍在期待/}).click();
+      assert.deepEqual(await readBackground(page),mobile);
+      await scrollTop(page);await checkScroll(page,mobile);
+      await preview(page,`${bg.id}-wishlist-mobile`);
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+      await page.goto(base+'/discover.html',{waitUntil:'networkidle'});
+      await page.evaluate(()=>window.TRAVEL_BACKGROUND.ready);
+      const discoverMobile=await checkBackground(page,bg,true);
+      await checkScroll(page,discoverMobile);
+      await page.setViewportSize({width:1440,height:900});await scrollTop(page);
+      const discoverDesktop=await checkBackground(page,bg);
+      await checkScroll(page,discoverDesktop);
+      assert.deepEqual([...requests],[bg.file],'tabs and scrolling must not load another background');
       assert.deepEqual(errors,[]);
       await context.close();
     }
@@ -52,7 +107,8 @@ const root=path.resolve(__dirname,'..');
     await page.evaluate(()=>window.TRAVEL_BACKGROUND.ready);
     assert.equal(await page.locator('html').getAttribute('data-background-id'),'osaka');
     assert.equal(await page.locator('[data-background-caption]').innerText(),BACKGROUNDS[0].label);
+    await checkBackground(page,BACKGROUNDS[0]);
     await context.close();
-    console.log('Background browser checks passed: all four photos, synchronized labels, one-photo loading, mobile crops, stable tab switching and failure fallback.');
+    console.log('Background browser checks passed: all four photos, one viewport-fixed layer, invariant framing through long wishlists and wheel scrolling, desktop/mobile home and discover pages, synchronized labels, one-photo loading and failure fallback.');
   }finally{await browser?.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exitCode=1;});

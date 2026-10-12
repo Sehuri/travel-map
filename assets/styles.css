@@ -25,13 +25,26 @@ body {
   margin: 0;
   color: var(--ink);
   background-color: #102d3f;
-  background-image: linear-gradient(rgba(5,24,40,.42), rgba(5,24,40,.42)), var(--site-background-image);
-  background-position: center, var(--site-background-position);
-  background-size: cover;
-  background-attachment: fixed;
-  background-repeat: no-repeat;
   font-family: var(--sans);
   line-height: 1.65;
+}
+body.has-site-background { isolation: isolate; }
+/* Size the only photo layer against the viewport, never a growing section. */
+.site-background {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  background-image: var(--site-background-image);
+  background-position: var(--site-background-position);
+  background-size: cover;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+.site-background::after {
+  position: absolute;
+  inset: 0;
+  background: rgba(5,24,40,.42);
+  content: "";
 }
 button, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
@@ -101,25 +114,6 @@ nav a:hover { color: var(--accent); }
   overflow: hidden;
   padding: 7.3rem clamp(1.25rem, 9vw, 9rem) 4.5rem;
   border-bottom: 1px solid var(--line);
-  background: #73c8ef;
-}
-.hero::before {
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-  background: var(--site-background-image) var(--site-background-position) / cover no-repeat;
-  content: "";
-  pointer-events: none;
-}
-.hero::after {
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgba(15,62,96,.5), transparent 28%, transparent 68%, rgba(12,53,43,.42)),
-    linear-gradient(90deg, rgba(5,24,40,.78) 0%, rgba(5,24,40,.62) 30%, rgba(5,24,40,.24) 57%, rgba(5,24,40,.08) 100%);
-  content: "";
-  pointer-events: none;
 }
 .hero-tabs {
   position: relative;
@@ -889,7 +883,6 @@ dialog h2 { margin: 1rem 0; font-size: clamp(2.8rem, 7vw, 5rem); letter-spacing:
 .mobile-dock { display: none; }
 
 @media (max-width: 900px) {
-  .hero::before { background-position: var(--site-background-position); }
   .hero-copy { max-width: 720px; }
   .hero-journeys-panel { min-height: 650px; grid-template-columns: 1fr; align-content: center; }
   .hero-stats { position: static; display: grid; grid-template-columns: repeat(3, 1fr); align-self: auto; margin: 1rem 0 0; }
@@ -912,13 +905,12 @@ dialog h2 { margin: 1rem 0; font-size: clamp(2.8rem, 7vw, 5rem); letter-spacing:
 }
 
 @media (max-width: 640px) {
-  body { padding-bottom: calc(4.4rem + env(safe-area-inset-bottom)); background-attachment: scroll; background-position: center, var(--site-background-mobile-position); }
+  body { padding-bottom: calc(4.4rem + env(safe-area-inset-bottom)); }
+  .site-background { background-position: var(--site-background-mobile-position); }
   .site-header nav { display: none; }
   .header-actions { gap: 0; }
   .admin-entry { padding: .42rem .58rem; font-size: .62rem; }
   .hero { min-height: 860px; padding: 6.8rem 1.25rem 3rem; }
-  .hero::before { background-position: var(--site-background-mobile-position); }
-  .hero::after { background: linear-gradient(180deg, rgba(5,24,40,.78), rgba(5,24,40,.48) 48%, rgba(8,48,38,.62)); }
   .hero-tabs { gap: 1.15rem; margin-bottom: 2.4rem; }
   .hero-journeys-panel { min-height: 650px; }
   .hero-copy { padding: 1rem 0; background: linear-gradient(180deg, rgba(5,24,40,.7), rgba(5,24,40,.34) 82%, transparent); box-shadow: none; }

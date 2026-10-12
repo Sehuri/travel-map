@@ -1,5 +1,4 @@
-.discover-page { min-height:100vh; background-attachment:fixed; }
-.discover-page::before { content:""; position:fixed; inset:0; background:linear-gradient(120deg,rgba(13,63,76,.65),rgba(11,47,51,.2)); z-index:-1; }
+.discover-page { min-height:100vh; }
 .discover-header { display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:1.5rem 5vw; }
 .discover-header>a:last-child { font-size:.85rem; }
 .discover-shell { width:min(1200px,90vw); margin:2rem auto 5rem; }
