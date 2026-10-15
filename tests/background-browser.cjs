@@ -70,13 +70,13 @@ async function preview(page,name){
       await scrollTop(page);
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
       await page.goto(base+'/discover.html',{waitUntil:'networkidle'});
-      await page.evaluate(()=>window.TRAVEL_BACKGROUND.ready);
-      const discoverMobile=await checkBackground(page,bg,true);
-      await checkScroll(page,discoverMobile);
+      assert.equal(await page.locator('.site-background').count(),0);
+      assert.equal(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor),'rgb(255, 255, 255)');
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
       await page.setViewportSize({width:1440,height:900});await scrollTop(page);
-      const discoverDesktop=await checkBackground(page,bg);
-      await checkScroll(page,discoverDesktop);
-      assert.deepEqual([...requests],[bg.file],'tabs and scrolling must not load another background');
+      assert.equal(await page.locator('.site-background').count(),0);
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+      assert.equal(requests.size,0,'white-blue discover must not download wallpaper');
       assert.deepEqual(errors,[]);
       await context.close();
     }
@@ -86,10 +86,9 @@ async function preview(page,name){
     await page.route('https://**/*',r=>r.fulfill({contentType:'text/javascript',body:''}));
     await page.route('**/bromo-sunrise-hero.jpg',r=>r.abort());
     await page.goto(base+'/discover.html',{waitUntil:'networkidle'});
-    await page.evaluate(()=>window.TRAVEL_BACKGROUND.ready);
-    assert.equal(await page.locator('html').getAttribute('data-background-id'),'osaka');
-    await checkBackground(page,BACKGROUNDS[0]);
+    assert.equal(await page.locator('html').getAttribute('data-background-id'),null);
+    assert.equal(await page.locator('.site-background').count(),0);
     await context.close();
-    console.log('Background browser checks passed: homepage wallpaper removed without requests or overflow; independent discover retains all four fixed photos, scrolling, responsive framing and failure fallback.');
+    console.log('Background browser checks passed: home and discover have white backgrounds, no wallpaper requests and no responsive overflow.');
   }finally{await browser?.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exitCode=1;});

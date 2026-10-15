@@ -4,67 +4,84 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="根据假期、出发地与旅行喜好，抽取你的下一座目的地城市。支持全国城市目录与县级市。">
-  <meta name="theme-color" content="#246a70">
+  <meta name="theme-color" content="#ffffff">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-fuji.png?v=20260914.1">
   <link rel="apple-touch-icon" href="./assets/favicon-fuji.png?v=20260914.1">
   <title>下一站去哪｜Sehuri 的旅行灵感</title>
-  <script src="./assets/site-background.js?v=20261011.1"></script>
   <link rel="stylesheet" href="./assets/styles.css?v=20261012.1">
-  <link rel="stylesheet" href="./assets/discover.css?v=20261012.1">
   <link rel="stylesheet" href="./assets/site-bgm.css?v=20261015.1">
+  <link rel="stylesheet" href="./assets/discover.css?v=20261015.1">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
-<body class="discover-page has-site-background">
-  <div class="site-background" aria-hidden="true"></div>
+<body class="discover-page" data-discover-stage="conditions">
   <a class="skip-link" href="#discover-form">跳到推荐条件</a>
-  <header class="discover-header"><a class="brand" href="./index.html"><span class="brand-mark">S</span> SEHURI / DISCOVER</a><a href="./index.html">返回旅行地图 ↗</a></header>
+  <header class="discover-header" aria-label="主导航">
+    <a class="brand" href="./index.html"><span class="brand-mark" aria-hidden="true">S</span><span>SEHURI <small>旅行足迹</small></span></a>
+    <nav class="desktop-nav" aria-label="旅行主题"><a href="./index.html#map-section">地图</a><a href="./index.html#journey-archive">旅程</a><a href="./index.html#photo-cinema">影像</a><a href="./index.html#journey-stats">数据</a><a href="./discover.html" aria-current="page">下一站</a></nav>
+    <div class="header-actions"><a class="back-home" href="./index.html#map-section">返回地图 <span class="ui-icon icon-arrow" aria-hidden="true"></span></a><button class="icon-button" id="discover-menu-toggle" type="button" popovertarget="discover-menu" aria-label="打开导航菜单" aria-expanded="false"><span class="ui-icon icon-menu" aria-hidden="true"></span></button></div>
+  </header>
+  <nav id="discover-menu" class="discover-menu" popover aria-label="更多导航"><a href="./index.html#map-section">地图与城市</a><a href="./index.html#journey-archive">全部旅程</a><a href="./index.html#photo-cinema">旅程放映室</a><a href="./index.html#memories">城市时间线</a><a href="./index.html#memory-rewind">往年今日</a><a href="./index.html#journey-stats">旅行数据</a><a href="./index.html#ratings">评分排行</a><a href="./index.html#wishlist-panel">我的愿望</a><a href="./discover.html" aria-current="page">随机旅行</a><a href="./admin.html">站主管理</a></nav>
+  <div class="discover-heading"><div><p class="eyebrow">LET CURIOSITY CHOOSE</p><h1>下一站，交给一点意外。</h1><p>告诉我从哪里出发、准备玩几天。先看三个方向，再决定去哪。</p></div></div>
   <main class="discover-shell">
-    <div class="discover-heading"><p class="eyebrow">LET CURIOSITY CHOOSE / 旅行灵感</p><h1>下一站，<em>交给一点意外。</em></h1><p>告诉我从哪里出发、准备玩几天。让下一座城市，成为旅程的开场。</p></div>
-    <section class="discover-notice" aria-label="数据连接状态"><p id="connection-status" role="status">正在准备城市目录…</p><button id="connect-retry" type="button" hidden>重新连接全国目录</button><button id="preview-button" type="button" hidden>先体验 18 城示例</button><p class="small">全国模式包含地级市、直辖市、县级市及港澳，以高德实际目录为准；台湾城市目录尚待补充。示例模式不是全国范围。</p></section>
-    <form id="discover-form" class="discover-panel">
+    <div class="flow-meta"><ol class="flow-steps" aria-label="随机旅行步骤"><li aria-current="step"><button type="button" data-step="conditions"><span>1</span>填写条件</button></li><li><button type="button" data-step="comparison" disabled><span>2</span>比较候选</button></li><li><button type="button" data-step="destination" disabled><span>3</span>探索目的地</button></li></ol>
+    <section class="discover-notice" aria-label="数据连接状态"><p id="connection-status" role="status">正在准备城市目录…</p><div class="connection-actions"><button id="connect-retry" type="button" hidden>重新连接全国目录</button><button id="preview-button" type="button" hidden>先体验 18 城示例</button></div><details><summary>覆盖说明</summary><p class="small">全国模式包含地级市、直辖市、县级市及港澳，以高德实际目录为准；台湾城市目录尚待补充。示例模式不是全国范围。交通按各方式标注来源，均需出发前核验。</p></details></section></div>
+    <p id="draw-status" class="feedback" role="status" aria-live="polite"></p>
+    <div id="conditions-view">
+    <div id="previous-results" class="condition-history" hidden><p id="conditions-changed"></p><button id="restore-comparison" type="button">查看上次候选</button></div>
+    <form id="discover-form" class="discover-panel conditions-layout">
+      <div class="condition-fields"><h2>这次，想怎么出发？</h2>
       <div class="field-grid">
-        <label>01 / 从哪里出发<input id="origin" list="origin-list" placeholder="输入城市，选择完整归属" autocomplete="off" required disabled><datalist id="origin-list"></datalist></label>
-        <label>02 / 游玩天数<input id="days" type="number" min="1" max="14" step="1" value="3" required><span class="small">不含往返交通，1—14 天</span></label>
+        <label class="origin-field">01 / 从哪里出发<input id="origin" list="origin-list" placeholder="输入城市，选择完整归属" autocomplete="off" required disabled aria-describedby="origin-error"><datalist id="origin-list"></datalist><span id="origin-error" class="field-error" hidden></span></label>
+        <div class="days-field"><label for="days">02 / 游玩天数</label><div class="day-stepper"><button id="days-minus" type="button" aria-label="减少一天">−</button><input id="days" type="number" min="1" max="14" step="1" value="3" required aria-describedby="days-help days-error"><button id="days-plus" type="button" aria-label="增加一天">+</button></div><span id="days-help" class="small">1–14 天，不含往返交通</span><span id="days-error" class="field-error" hidden></span></div>
         <label>03 / 探索范围<select id="radius"><option value="auto">按天数建议</option><option value="350">直线 350 公里内</option><option value="800">直线 800 公里内</option><option value="1600">直线 1600 公里内</option><option value="Infinity">全国不限距离</option></select></label>
         <label>04 / 出行月份<select id="month"><option value="">月份不限</option><option value="1">1 月</option><option value="2">2 月</option><option value="3">3 月</option><option value="4">4 月</option><option value="5">5 月</option><option value="6">6 月</option><option value="7">7 月</option><option value="8">8 月</option><option value="9">9 月</option><option value="10">10 月</option><option value="11">11 月</option><option value="12">12 月</option></select></label>
         <label>05 / 人均总预算<select id="budget"><option value="Infinity">预算不限</option><option value="1500">约 ¥1,500 内</option><option value="3000">约 ¥3,000 内</option><option value="5000">约 ¥5,000 内</option><option value="8000">约 ¥8,000 内</option></select><span class="small">含往返交通与住宿餐饮的启发估算</span></label>
-        <label>目的地省份<select id="province"><option value="">全部省份</option></select></label>
+      </div>
+      <fieldset id="interests"><legend>想遇见什么 <span id="interest-count">已选 0/3</span></legend><p class="small">最多选 3 项，任一喜好匹配；不选则随缘。</p><div id="interest-options"></div><p id="interest-status" class="field-error" role="status"></p></fieldset>
+      <details class="more-conditions" open><summary>更多条件</summary><div class="more-fields"><label>目的地省份<select id="province"><option value="">全部省份</option></select></label>
         <label>旅行节奏<select id="pace"><option value="relaxed">慢慢逛 · 每天 1 个重点</option><option value="balanced" selected>适中 · 每天最多 2 个重点</option></select></label>
         <label class="exclude-field"><input id="exclude-visited" type="checkbox" checked><span>排除已经去过的城市</span><span class="small" id="exclude-summary"></span></label>
-      </div>
-      <fieldset id="interests"><legend>06 / 想遇见什么 <span class="small">最多选 3 项，任一喜好匹配；不选则随缘</span></legend></fieldset>
-      <div class="draw-bar"><p id="candidate-status" class="small">目录连接后即可抽取。</p><button id="draw" type="submit" disabled>给我 3 个候选 <span aria-hidden="true">↗</span></button></div>
-      <p class="small">先按天数、距离与预算筛选，再比较 3 座城市。联网模式的驾车与高铁时间来自高德路线规划；示例模式或接口暂不可用时会明确显示为估算。</p>
+      </div></details><p class="small form-disclaimer">交通、预算与季节提示均为规划参考，请在出发前核验；季节提示不等于天气预报。</p></div>
+      <aside class="departure-summary" aria-labelledby="summary-title"><h3 id="summary-title">这次的出发计划</h3><p id="summary-main">选择出发地 · 3 天</p><dl id="summary-facts"></dl><div class="summary-interests"><h4>兴趣偏好</h4><div id="summary-tags"></div></div><div class="draw-bar"><button id="draw" class="primary-button" type="submit" disabled>给我 3 个候选 <span class="ui-icon icon-arrow" aria-hidden="true"></span></button><p id="candidate-status" class="small">目录连接后即可抽取。</p></div></aside>
     </form>
-    <p id="draw-status" role="status" aria-live="polite"></p>
+    </div>
     <section id="comparison" class="discover-panel comparison-panel" aria-labelledby="comparison-title" hidden tabindex="-1">
-      <div class="comparison-heading"><div><p class="eyebrow">THREE WAYS FORWARD / 三个方向</p><h2 id="comparison-title">先比较，再决定。</h2></div><button id="compare-again" type="button">换一组 ↻</button></div>
+      <div class="batch-bar"><div><p id="batch-summary"></p><p id="batch-note" class="small"></p><div id="batch-tags" class="batch-tags"></div></div><div class="batch-actions"><button type="button" data-edit-conditions><span class="ui-icon icon-filter" aria-hidden="true"></span>修改条件</button><button id="compare-again" type="button">换一组</button></div></div>
+      <div class="comparison-heading"><h2 id="comparison-title">三个方向，哪一个让你心动？</h2><p>先比较交通与预算，再展开目的地资源。</p></div>
       <div id="candidate-grid" class="candidate-grid"></div>
-      <p class="small">季节适宜度是基于月份与区域气候的启发提示，不代替天气预报；交通时间为路线规划预计或明确标注的参考估算，出发前请再核对班次与路况。</p>
+      <details class="data-disclosure"><summary>交通与数据说明</summary><p id="comparison-transport" class="small"></p><p class="small">季节适宜度是基于月份与区域气候的启发提示，不代替天气预报。预算为启发估算；出发前请核对实际班次、路况、价格与开放安排。</p></details>
     </section>
     <section id="result" class="discover-panel result-panel" aria-labelledby="result-title" hidden tabindex="-1">
-      <div class="result-top"><div><p class="eyebrow">YOUR NEXT STOP / 这次去这里</p><p id="result-region"></p><h2 id="result-title"></h2></div><div class="result-stamp" id="result-distance"></div></div>
+      <div class="destination-back"><button id="back-candidates" class="text-button" type="button">返回候选</button><p id="result-context" class="small"></p></div>
+      <div class="result-top"><div><p id="result-region"></p><h2 id="result-title"></h2></div><div class="result-top-actions"><button id="save-wishlist" class="primary-button" type="button">保存到愿望清单</button><button id="copy-result" type="button">复制旅行灵感</button></div></div>
+      <p id="result-action-status" class="small" role="status" aria-live="polite"></p>
+      <p id="result-intro"></p>
       <dl class="trip-facts" id="trip-facts"></dl>
-      <p id="result-intro"></p><p id="result-reason" class="result-reason"></p><p id="result-tip" class="small"></p>
-      <div class="resource-heading"><h3>把旅游资源摊开来看</h3><a id="city-map-link" target="_blank" rel="noopener noreferrer">打开城市互动地图 ↗</a></div>
-      <p class="small" id="map-caption"></p>
+      <div class="resource-heading"><h3>把灵感排成旅程</h3><div class="explore-modes" aria-label="探索模式"><button id="view-resources" type="button" aria-pressed="true">资源总览</button><button id="view-itinerary" type="button" aria-pressed="false">每日攻略</button></div><a id="city-map-link" target="_blank" rel="noopener noreferrer">打开城市互动地图 <span class="ui-icon icon-arrow" aria-hidden="true"></span></a></div>
+      <div class="explore-layout" id="explore-layout"><div class="resource-map-panel"><p class="small" id="map-caption"></p>
       <div id="map-filters" class="map-filters" aria-label="地图点位分类"><button type="button" data-map-category="all" aria-pressed="true">全部点位</button><button type="button" data-map-category="sight" aria-pressed="false">只看景点</button><button type="button" data-map-category="food" aria-pressed="false">只看美食</button></div>
-      <div id="resource-map" aria-label="旅游资源地图"></div><p id="map-status" role="status"></p>
+      <div class="resource-map-wrap"><div id="resource-map" aria-label="旅游资源地图"></div><p id="map-mode-label" class="map-mode-label">资源总览</p></div><div class="map-feedback"><p id="map-status" class="small" role="status"></p><button id="retry-map" type="button" hidden>重试地图</button></div></div>
       <section class="itinerary-panel" aria-labelledby="itinerary-title">
-        <div class="resource-heading"><div><p class="eyebrow">DAY BY DAY / 把灵感排成旅程</p><h3 id="itinerary-title">我的城市攻略</h3></div><button id="generate-itinerary" type="button">一键生成攻略</button></div>
-        <p class="small">基于已收录景点、餐饮点和直线距离生成草案，优先就近组合。未核验开放时间、预约、交通与用餐时段；连线仅表示游览顺序，不是导航道路。</p>
+        <div class="resource-heading"><h3 id="itinerary-title">我的城市攻略</h3><button id="generate-itinerary" type="button">一键生成攻略</button></div>
+        <p class="small" id="itinerary-intro">把已收录景点与附近用餐候选，按天数和节奏就近组合。</p>
         <div id="itinerary-result" hidden><div id="itinerary-tabs" class="map-filters" aria-label="选择攻略天数"></div><p id="itinerary-status" role="status"></p><div id="itinerary-days"></div><button id="copy-itinerary" type="button">复制每日攻略</button></div>
-      </section>
+        <button id="browse-resources" class="text-button" type="button" hidden>浏览全部资源</button>
+      </section></div>
+      <p class="draft-disclaimer small">按已收录点位与直线距离生成草案，未核验开放、预约、交通和用餐时段。连线仅表示游览顺序，不是导航道路。</p>
+      <details class="result-data-note"><summary>资源与推荐说明</summary><div class="result-stamp" id="result-distance"></div><p id="result-reason" class="result-reason"></p><p id="result-tip" class="small"></p></details>
       <div id="places"></div>
-      <div class="result-actions"><button id="again" type="button">换一组，继续探索 ↻</button><button id="save-wishlist" type="button">保存到愿望清单 ☆</button><button id="copy-result" type="button">复制旅行灵感</button><a id="memory-link" hidden>看看我的旅行记录 ↗</a></div>
+      <div class="result-actions"><h3>继续探索</h3><button type="button" data-edit-conditions>修改条件</button><button id="again" type="button">换一组，继续探索</button><a id="memory-link" hidden>看看我的旅行记录</a></div>
       <p class="small">这是旅行灵感，不是已核实的完整行程。营业、预约、门票、季节与实际路程请出发前向景区确认；地图保留来源署名。</p>
     </section>
     <noscript>请启用 JavaScript 使用随机推荐；现有旅行地图不受影响。</noscript>
+    <section id="copy-fallback" hidden aria-labelledby="copy-fallback-title"><h3 id="copy-fallback-title">手动复制</h3><label for="copy-text">浏览器未允许自动复制，请选择下方文字。</label><textarea id="copy-text" readonly rows="8"></textarea><button id="close-copy" type="button">收起</button></section>
   </main>
+  <footer class="discover-footer"><p>让好奇心带路，让每次出发都有新故事。</p><a href="./index.html#map-section">返回我的旅行地图</a></footer>
+  <nav class="mobile-dock" aria-label="手机快捷导航"><a href="./index.html#map-section"><span class="ui-icon icon-pin" aria-hidden="true"></span>地图</a><a href="./index.html#journey-archive"><span class="ui-icon icon-list" aria-hidden="true"></span>旅程</a><a href="./index.html#photo-cinema"><span class="ui-icon icon-photo" aria-hidden="true"></span>影像</a><a href="./index.html#wishlist-panel"><span class="ui-icon icon-heart" aria-hidden="true"></span>愿望</a></nav>
   <script src="./assets/discover-data.js"></script><script src="./assets/discover-engine.js?v=20260910.1"></script><script src="./assets/discover-config.js"></script>
   <script src="./assets/discover-itinerary.js?v=20260929.2"></script>
   <script src="./assets/amap-map-config.js"></script><script src="./assets/discover-amap.js?v=20260929.1"></script>
-  <script src="./assets/data.js?v=20261009.1"></script><script src="./assets/discover.js?v=20260929.2"></script>
+  <script src="./assets/data.js?v=20261009.1"></script><script src="./assets/discover.js?v=20261015.1"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
   <script src="./assets/site-bgm-config.js?v=20260925.2"></script>
   <script src="./assets/site-bgm.js?v=20261015.1"></script>

@@ -17,7 +17,7 @@ test('entry background selection has four equal random ranges and valid local ph
   });
 });
 
-test('white-blue homepage removes wallpaper while independent pages keep their background initializer',()=>{
+test('white-blue homepage and discovery do not initialize wallpaper',()=>{
   const home=fs.readFileSync('index.html','utf8');
   assert(!home.includes('到江南初夏的水乡古城'));
   assert(home.includes('走成自己的地图'));
@@ -25,20 +25,19 @@ test('white-blue homepage removes wallpaper while independent pages keep their b
   assert(!home.includes('site-background.js'));
   for(const filename of ['discover.html']){
     const page=fs.readFileSync(filename,'utf8');
-    assert(page.indexOf('site-background.js')<page.indexOf('assets/styles.css'));
+    assert(!page.includes('site-background.js'));
   }
   const script=fs.readFileSync('assets/site-background.js','utf8');
   assert(!script.includes('setInterval'));
   assert(!script.includes('localStorage'));
 });
 
-test('independent discover page retains a viewport-fixed photo; home has no photo layer',()=>{
+test('white-blue pages have no photo layer; legacy fixed-photo styles remain available for other pages',()=>{
   assert(!fs.readFileSync('index.html','utf8').includes('class="site-background"'));
   for(const filename of ['discover.html']){
     const page=fs.readFileSync(filename,'utf8');
-    assert.match(page,/<body class="[^"]*has-site-background[^"]*">/);
-    assert.equal((page.match(/class="site-background"/g)||[]).length,1);
-    assert.match(page,/<div class="site-background" aria-hidden="true"><\/div>/);
+    assert(!page.includes('has-site-background'));
+    assert.equal((page.match(/class="site-background"/g)||[]).length,0);
   }
   const styles=fs.readFileSync('assets/styles.css','utf8');
   assert.match(styles,/body\.has-site-background\s*\{\s*isolation:\s*isolate;/);
