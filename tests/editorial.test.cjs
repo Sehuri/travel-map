@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-test('selected editorial layout retains real engines, deep links and all feature entry points',()=>{
+test('selected white-blue map layout retains real engines, deep links and all feature entry points',()=>{
   const html=fs.readFileSync('index.html','utf8');
-  const order=['top','map-section','journey-archive','photo-cinema','memory-rewind','memories','journey-stats','ratings'];
+  const order=['top','map-section','journey-archive','recent-visits-title','ratings','photo-cinema','memory-rewind','memories','journey-stats'];
   const positions=order.map(id=>html.indexOf(`id="${id}"`));
   assert(positions.every((position,index)=>position>=0&&(!index||position>positions[index-1])));
   const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]);
@@ -9,7 +9,9 @@ test('selected editorial layout retains real engines, deep links and all feature
   assert(html.indexOf('id="city-search"')<html.indexOf('id="travel-map"'));
   assert.match(html,/距离第一次旅行/);assert(!html.includes('累计旅行天数'));
   assert.match(html,/id="city-count">—</);assert.match(html,/id="journey-count">—</);
-  for(const file of ['site-background.js','map-engine.js','visit-engine.js','journey-engine.js','community.js','photo-cinema.js'])assert(html.includes(file));
+  for(const file of ['map-engine.js','visit-engine.js','journey-engine.js','community.js','photo-cinema.js'])assert(html.includes(file));
+  assert(!html.includes('site-background.js'),'homepage must not download wallpaper');
+  assert.match(html,/blue-map-home/);assert.match(html,/overview-photo-count/);assert.match(html,/recent-visit-list/);
   for(const entry of ['discover.html','admin.html','#ratings','#memories','#photo-cinema','#wishlist-panel'])assert(html.includes(entry));
   const dock=html.split('<nav class="mobile-dock"')[1].split('</nav>')[0];
   assert.equal((dock.match(/<a /g)||[]).length,4);

@@ -204,6 +204,13 @@
         image.alt = "";
         image.loading = "lazy";
         image.decoding = "async";
+        image.addEventListener("error", () => {
+          image.hidden = true;
+          const label = document.createElement("span");
+          label.className = "cinema-thumb-unavailable";
+          label.textContent = "暂不可用";
+          button.append(label);
+        }, { once: true });
         button.append(image);
         button.addEventListener("click", () => show(position));
         filmstrip.append(button);

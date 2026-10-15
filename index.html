@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Sehuri 的个人旅行足迹：57 座城市、4 个国家，以及下一站的旅行愿望。">
-  <meta name="theme-color" content="#07111f">
+  <meta name="theme-color" content="#ffffff">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-fuji.png?v=20260914.1">
   <link rel="apple-touch-icon" href="./assets/favicon-fuji.png?v=20260914.1">
   <meta property="og:title" content="Sehuri 的旅行足迹">
@@ -13,22 +13,20 @@
   <meta property="og:url" content="https://sehuri.github.io/travel-map/">
   <meta property="og:locale" content="zh_CN">
   <link rel="canonical" href="https://sehuri.github.io/travel-map/">
-  <script src="./assets/site-background.js?v=20261011.1"></script>
   <link rel="stylesheet" href="./assets/styles.css?v=20261012.1">
   <link rel="stylesheet" href="./assets/photo-cinema.css?v=20260925.1">
   <link rel="stylesheet" href="./assets/site-bgm.css?v=20261015.1">
-  <link rel="stylesheet" href="./assets/editorial.css?v=20261015.1">
+  <link rel="stylesheet" href="./assets/editorial.css?v=20261015.2">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <title>Sehuri 的旅行足迹｜57 座城市与旅行记忆</title>
 </head>
-<body class="has-site-background editorial-home">
-  <div class="site-background" aria-hidden="true"></div>
+<body class="editorial-home blue-map-home">
   <a class="skip-link" href="#main">跳到主要内容</a>
 
   <header class="site-header" aria-label="主导航">
     <a class="brand" href="#top" aria-label="返回首页" data-home-tab-target="journeys">
       <span class="brand-mark" aria-hidden="true">S</span>
-      <span class="desktop-brand-title">SEHURI / JOURNEYS</span><span class="mobile-brand-title">SEHURI / JOURNEYS</span>
+      <span class="desktop-brand-title">SEHURI <small>旅行足迹</small></span><span class="mobile-brand-title">SEHURI · 旅行足迹</span>
     </a>
     <div class="header-actions">
       <nav class="desktop-nav" aria-label="旅行主题">
@@ -54,15 +52,11 @@
     <section class="hero" id="top" aria-label="旅行首页">
       <div class="hero-panel hero-journeys-panel" id="journeys-panel">
         <div class="hero-copy">
-          <p class="eyebrow sr-only">A PERSONAL TRAVEL ARCHIVE · SINCE 2013</p>
-          <h1 id="hero-title">世界很大，<br><em><span>我用足迹</span><span>丈量。</span></em></h1>
-          <p class="hero-intro sr-only">从黄海边的第一次远行，到火山云海与异国街巷。这里收藏的不是打卡数字，而是一段段真实发生过的生活。</p>
-          <div class="hero-stats" aria-label="旅行统计" aria-live="polite">
-            <span><strong id="city-count">—</strong> 座城市</span><span><strong id="country-count">—</strong> 个国家</span><span><strong id="journey-count">—</strong> 趟旅程</span><span class="sr-only"><strong id="year-count">—</strong> 个旅行年份</span>
-          </div>
-          <div class="hero-actions"><a class="primary-link" href="#map-section">探索我的地图 <span class="ui-icon icon-arrow" aria-hidden="true"></span></a><a class="quiet-link" id="latest-journey-link" href="#journey-archive">最新旅程 <span class="ui-icon icon-arrow" aria-hidden="true"></span></a></div>
+          <p class="eyebrow">MY TRAVEL MAP</p>
+          <h1 id="hero-title"><span>把世界，</span><span>走成自己的地图。</span></h1>
+          <p class="hero-intro" id="hero-summary" aria-live="polite">每一站都有故事，每一次出发都值得被记住。</p>
+          <a class="sr-only" id="latest-journey-link" href="#journey-archive">最新旅程</a><span class="sr-only"><strong id="year-count">—</strong> 个旅行年份</span>
         </div>
-        <p class="hero-coordinate" data-background-caption aria-hidden="true">大阪 · 环球影城</p>
       </div>
       <div class="hero-panel hero-wishlist-panel" id="wishlist-panel" aria-labelledby="wishlist-title" hidden>
         <div class="hero-wishlist-heading">
@@ -118,7 +112,7 @@
               <option value="unrated">暂无评分</option>
             </select>
           </div>
-          <button class="filter-more" id="filter-more" type="button" aria-expanded="false" aria-controls="rating-filter-wrap">筛选 <span class="ui-icon icon-filter" aria-hidden="true"></span></button>
+          <button class="filter-more" id="filter-more" type="button" aria-expanded="false" aria-controls="year-filter location-filter rating-filter-wrap">筛选 <span class="ui-icon icon-filter" aria-hidden="true"></span></button>
         </div>
       </div>
       <div class="map-filter-status"><p class="filter-summary" id="filter-summary" aria-live="polite">正在读取旅行记录…</p><button class="clear-filters" id="clear-filters" type="button" hidden>清除筛选</button></div>
@@ -145,16 +139,37 @@
       <noscript><p class="noscript">地图需要启用 JavaScript。下方城市列表仍可正常浏览。</p></noscript>
     </section>
 
+    <section class="overview-strip section-shell" aria-label="旅行总览" aria-live="polite">
+      <div><span class="overview-icon ui-icon icon-pin" aria-hidden="true"></span><p><strong id="city-count">—</strong><span>座城市</span></p></div>
+      <div><span class="overview-icon ui-icon icon-heart" aria-hidden="true"></span><p><strong id="country-count">—</strong><span>个国家</span></p></div>
+      <div><span class="overview-icon ui-icon icon-list" aria-hidden="true"></span><p><strong id="journey-count">—</strong><span>段旅程</span></p></div>
+      <button type="button" data-stat-detail="photos" aria-haspopup="dialog"><span class="overview-icon ui-icon icon-photo" aria-hidden="true"></span><p><strong id="overview-photo-count">—</strong><span>张照片</span></p></button>
+    </section>
+
     <section class="journey-archive section-shell" id="journey-archive" aria-labelledby="journey-archive-title">
       <div class="section-heading">
         <div>
           <p class="eyebrow">03 / JOURNEY ARCHIVE</p>
-          <h2 id="journey-archive-title">精选旅程</h2>
+          <h2 id="journey-archive-title">最近的旅程</h2>
         </div>
         <button class="section-action" id="journeys-expand" type="button" aria-expanded="false" aria-controls="journey-card-grid">查看全部旅程</button>
       </div>
       <div class="journey-card-grid" id="journey-card-grid" aria-live="polite"></div>
     </section>
+
+    <div class="recent-community section-shell">
+      <section class="recent-visits" aria-labelledby="recent-visits-title">
+        <div class="section-heading"><h2 id="recent-visits-title">最近到访</h2><a class="section-action" href="#memories">查看全部 <span class="ui-icon icon-arrow" aria-hidden="true"></span></a></div>
+        <div class="recent-visit-list" id="recent-visit-list" aria-live="polite"></div>
+        <p class="timeline-filter-note">与地图共享筛选。<a href="#map-section">调整筛选</a></p>
+      </section>
+      <section class="ratings-section" id="ratings" aria-labelledby="ratings-title">
+        <div class="section-heading"><h2 id="ratings-title">城市评分</h2><button class="section-action" id="ranking-expand" type="button" aria-expanded="false" aria-controls="ranking-list" hidden>查看完整排行</button></div>
+        <p class="ranking-status" id="ranking-status" aria-live="polite">正在载入城市评分…</p>
+        <ol class="ranking-list" id="ranking-list"></ol>
+        <p class="ranking-note">按平均分排序，同分时评分人数更多的城市优先。</p>
+      </section>
+    </div>
 
     <section class="memory-cinema section-shell" id="photo-cinema" aria-labelledby="cinema-title" hidden>
       <div class="section-heading">
@@ -362,19 +377,6 @@
       </details>
     </section>
 
-    <section class="ratings-section section-shell" id="ratings" aria-labelledby="ratings-title">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">06 / COMMUNITY RANKING</p>
-          <h2 id="ratings-title">旅行城市评分排行</h2>
-        </div>
-        <p class="section-note">按平均分排序；同分时，评分人数更多的城市优先。</p>
-      </div>
-      <p class="ranking-status" id="ranking-status" aria-live="polite">正在载入城市评分…</p>
-      <ol class="ranking-list" id="ranking-list"></ol>
-      <button class="section-action" id="ranking-expand" type="button" aria-expanded="false" aria-controls="ranking-list" hidden>查看完整排行</button>
-    </section>
-
   </main>
 
   <nav class="mobile-dock" aria-label="手机快捷导航">
@@ -410,6 +412,7 @@
     <h2 id="dialog-title"></h2>
     <p id="dialog-description"></p>
     <img class="dialog-cover" id="dialog-cover" alt="" hidden>
+    <p class="image-failure" id="dialog-cover-status" role="status" hidden>封面暂时无法载入，其他旅行记录仍可查看。</p>
     <div class="dialog-actions">
       <button type="button" id="copy-city-link">复制链接</button>
       <button type="button" id="share-city">分享城市</button>
@@ -524,6 +527,7 @@
   <dialog class="lightbox" id="lightbox" aria-label="照片预览">
     <button type="button" id="lightbox-close" aria-label="关闭照片预览">×</button>
     <img id="lightbox-image" alt="">
+    <p class="image-failure" id="lightbox-status" role="status" hidden>照片暂时无法载入，请关闭后稍后再试。</p>
   </dialog>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -542,9 +546,9 @@
   <script src="./assets/wishlist-engine.js?v=20260915.1"></script>
   <script src="./assets/content.js?v=20261010.1"></script>
   <script src="./assets/community.js?v=20261015.1"></script>
-  <script src="./assets/photo-cinema.js?v=20260925.2"></script>
+  <script src="./assets/photo-cinema.js?v=20261015.2"></script>
   <script src="./assets/site-bgm-config.js?v=20260925.2"></script>
   <script src="./assets/site-bgm.js?v=20261015.1"></script>
-  <script src="./assets/app.js?v=20261015.1"></script>
+  <script src="./assets/app.js?v=20261015.2"></script>
 </body>
 </html>

@@ -99,6 +99,12 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('.amap-marker-button').count(), 57);
     assert.equal(await page.locator('.site-menu').isVisible(),false);
     assert(await page.locator('.hero').evaluate(el=>el.offsetHeight<420));
+    assert.equal(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor),'rgb(255, 255, 255)');
+    assert.equal(await page.locator('.site-background').count(),0);
+    assert.equal(await page.locator('#ratings').evaluate(el=>getComputedStyle(el).backgroundImage),'none');
+    const recentDates=await page.locator('#recent-visit-list time').evaluateAll(nodes=>nodes.map(el=>el.getAttribute('datetime')));
+    assert.deepEqual(recentDates,[...recentDates].sort().reverse());
+    assert.equal(recentDates.length,5);
     await page.locator('.amap-marker-button[data-city="新加坡"]').click();
     assert.equal(await page.locator('#preview-city').innerText(),'新加坡');
     assert.match(await page.locator('#preview-meta').innerText(),/2026\.10\.01/);
@@ -132,7 +138,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       return [chinese.visible, layers.some(layer => layer.options.SOC === 'JPN'), japanRegions,
         chinese.styles.fill({ NAME_CHN: '江苏省' }),
         chinese.styles.fill({ NAME_CHN: '广西壮族自治区' })];
-    }), [true, false, ['东京', '京都', '大阪', '神奈川'], 'rgba(14, 183, 199, .55)', 'rgba(255, 255, 255, 0)']);
+    }), [true, false, ['东京', '京都', '大阪', '神奈川'], 'rgba(50, 104, 232, .28)', 'rgba(255, 255, 255, 0)']);
     await page.locator('.map-switch-button[data-view="china"]').click();
     assert.equal(await page.evaluate(() => window.__prefecturePolygons.filter(polygon => polygon.map).length), 0);
     assert.equal(await page.locator('.amap-wishlist-marker-button').count(), 0);
@@ -144,7 +150,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('#stat-photo-count').innerText(), '67');
     assert.equal(await page.locator('.month-heat-cell').count(), 12);
     assert.equal(await page.locator('.journey-card').count(), 7);
-    assert.equal(await page.locator('.journey-card:visible').count(),3);
+    assert.equal(await page.locator('.journey-card:visible').count(),1);
     await page.locator('#journeys-expand').click();
     const journeyCardsText = await page.locator('#journey-card-grid').innerText();
     assert.match(journeyCardsText, /2026 浙东山海之旅/s);
@@ -180,7 +186,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.match(await page.locator('.repeat-detail-card').innerText(),/雅加达/);
     await page.locator('#stats-dialog-close').click();
 
-    await page.locator('[data-stat-detail="photos"]').click();
+    await page.locator('[data-stat-detail="photos"]').first().click();
     assert.equal(await page.locator('.photo-archive-card').count(), 67);
     await page.locator('#photo-wall-city').selectOption('东京');
     assert(await page.locator('.photo-archive-card:visible').count() < 67);
@@ -248,7 +254,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('#cinema-play').getAttribute('aria-pressed'), 'true');
     await page.locator('#cinema-play').click();
 
-    await page.locator('.city-card[aria-label^="查看东京"]').click();
+    await page.locator('#timeline .city-card[aria-label^="查看东京"]').click();
     assert.equal(await page.locator('#city-visit-total').innerText(), '1 次');
     assert.equal(await page.locator('#city-related-journeys a').count(), 1);
     assert.match(await page.locator('#city-related-journeys a').innerText(), /2026 日本关西关东之旅/);
@@ -265,9 +271,9 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 
     await page.locator('#location-filter').selectOption('country:印度尼西亚');
     assert.equal(await page.locator('.amap-marker-button').count(),2);
-    assert.equal(await page.locator('.city-card').count(),3);
-    assert.match(await page.locator('.city-card').filter({hasText:'泗水'}).innerText(),/7\.38°S/);
-    await page.locator('.city-card[aria-label="查看雅加达2026-10-04旅行详情"]').click();
+    assert.equal(await page.locator('#timeline .city-card').count(),3);
+    assert.match(await page.locator('#timeline .city-card').filter({hasText:'泗水'}).textContent(),/7\.38°S/);
+    await page.locator('#timeline .city-card[aria-label="查看雅加达2026-10-04旅行详情"]').click();
     assert.equal(await page.locator('#city-visit-total').innerText(),'2 次');
     assert.match(await page.locator('#dialog-date').innerText(),/2026年10月4日/);
     assert.match(await page.locator('#city-related-journeys').innerText(),/新加坡与印尼/);
@@ -283,10 +289,10 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.deepEqual(await page.evaluate(() => {
       const chinese = window.__districtLayers.find(layer => layer.options.SOC === 'CHN' && layer.options.depth === 1);
       return [chinese.styles.fill({ NAME_CHN: '江苏省' }), chinese.styles.fill({ NAME_CHN: '浙江省' })];
-    }), ['rgba(255, 255, 255, 0)', 'rgba(14, 183, 199, .55)']);
+    }), ['rgba(255, 255, 255, 0)', 'rgba(50, 104, 232, .28)']);
     await page.locator('.map-switch-button[data-view="china"]').click();
     assert.equal(await page.locator('.amap-marker-button').count(), 15);
-    assert.equal(await page.locator('.city-card').count(), 16);
+    assert.equal(await page.locator('#timeline .city-card').count(), 16);
     assert.equal(await page.locator('#city-count').innerText(), '57');
     assert.equal(await page.locator('#route-city-count').innerText(), '16');
     assert.match(await page.locator('#map-interaction-hint').innerText(), /筛选后的 15 座城市/);
@@ -318,6 +324,11 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert(await page.locator('.wishlist-map-link').isVisible());
 
     await page.setViewportSize({ width: 390, height: 844 });
+    assert.equal(await page.locator('#year-filter').isVisible(),false);
+    await page.locator('#filter-more').click();
+    assert(await page.locator('#year-filter').isVisible());
+    assert(await page.locator('#location-filter').isVisible());
+    await page.locator('#filter-more').click();
     assert.equal(await page.locator('.mobile-dock a').count(),4);
     assert(await page.locator('.mobile-dock').isVisible());
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
@@ -359,7 +370,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       window.TRAVEL_DATA.visits.push({ ...window.TRAVEL_DATA.visits.find((visit) => visit.name === '南京'), date: '2026-10-08' });`
     }));
     await page.reload({ waitUntil: 'networkidle' });
-    assert.equal(await page.locator('.city-card').count(), 59);
+    assert.equal(await page.locator('#timeline .city-card').count(), 59);
     assert.equal(await page.locator('.amap-marker-button').count(), 57);
     assert.equal(await page.locator('#city-count').innerText(), '57');
     assert.equal(await page.locator('#route-city-count').innerText(), '59');
@@ -374,12 +385,12 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('.repeat-detail-card').count(), 2);
     assert.match(await page.locator('.repeat-detail-card').filter({hasText:'南京'}).innerText(), /2023-09-17.*2026-10-08/s);
     await page.locator('#stats-dialog-close').click();
-    await page.locator('.city-card[aria-label="查看南京2026-10-08旅行详情"]').click();
+    await page.locator('#timeline .city-card[aria-label="查看南京2026-10-08旅行详情"]').click();
     assert.match(await page.locator('#dialog-date').innerText(), /2026年10月8日/);
     assert.match(await page.locator('#dialog-description').innerText(), /六朝古都/);
     await page.locator('#dialog-close').click();
     await page.locator('#year-2013 .year-toggle').click();
-    await page.locator('.city-card[aria-label^="查看日照"]').click();
+    await page.locator('#timeline .city-card[aria-label^="查看日照"]').click();
     const visitedGuide = page.locator('#city-guide-documents a');
     assert.equal(await visitedGuide.innerText(), 'PDF\n日照海滨攻略\n↗');
     assert.equal(await visitedGuide.getAttribute('href'), 'https://example.com/rizhao-guide.pdf');
@@ -401,6 +412,21 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     await page.goto(viewerHref, { waitUntil: 'networkidle' });
     await page.frameLocator('#guide-frame').getByText('安全阅读器测试攻略').waitFor();
     assert.equal(await page.locator('#viewer-title').innerText(), '法国自由行');
+
+    // Isolated image failures exercise UI states without changing saved photos or backend data.
+    await page.goto(`${base}/index.html?city=${encodeURIComponent('东京')}`, { waitUntil: 'networkidle' });
+    assert.equal(await page.locator('#dialog-title').innerText(),'东京');
+    await page.locator('#photo-grid img').first().evaluate(img=>{img.src='/qa-missing-thumbnail.jpg';});
+    await page.locator('#photo-grid .photo-unavailable').waitFor({state:'visible'});
+    assert(await page.locator('#photo-grid .photo-unavailable').isDisabled());
+    await page.locator('#dialog-cover').evaluate(img=>{img.hidden=false;img.src='/qa-missing-cover.jpg';});
+    await page.locator('#dialog-cover-status').waitFor({state:'visible'});
+    await page.locator('#photo-grid button:not(:disabled)').first().click();
+    await page.locator('#lightbox-image').evaluate(img=>{img.src='/qa-missing-lightbox.jpg';});
+    await page.locator('#lightbox-status').waitFor({state:'visible'});
+    await page.locator('#lightbox-close').click();
+    assert(await page.locator('#city-dialog').isVisible());
+    assert(await page.locator('#city-dialog').evaluate(el=>el.scrollWidth<=el.clientWidth));
 
     assert.deepEqual(errors, []);
     console.log('Homepage browser checks passed: filters, maps, local wishes, mobile navigation, and visited/wishlist guide links.');

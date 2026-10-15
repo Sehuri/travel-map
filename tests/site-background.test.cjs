@@ -17,12 +17,13 @@ test('entry background selection has four equal random ranges and valid local ph
   });
 });
 
-test('home copy no longer ends at the old Jiangnan visit; shared backgrounds initialize before styles',()=>{
+test('white-blue homepage removes wallpaper while independent pages keep their background initializer',()=>{
   const home=fs.readFileSync('index.html','utf8');
   assert(!home.includes('到江南初夏的水乡古城'));
-  assert(home.includes('到火山云海与异国街巷'));
-  assert(home.includes('data-background-caption'));
-  for(const filename of ['index.html','discover.html']){
+  assert(home.includes('走成自己的地图'));
+  assert(!home.includes('data-background-caption'));
+  assert(!home.includes('site-background.js'));
+  for(const filename of ['discover.html']){
     const page=fs.readFileSync(filename,'utf8');
     assert(page.indexOf('site-background.js')<page.indexOf('assets/styles.css'));
   }
@@ -31,8 +32,9 @@ test('home copy no longer ends at the old Jiangnan visit; shared backgrounds ini
   assert(!script.includes('localStorage'));
 });
 
-test('shared pages render one viewport-fixed photo instead of body and section backgrounds',()=>{
-  for(const filename of ['index.html','discover.html']){
+test('independent discover page retains a viewport-fixed photo; home has no photo layer',()=>{
+  assert(!fs.readFileSync('index.html','utf8').includes('class="site-background"'));
+  for(const filename of ['discover.html']){
     const page=fs.readFileSync(filename,'utf8');
     assert.match(page,/<body class="[^"]*has-site-background[^"]*">/);
     assert.equal((page.match(/class="site-background"/g)||[]).length,1);
