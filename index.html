@@ -16,68 +16,144 @@
   <script src="./assets/site-background.js?v=20261011.1"></script>
   <link rel="stylesheet" href="./assets/styles.css?v=20261012.1">
   <link rel="stylesheet" href="./assets/photo-cinema.css?v=20260925.1">
-  <link rel="stylesheet" href="./assets/site-bgm.css?v=20260925.2">
+  <link rel="stylesheet" href="./assets/site-bgm.css?v=20261015.1">
+  <link rel="stylesheet" href="./assets/editorial.css?v=20261015.1">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <title>Sehuri 的旅行足迹｜57 座城市与旅行记忆</title>
 </head>
-<body class="has-site-background">
+<body class="has-site-background editorial-home">
   <div class="site-background" aria-hidden="true"></div>
   <a class="skip-link" href="#main">跳到主要内容</a>
 
   <header class="site-header" aria-label="主导航">
     <a class="brand" href="#top" aria-label="返回首页" data-home-tab-target="journeys">
       <span class="brand-mark" aria-hidden="true">S</span>
-      <span>SEHURI / JOURNEYS</span>
+      <span class="desktop-brand-title">SEHURI / JOURNEYS</span><span class="mobile-brand-title">SEHURI / JOURNEYS</span>
     </a>
     <div class="header-actions">
-      <nav>
-        <a href="#map-section">地图</a>
-        <a href="#journey-stats">统计</a>
-        <a href="#journey-archive">旅程</a>
-        <a href="#memory-rewind">今日</a>
-        <a href="#memories">足迹</a>
-        <a href="#ratings">排行</a>
-        <a href="./discover.html">随机旅行</a>
+      <nav class="desktop-nav" aria-label="旅行主题">
+        <a href="#map-section" data-home-tab-target="journeys" data-scroll-target="#map-section" data-section-link="map-section">地图</a>
+        <a href="#journey-archive" data-section-link="journey-archive">旅程</a>
+        <a href="#photo-cinema" data-section-link="photo-cinema">影像</a>
+        <a href="#journey-stats" data-section-link="journey-stats">数据</a>
         <a href="#wishlist-panel" data-home-tab-target="wishlist">下一站</a>
       </nav>
-      <a class="admin-entry" href="./admin.html">站主管理 <span aria-hidden="true">↗</span></a>
+      <button class="icon-button" id="site-menu-toggle" type="button" popovertarget="site-menu" aria-label="打开导航菜单" aria-expanded="false"><span class="ui-icon icon-menu" aria-hidden="true"></span></button>
     </div>
   </header>
+  <nav id="site-menu" class="site-menu" popover aria-label="更多导航">
+    <a href="#map-section" data-home-tab-target="journeys" data-scroll-target="#map-section">地图与城市</a>
+    <a href="#journey-archive">全部旅程</a><a href="#photo-cinema">旅程放映室</a>
+    <a href="#memories">城市时间线</a><a href="#memory-rewind">往年今日</a>
+    <a href="#journey-stats">旅行数据</a><a href="#ratings">评分排行</a>
+    <a href="#wishlist-panel" data-home-tab-target="wishlist">我的愿望</a><a href="./discover.html">随机旅行</a>
+    <a class="admin-entry" href="./admin.html">站主管理</a>
+  </nav>
 
   <main id="main">
     <section class="hero" id="top" aria-label="旅行首页">
-      <div class="hero-tabs" role="tablist" aria-label="首页内容切换">
-        <button id="journeys-tab" type="button" role="tab" aria-selected="true" aria-controls="journeys-panel" data-home-tab="journeys">旅行足迹</button>
-        <button id="wishlist-tab" type="button" role="tab" aria-selected="false" aria-controls="wishlist-panel" data-home-tab="wishlist" tabindex="-1">仍在期待 <span id="wishlist-count">0</span></button>
-      </div>
-      <div class="hero-panel hero-journeys-panel" id="journeys-panel" role="tabpanel" aria-labelledby="journeys-tab">
+      <div class="hero-panel hero-journeys-panel" id="journeys-panel">
         <div class="hero-copy">
-          <p class="eyebrow">A PERSONAL TRAVEL ARCHIVE · SINCE 2013</p>
+          <p class="eyebrow sr-only">A PERSONAL TRAVEL ARCHIVE · SINCE 2013</p>
           <h1 id="hero-title">世界很大，<br><em><span>我用足迹</span><span>丈量。</span></em></h1>
-          <p class="hero-intro">从黄海边的第一次远行，到火山云海与异国街巷。这里收藏的不是打卡数字，而是一段段真实发生过的生活。</p>
-          <a class="primary-link" href="#map-section">打开我的地图 <span aria-hidden="true">↘</span></a>
-          <a class="primary-link" href="./discover.html" style="margin-left:1.5rem">下一站去哪 <span aria-hidden="true">↗</span></a>
-        </div>
-        <div class="hero-stats" aria-label="旅行统计">
-          <div><strong id="city-count">0</strong><span>座城市</span></div>
-          <div><strong id="country-count">0</strong><span>个国家</span></div>
-          <div><strong id="year-count">0</strong><span>个旅行年份</span></div>
+          <p class="hero-intro sr-only">从黄海边的第一次远行，到火山云海与异国街巷。这里收藏的不是打卡数字，而是一段段真实发生过的生活。</p>
+          <div class="hero-stats" aria-label="旅行统计" aria-live="polite">
+            <span><strong id="city-count">—</strong> 座城市</span><span><strong id="country-count">—</strong> 个国家</span><span><strong id="journey-count">—</strong> 趟旅程</span><span class="sr-only"><strong id="year-count">—</strong> 个旅行年份</span>
+          </div>
+          <div class="hero-actions"><a class="primary-link" href="#map-section">探索我的地图 <span class="ui-icon icon-arrow" aria-hidden="true"></span></a><a class="quiet-link" id="latest-journey-link" href="#journey-archive">最新旅程 <span class="ui-icon icon-arrow" aria-hidden="true"></span></a></div>
         </div>
         <p class="hero-coordinate" data-background-caption aria-hidden="true">大阪 · 环球影城</p>
       </div>
-      <div class="hero-panel hero-wishlist-panel" id="wishlist-panel" role="tabpanel" aria-labelledby="wishlist-tab" hidden>
+      <div class="hero-panel hero-wishlist-panel" id="wishlist-panel" aria-labelledby="wishlist-title" hidden>
         <div class="hero-wishlist-heading">
           <div>
             <p class="eyebrow">NEXT STOPS / THE PLACES AHEAD</p>
-            <h2>仍在期待的远方</h2>
+            <h2 id="wishlist-title">仍在期待的远方</h2><p><span id="wishlist-count">—</span> 个旅行愿望</p>
           </div>
           <div class="hero-wishlist-actions">
             <p>愿望不是清单，是下一次出发的方向。</p>
             <a class="wishlist-map-link" href="#map-section">在地图上查看 <span aria-hidden="true">↓</span></a>
+            <a class="quiet-link" href="./discover.html">随机旅行，找个新方向</a>
+            <a class="quiet-link" href="#top" data-home-tab-target="journeys">返回旅行足迹</a>
           </div>
         </div>
         <div class="wish-priority-board" id="wish-grid"></div>
       </div>
+    </section>
+
+    <section class="map-section section-shell" id="map-section" aria-labelledby="map-title">
+      <div class="section-heading map-heading">
+        <div>
+          <h2 id="map-title">把旅程摊开来看</h2>
+          <p class="map-subtitle">在地图上，重温每一段走过的路。</p>
+        </div>
+        <div class="map-switch" role="group" aria-label="地图范围">
+          <button type="button" class="map-switch-button" data-view="world" aria-controls="world-map" aria-pressed="false">全球</button>
+          <button type="button" class="map-switch-button" data-view="province" aria-controls="china-map" aria-pressed="false">省级足迹</button>
+          <button type="button" class="map-switch-button active" data-view="china" aria-controls="china-map" aria-pressed="true">中国细节</button>
+        </div>
+      </div>
+      <div class="map-toolbar">
+        <div class="city-controls" aria-label="筛选旅行城市">
+          <div class="filter-wrap search-wrap">
+            <label for="city-search">搜索城市</label>
+            <input id="city-search" type="search" placeholder="搜索城市或国家" autocomplete="off">
+          </div>
+          <div class="filter-wrap">
+            <label for="year-filter">按年份筛选</label>
+            <select id="year-filter"><option value="all">全部年份</option></select>
+          </div>
+          <div class="filter-wrap">
+            <label for="location-filter">国家或地区</label>
+            <select id="location-filter"><option value="all">全部地区</option></select>
+          </div>
+          <div class="filter-wrap" id="rating-filter-wrap" hidden>
+            <label for="rating-filter">按评分筛选</label>
+            <select id="rating-filter" disabled>
+              <option value="all">全部评分</option>
+              <option value="rated">已有评分</option>
+              <option value="9">9 分以上</option>
+              <option value="8">8 分以上</option>
+              <option value="7">7 分以上</option>
+              <option value="unrated">暂无评分</option>
+            </select>
+          </div>
+          <button class="filter-more" id="filter-more" type="button" aria-expanded="false" aria-controls="rating-filter-wrap">筛选 <span class="ui-icon icon-filter" aria-hidden="true"></span></button>
+        </div>
+      </div>
+      <div class="map-filter-status"><p class="filter-summary" id="filter-summary" aria-live="polite">正在读取旅行记录…</p><button class="clear-filters" id="clear-filters" type="button" hidden>清除筛选</button></div>
+      <div class="map-frame">
+        <div id="travel-map" role="application" aria-label="旅行城市互动地图" data-map-mode="journeys">
+          <div class="map-canvas" id="world-map" aria-label="全球旅行足迹地图" hidden></div>
+          <div class="map-canvas" id="china-map" aria-label="中国足迹高德地图"></div>
+          <p class="map-load-status" id="china-map-status" role="status" hidden></p>
+          <p class="map-empty-state" id="map-empty-state" hidden>没有找到符合条件的城市。请清除筛选或调整条件。</p>
+          <button class="map-fullscreen icon-button" id="map-fullscreen" type="button" aria-label="全屏地图" aria-pressed="false"><span class="ui-icon icon-expand" aria-hidden="true"></span></button>
+        </div>
+        <section class="map-city-preview" id="map-city-preview" aria-label="选中城市预览" hidden>
+          <button class="preview-collapse" id="preview-collapse" type="button" aria-expanded="true" aria-controls="preview-body">收起城市卡</button>
+          <div id="preview-body"><div class="preview-summary"><img id="preview-image" alt="" hidden><span class="preview-no-photo" id="preview-no-photo">暂无照片</span><div><h3 id="preview-city"></h3><p id="preview-meta"></p><label class="preview-visits" id="preview-visits" hidden>到访日期<select id="preview-visit-date" aria-label="预览到访日期"></select></label></div><button class="icon-button" id="preview-close" type="button" aria-label="关闭城市卡"><span class="ui-icon icon-close" aria-hidden="true"></span></button></div><button class="preview-open" id="preview-open" type="button">查看城市记忆 <span class="ui-icon icon-arrow" aria-hidden="true"></span></button></div>
+        </section>
+        <div class="map-caption">
+          <span><i class="legend-dot visited" id="map-primary-dot"></i><span id="map-primary-label">已到访</span></span>
+          <span><i class="legend-dot selected"></i><span id="map-secondary-label">当前城市</span></span>
+          <p id="map-interaction-hint">中国足迹按市域填色，日本足迹以城市光点标记</p>
+          <span id="map-result-count">正在读取…</span>
+        </div>
+      </div>
+
+      <noscript><p class="noscript">地图需要启用 JavaScript。下方城市列表仍可正常浏览。</p></noscript>
+    </section>
+
+    <section class="journey-archive section-shell" id="journey-archive" aria-labelledby="journey-archive-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">03 / JOURNEY ARCHIVE</p>
+          <h2 id="journey-archive-title">精选旅程</h2>
+        </div>
+        <button class="section-action" id="journeys-expand" type="button" aria-expanded="false" aria-controls="journey-card-grid">查看全部旅程</button>
+      </div>
+      <div class="journey-card-grid" id="journey-card-grid" aria-live="polite"></div>
     </section>
 
     <section class="memory-cinema section-shell" id="photo-cinema" aria-labelledby="cinema-title" hidden>
@@ -124,116 +200,6 @@
       </div>
     </section>
 
-    <section class="map-section section-shell" id="map-section" aria-labelledby="map-title">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">01 / EXPLORE</p>
-          <h2 id="map-title">把旅程摊开来看</h2>
-        </div>
-        <div class="map-switch" role="group" aria-label="地图范围">
-          <button type="button" class="map-switch-button" data-view="world" aria-controls="world-map" aria-pressed="false">全球</button>
-          <button type="button" class="map-switch-button" data-view="province" aria-controls="china-map" aria-pressed="false">省级足迹</button>
-          <button type="button" class="map-switch-button active" data-view="china" aria-controls="china-map" aria-pressed="true">中国细节</button>
-        </div>
-      </div>
-      <div class="map-frame">
-        <div id="travel-map" role="application" aria-label="旅行城市互动地图" data-map-mode="journeys">
-          <div class="map-canvas" id="world-map" aria-label="全球旅行足迹地图" hidden></div>
-          <div class="map-canvas" id="china-map" aria-label="中国足迹高德地图"></div>
-          <p class="map-load-status" id="china-map-status" role="status" hidden></p>
-        </div>
-        <div class="map-caption">
-          <span><i class="legend-dot visited" id="map-primary-dot"></i><span id="map-primary-label">已到访</span></span>
-          <span><i class="legend-dot selected"></i><span id="map-secondary-label">当前城市</span></span>
-          <p id="map-interaction-hint">中国足迹按市域填色，日本足迹以城市光点标记</p>
-        </div>
-      </div>
-      <section class="footprint-extremes" id="footprint-extremes" aria-labelledby="extremes-title">
-        <div class="extremes-heading">
-          <p class="eyebrow">TRAVEL BOUNDS</p>
-          <h3 id="extremes-title">足迹抵达的四方</h3>
-        </div>
-        <div class="extremes-grid" id="extremes-grid"></div>
-      </section>
-      <noscript><p class="noscript">地图需要启用 JavaScript。下方城市列表仍可正常浏览。</p></noscript>
-    </section>
-
-    <section class="journey-stats section-shell" id="journey-stats" aria-labelledby="journey-stats-title">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">02 / TRAVEL DATA</p>
-          <h2 id="journey-stats-title">我的旅行数字档案</h2>
-        </div>
-        <p class="section-note">累计天数从首次足迹计至今天；相邻到访间隔不超过 5 天视为同一程，里程按南京往返的直线距离估算。</p>
-      </div>
-      <div class="travel-insight-grid">
-        <article class="travel-insight-card travel-insight-card--feature">
-          <span class="travel-insight-index">01</span>
-          <p>累计旅行天数</p>
-          <strong><span id="stat-travel-days">0</span><small> 天</small></strong>
-          <span id="stat-trip-count" class="travel-insight-detail">从第一次出发记录至今</span>
-        </article>
-        <article class="travel-insight-card travel-insight-card--feature">
-          <span class="travel-insight-index">02</span>
-          <p>南京往返估算里程</p>
-          <strong><span id="stat-distance">0</span><small> 公里</small></strong>
-          <span class="travel-insight-detail">按每段旅程的城市顺序直线串联</span>
-        </article>
-        <article class="travel-insight-card travel-insight-card--interactive" data-stat-detail="provinces" role="button" tabindex="0" aria-haspopup="dialog" aria-label="查看省级地区覆盖详情">
-          <span class="travel-insight-index">03</span>
-          <p>省级地区覆盖</p>
-          <strong><span id="stat-province-count">0</span><small> / 34</small></strong>
-          <div class="coverage-track" aria-hidden="true"><i id="stat-province-progress"></i></div>
-          <span id="stat-province-percent" class="travel-insight-detail">0% 中国省级地区</span>
-          <span class="travel-insight-action">查看详情 ↗</span>
-        </article>
-        <article class="travel-insight-card travel-insight-card--interactive" data-stat-detail="countries" role="button" tabindex="0" aria-haspopup="dialog" aria-label="查看国家和地区覆盖详情">
-          <span class="travel-insight-index">04</span>
-          <p>国家和地区覆盖</p>
-          <strong><span id="stat-country-count">0</span><small> / 195</small></strong>
-          <div class="coverage-track" aria-hidden="true"><i id="stat-country-progress"></i></div>
-          <span id="stat-country-percent" class="travel-insight-detail">0% 全球国家和地区</span>
-          <span class="travel-insight-action">查看详情 ↗</span>
-        </article>
-        <article class="travel-insight-card travel-insight-card--interactive" data-stat-detail="repeats" role="button" tabindex="0" aria-haspopup="dialog" aria-label="查看重复到访城市详情">
-          <span class="travel-insight-index">05</span>
-          <p>重复到访最多</p>
-          <strong id="stat-repeat-city" class="travel-insight-city">暂无</strong>
-          <span id="stat-repeat-count" class="travel-insight-detail">目前每座城市 1 次</span>
-          <span class="travel-insight-action">查看详情 ↗</span>
-        </article>
-        <article class="travel-insight-card travel-insight-card--interactive" data-stat-detail="photos" role="button" tabindex="0" aria-haspopup="dialog" aria-label="查看全部旅行照片">
-          <span class="travel-insight-index">06</span>
-          <p>旅行照片收藏</p>
-          <strong><span id="stat-photo-count">0</span><small> 张</small></strong>
-          <span id="stat-photo-cities" class="travel-insight-detail">0 座城市留有影像</span>
-          <span class="travel-insight-action">查看全部照片 ↗</span>
-        </article>
-      </div>
-      <div class="month-heatmap-panel">
-        <div class="month-heatmap-heading">
-          <div>
-            <p class="eyebrow">MONTHLY RHYTHM</p>
-            <h3>旅行月份热力图</h3>
-          </div>
-          <p id="month-heatmap-summary">按每次城市到访日期统计</p>
-        </div>
-        <div class="month-heatmap" id="month-heatmap" aria-label="各月份旅行次数"></div>
-        <div class="heatmap-legend" aria-hidden="true"><span>少</span><i></i><i></i><i></i><i></i><i></i><span>多</span></div>
-      </div>
-    </section>
-
-    <section class="journey-archive section-shell" id="journey-archive" aria-labelledby="journey-archive-title">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">03 / JOURNEY ARCHIVE</p>
-          <h2 id="journey-archive-title">一趟旅程，一份档案</h2>
-        </div>
-        <p class="section-note">把城市重新放回真实路线里，保存出发前的计划、路上的记录与回家后的感想。</p>
-      </div>
-      <div class="journey-card-grid" id="journey-card-grid" aria-live="polite"></div>
-    </section>
-
     <section class="memory-rewind section-shell" id="memory-rewind" aria-labelledby="memory-rewind-title">
       <div class="section-heading">
         <div>
@@ -256,6 +222,7 @@
           <strong id="memory-journey-days">—</strong>
           <a id="memory-journey-link" href="#journey-archive">打开旅程档案 ↗</a>
         </article>
+        <details class="memory-extra"><summary>更多回忆：本月、随机与重游</summary><div class="memory-extra-grid">
         <article class="memory-rewind-card memory-rewind-card--month">
           <span class="memory-card-index">03 / THIS MONTH</span>
           <h3 id="memory-month-title">本月历史旅行</h3>
@@ -288,6 +255,7 @@
             <button class="memory-secondary-button" id="memory-return-next" type="button">查看下一座</button>
           </div>
         </article>
+        </div></details>
       </div>
     </section>
 
@@ -296,32 +264,6 @@
         <div>
           <p class="eyebrow">05 / MEMORIES</p>
           <h2 id="memories-title">沿时间，重走一遍</h2>
-        </div>
-        <div class="city-controls" aria-label="筛选旅行城市">
-          <div class="filter-wrap search-wrap">
-            <label for="city-search">搜索城市</label>
-            <input id="city-search" type="search" placeholder="输入城市名称" autocomplete="off">
-          </div>
-          <div class="filter-wrap">
-            <label for="location-filter">国家或地区</label>
-            <select id="location-filter"><option value="all">全部国家和地区</option></select>
-          </div>
-          <div class="filter-wrap">
-            <label for="year-filter">按年份筛选</label>
-            <select id="year-filter"><option value="all">全部年份</option></select>
-          </div>
-          <div class="filter-wrap">
-            <label for="rating-filter">按评分筛选</label>
-            <select id="rating-filter" disabled>
-              <option value="all">全部评分</option>
-              <option value="rated">已有评分</option>
-              <option value="9">9 分以上</option>
-              <option value="8">8 分以上</option>
-              <option value="7">7 分以上</option>
-              <option value="unrated">暂无评分</option>
-            </select>
-          </div>
-          <button class="clear-filters" id="clear-filters" type="button" hidden>清除筛选</button>
         </div>
       </div>
       <div class="route-overview" aria-label="旅行路线概览">
@@ -342,8 +284,82 @@
           <div><dt>COUNTRIES</dt><dd id="route-country-count">0</dd></div>
         </dl>
       </div>
-      <p class="filter-summary" id="filter-summary" aria-live="polite"></p>
+      <p class="timeline-filter-note">与地图使用同一组筛选条件。<a href="#map-section">返回地图筛选</a></p>
       <div class="timeline" id="timeline" aria-live="polite"></div>
+    </section>
+
+    <section class="journey-stats section-shell" id="journey-stats" aria-labelledby="journey-stats-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">02 / TRAVEL DATA</p>
+          <h2 id="journey-stats-title">我的旅行数字档案</h2>
+        </div>
+        <p class="section-note">记录跨度从首次足迹计至今天，不等于实际在途天数。里程为南京往返的直线距离估算。</p>
+      </div>
+      <div class="travel-insight-grid">
+        <article class="travel-insight-card travel-insight-card--feature">
+          <span class="travel-insight-index">01</span>
+          <p>距离第一次旅行</p>
+          <strong><span id="stat-travel-days">—</span><small> 天</small></strong>
+          <span id="stat-trip-count" class="travel-insight-detail">从第一次出发记录至今</span>
+        </article>
+        <article class="travel-insight-card travel-insight-card--feature">
+          <span class="travel-insight-index">02</span>
+          <p>南京往返估算里程</p>
+          <strong><span id="stat-distance">—</span><small> 公里</small></strong>
+          <span class="travel-insight-detail">按每段旅程的城市顺序直线串联</span>
+        </article>
+        <article class="travel-insight-card travel-insight-card--interactive" data-stat-detail="provinces" role="button" tabindex="0" aria-haspopup="dialog" aria-label="查看省级地区覆盖详情">
+          <span class="travel-insight-index">03</span>
+          <p>省级地区覆盖</p>
+          <strong><span id="stat-province-count">—</span><small> / 34</small></strong>
+          <div class="coverage-track" aria-hidden="true"><i id="stat-province-progress"></i></div>
+          <span id="stat-province-percent" class="travel-insight-detail">0% 中国省级地区</span>
+          <span class="travel-insight-action">查看详情 ↗</span>
+        </article>
+        <article class="travel-insight-card travel-insight-card--interactive" data-stat-detail="countries" role="button" tabindex="0" aria-haspopup="dialog" aria-label="查看国家和地区覆盖详情">
+          <span class="travel-insight-index">04</span>
+          <p>国家和地区覆盖</p>
+          <strong><span id="stat-country-count">—</span><small> / 195</small></strong>
+          <div class="coverage-track" aria-hidden="true"><i id="stat-country-progress"></i></div>
+          <span id="stat-country-percent" class="travel-insight-detail">0% 全球国家和地区</span>
+          <span class="travel-insight-action">查看详情 ↗</span>
+        </article>
+        <article class="travel-insight-card travel-insight-card--interactive" data-stat-detail="repeats" role="button" tabindex="0" aria-haspopup="dialog" aria-label="查看重复到访城市详情">
+          <span class="travel-insight-index">05</span>
+          <p>重复到访最多</p>
+          <strong id="stat-repeat-city" class="travel-insight-city">暂无</strong>
+          <span id="stat-repeat-count" class="travel-insight-detail">目前每座城市 1 次</span>
+          <span class="travel-insight-action">查看详情 ↗</span>
+        </article>
+        <article class="travel-insight-card travel-insight-card--interactive" data-stat-detail="photos" role="button" tabindex="0" aria-haspopup="dialog" aria-label="查看全部旅行照片">
+          <span class="travel-insight-index">06</span>
+          <p>旅行照片收藏</p>
+          <strong><span id="stat-photo-count">—</span><small> 张</small></strong>
+          <span id="stat-photo-cities" class="travel-insight-detail">0 座城市留有影像</span>
+          <span class="travel-insight-action">查看全部照片 ↗</span>
+        </article>
+      </div>
+      <details class="archive-disclosure"><summary>月份节奏与足迹四方</summary>
+      <div class="month-heatmap-panel">
+        <div class="month-heatmap-heading">
+          <div>
+            <p class="eyebrow">MONTHLY RHYTHM</p>
+            <h3>旅行月份热力图</h3>
+          </div>
+          <p id="month-heatmap-summary">按每次城市到访日期统计</p>
+        </div>
+        <div class="month-heatmap" id="month-heatmap" aria-label="各月份旅行次数"></div>
+        <div class="heatmap-legend" aria-hidden="true"><span>少</span><i></i><i></i><i></i><i></i><i></i><span>多</span></div>
+      </div>
+      <section class="footprint-extremes" id="footprint-extremes" aria-labelledby="extremes-title">
+        <div class="extremes-heading">
+          <p class="eyebrow">TRAVEL BOUNDS</p>
+          <h3 id="extremes-title">足迹抵达的四方</h3>
+        </div>
+        <div class="extremes-grid" id="extremes-grid"></div>
+      </section>
+      </details>
     </section>
 
     <section class="ratings-section section-shell" id="ratings" aria-labelledby="ratings-title">
@@ -356,20 +372,20 @@
       </div>
       <p class="ranking-status" id="ranking-status" aria-live="polite">正在载入城市评分…</p>
       <ol class="ranking-list" id="ranking-list"></ol>
+      <button class="section-action" id="ranking-expand" type="button" aria-expanded="false" aria-controls="ranking-list" hidden>查看完整排行</button>
     </section>
 
   </main>
 
   <nav class="mobile-dock" aria-label="手机快捷导航">
-    <a href="#map-section">地图</a>
-    <a href="#memory-rewind">回忆</a>
-    <a href="#journey-archive">旅程</a>
-    <a href="#memories" data-home-tab-target="journeys" data-scroll-target="#memories">足迹</a>
-    <a href="#wishlist-panel" data-home-tab-target="wishlist">愿望</a>
+    <a href="#map-section" data-home-tab-target="journeys" data-scroll-target="#map-section" data-section-link="map-section"><span class="ui-icon icon-pin" aria-hidden="true"></span>地图</a>
+    <a href="#journey-archive" data-section-link="journey-archive"><span class="ui-icon icon-list" aria-hidden="true"></span>旅程</a>
+    <a href="#photo-cinema" data-section-link="photo-cinema"><span class="ui-icon icon-photo" aria-hidden="true"></span>影像</a>
+    <a href="#wishlist-panel" data-home-tab-target="wishlist"><span class="ui-icon icon-heart" aria-hidden="true"></span>愿望</a>
   </nav>
 
   <footer>
-    <p>© <span id="current-year"></span> Sehuri · 用地图保存旅途，用记忆标记时间</p>
+    <p>© <span id="current-year"></span> Sehuri · 用地图保存旅途，用记忆标记时间<br><span id="content-status" role="status">正在读取旅行记录…</span> <button class="section-action" type="button" id="content-retry">重新同步</button></p>
     <div class="footer-links">
       <a href="./admin.html">站主管理</a>
       <a href="https://github.com/Sehuri/travel-map" target="_blank" rel="noopener noreferrer">View on GitHub ↗</a>
@@ -418,7 +434,7 @@
       <div class="city-related-journeys" id="city-related-journeys"></div>
     </section>
     <section class="city-community" aria-label="城市旅行资料与评分">
-      <div class="city-notes-panel">
+      <details class="city-notes-panel" id="city-notes-panel"><summary>我的旅行建议</summary>
         <div class="community-heading">
           <div>
             <p class="eyebrow">SEHURI'S NOTES</p>
@@ -457,7 +473,7 @@
           </div>
         </form>
         <p class="community-status" id="owner-status" aria-live="polite"></p>
-      </div>
+      </details>
 
       <div class="rating-panel">
         <p class="eyebrow">COMMUNITY SCORE</p>
@@ -525,10 +541,10 @@
   <script src="./assets/admin-region-engine.js?v=20260926.1"></script>
   <script src="./assets/wishlist-engine.js?v=20260915.1"></script>
   <script src="./assets/content.js?v=20261010.1"></script>
-  <script src="./assets/community.js?v=20260901.1"></script>
+  <script src="./assets/community.js?v=20261015.1"></script>
   <script src="./assets/photo-cinema.js?v=20260925.2"></script>
   <script src="./assets/site-bgm-config.js?v=20260925.2"></script>
-  <script src="./assets/site-bgm.js?v=20260925.2"></script>
-  <script src="./assets/app.js?v=20261010.1"></script>
+  <script src="./assets/site-bgm.js?v=20261015.1"></script>
+  <script src="./assets/app.js?v=20261015.1"></script>
 </body>
 </html>

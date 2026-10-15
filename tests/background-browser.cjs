@@ -66,13 +66,13 @@ async function preview(page,name){
       assert.deepEqual([...requests],[bg.file],'only the selected background is downloaded');
       assert.match(await page.locator('.hero-intro').innerText(),/火山云海与异国街巷/);
       await preview(page,`${bg.id}-desktop`);
-      await page.getByRole('tab',{name:/仍在期待/}).click();
+      await page.locator('[data-home-tab-target="wishlist"]:visible').first().click();
       assert.equal(await page.locator('html').getAttribute('data-background-id'),bg.id);
       assert(await page.locator('.hero').evaluate(el=>el.offsetHeight>innerHeight),'wishlist should exercise a section taller than the viewport');
       assert.deepEqual(await readBackground(page),desktop,'expanding the wishlist must not enlarge the photo');
       await scrollTop(page);await checkScroll(page,desktop);
       await preview(page,`${bg.id}-wishlist-desktop`);
-      await page.getByRole('tab',{name:'旅行足迹',exact:true}).click();
+      await page.locator('[data-home-tab-target="journeys"]:visible').first().click();
       await page.evaluate(()=>window.scrollTo({top:document.querySelector('.hero').offsetHeight-innerHeight/2,behavior:'instant'}));
       assert.deepEqual(await readBackground(page),desktop);
       await preview(page,`${bg.id}-transition-desktop`);
@@ -82,7 +82,7 @@ async function preview(page,name){
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
       const mobile=await checkBackground(page,bg,true);
       await preview(page,`${bg.id}-mobile`);
-      await page.getByRole('tab',{name:/仍在期待/}).click();
+      await page.locator('[data-home-tab-target="wishlist"]:visible').first().click();
       assert.deepEqual(await readBackground(page),mobile);
       await scrollTop(page);await checkScroll(page,mobile);
       await preview(page,`${bg.id}-wishlist-mobile`);

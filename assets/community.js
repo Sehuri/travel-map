@@ -96,6 +96,12 @@
 
   function renderDetails(details) {
     currentDetails = details || null;
+    const notes = document.querySelector("#city-notes-panel");
+    if (notes) {
+      const hasDetails = Boolean(details?.favorite_places || details?.favorite_foods || details?.travel_days_min);
+      notes.open = hasDetails || isOwner;
+      notes.querySelector("summary").textContent = hasDetails ? "我的旅行建议" : "个人建议 · 暂未整理";
+    }
     elements.favoritePlaces.textContent = details?.favorite_places || "待填写";
     elements.favoriteFoods.textContent = details?.favorite_foods || "待填写";
     if (details?.travel_days_min) {

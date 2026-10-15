@@ -40,7 +40,7 @@ const root=path.resolve(__dirname,'..');
     });
     const base=`http://127.0.0.1:${server.address().port}`;
     await page.goto(base+'/index.html',{waitUntil:'networkidle'});
-    await page.getByRole('tab',{name:/仍在期待/}).click();
+    await page.locator('[data-home-tab-target="wishlist"]:visible').first().click();
     const swiss=page.locator('.amap-wishlist-marker-button[data-destination="瑞士"]');
     assert.equal(await swiss.count(),1);
     assert.equal(await swiss.getAttribute('data-priority'),'3');

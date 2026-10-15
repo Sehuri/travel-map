@@ -5,25 +5,19 @@
   const positionKey = "sehuri.siteBgm.position";
   const configured = Array.isArray(window.TRAVEL_SITE_BGM_TRACKS) ? window.TRAVEL_SITE_BGM_TRACKS : [];
   const tracks = configured.filter((track) => typeof track.audioUrl === "string" && /^https?:\/\/|^\.\//.test(track.audioUrl));
+  // An unavailable soundtrack must not cover the map, forms or mobile navigation.
+  if (!tracks.length) return;
 
   const player = document.createElement("aside");
   player.id = "site-bgm";
   player.className = "site-bgm";
   player.setAttribute("aria-label", "网站背景音乐");
-  player.innerHTML = '<button id="site-bgm-toggle" class="site-bgm-toggle" type="button" aria-pressed="false"><span class="site-bgm-icon" aria-hidden="true">♫</span><span id="site-bgm-action">播放背景音乐</span></button><div class="site-bgm-copy"><span class="site-bgm-eyebrow">SITE SOUNDTRACK</span><span id="site-bgm-label" aria-live="polite"></span></div>';
-  document.body.append(player);
+  player.innerHTML = '<button id="site-bgm-toggle" class="site-bgm-toggle" type="button" aria-label="播放背景音乐" aria-pressed="false"><span class="site-bgm-icon" aria-hidden="true">音乐</span><span id="site-bgm-action">播放背景音乐</span></button><div class="site-bgm-copy"><span id="site-bgm-label" aria-live="polite"></span></div>';
+  (document.querySelector?.(".header-actions, .discover-header, .journey-site-header, .attraction-header") || document.body).append(player);
 
   const button = player.querySelector("#site-bgm-toggle");
   const action = player.querySelector("#site-bgm-action");
   const label = player.querySelector("#site-bgm-label");
-
-  if (!tracks.length) {
-    button.disabled = true;
-    action.textContent = "背景音乐待开放";
-    label.textContent = "两首音源待添加";
-    player.classList.add("site-bgm-unavailable");
-    return;
-  }
 
   const audio = new Audio();
   audio.preload = "none";
@@ -51,6 +45,7 @@
     action.textContent = playing ? "关闭背景音乐" : enabled ? "继续播放音乐" : "播放背景音乐";
     button.setAttribute("aria-label", action.textContent);
     label.textContent = message || `${tracks[index].title} · ${tracks[index].artist}`;
+    button.setAttribute("title", `${action.textContent}：${label.textContent}`);
     player.classList.toggle("is-playing", playing);
   }
 

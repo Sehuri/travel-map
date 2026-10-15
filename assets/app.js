@@ -87,6 +87,10 @@
   let ratingsLoaded = false;
   let ratingsFailed = false;
   const statAnimations = new WeakMap();
+  const expandedYears = new Map();
+  let journeysExpanded = false;
+  let rankingExpanded = false;
+  let previewFocus = null;
 
   function countUp(element, target) {
     const previousAnimation = statAnimations.get(element);
@@ -125,8 +129,8 @@
 
   function updateTravelStats(items, animate = false) {
     const cityTotal = uniqueCityVisits(items).length;
-    const countries = new Set(items.map((visit) => visit.country));
-    const years = new Set(items.map((visit) => visit.date.slice(0, 4)));
+    const countries = new Set(visits.map((visit) => visit.country));
+    const years = new Set(visits.map((visit) => visit.date.slice(0, 4)));
     const update = (selector, value) => {
       const element = document.querySelector(selector);
       if (animate) countUp(element, value);
@@ -137,15 +141,17 @@
         element.textContent = value;
       }
     };
-    update("#city-count", cityTotal);
+    update("#city-count", uniqueCityVisits(visits).length);
     update("#country-count", countries.size);
     update("#year-count", years.size);
     update("#route-city-count", items.length);
-    update("#route-country-count", countries.size);
+    update("#route-country-count", new Set(items.map((visit) => visit.country)).size);
+    document.querySelector("#journey-count").textContent = journeys.length;
+    document.querySelector("#map-result-count").textContent = `${cityTotal} 座城市 · ${items.length} 次到访`;
   }
 
   function initializeStats() {
-    updateTravelStats(visits, true);
+    updateTravelStats(visits);
     document.querySelector("#current-year").textContent = new Date().getFullYear();
   }
 
@@ -186,6 +192,9 @@
       const visibleLeaders = leaders.slice(0, 2).join("、") + (leaders.length > 2 ? "等" : "");
       setText("#stat-repeat-city", visibleLeaders);
       setText("#stat-repeat-count", `各到访 ${highestCount} 次${stats.repeatCities.length > leaders.length ? ` · 共 ${stats.repeatCities.length} 座城市曾重游` : ""}`);
+    } else {
+      setText("#stat-repeat-city", "暂无重游");
+      setText("#stat-repeat-count", "当前记录中还没有重复到访");
     }
 
     const heatmap = document.querySelector("#month-heatmap");
@@ -589,7 +598,7 @@
 
     return visits.filter((visit) => {
       const matchesYear = selectedYear === "all" || visit.date.startsWith(selectedYear);
-      const matchesQuery = !query || visit.name.toLocaleLowerCase("zh-CN").includes(query);
+      const matchesQuery = !query || `${visit.name} ${visit.country} ${getRegion(visit)}`.toLocaleLowerCase("zh-CN").includes(query);
       const [locationType, locationValue] = selectedLocation.split(":");
       const matchesLocation = selectedLocation === "all"
         || (locationType === "country" && visit.country === locationValue)
@@ -623,6 +632,8 @@
       || citySearch.value.trim();
     filtersActive = Boolean(hasActiveFilters);
     visibleJourneyVisits = filtered;
+    document.querySelector("#map-empty-state").hidden = Boolean(filtered.length) || mapMode === "wishlist";
+    if (activeCity && !filtered.some(visit => visitKey(visit) === visitKey(activeCity))) hideMapPreview();
     clearFiltersButton.hidden = !filtersActive;
     updateTravelStats(filtered);
     initializeExtremeFootprints(filtered);
@@ -648,7 +659,7 @@
           return map;
         }, new Map());
 
-    [...groups.entries()].sort(([a], [b]) => b.localeCompare(a)).forEach(([year, entries]) => {
+    [...groups.entries()].sort(([a], [b]) => b.localeCompare(a)).forEach(([year, entries], groupIndex) => {
       const group = document.createElement("section");
       group.className = "year-group";
       group.setAttribute("aria-labelledby", `year-${year}`);
@@ -664,12 +675,15 @@
       const toggle = document.createElement("button");
       toggle.type = "button";
       toggle.className = "year-toggle";
-      toggle.setAttribute("aria-expanded", "true");
+      const expanded = expandedYears.get(year) ?? groupIndex === 0;
+      toggle.setAttribute("aria-expanded", String(expanded));
       toggle.setAttribute("aria-controls", cities.id);
-      toggle.innerHTML = `<span>${year}</span><span class="year-toggle-icon" aria-hidden="true">−</span>`;
+      toggle.innerHTML = `<span>${year}<small>${entries.length} 次到访</small></span><span class="year-toggle-icon" aria-hidden="true">${expanded ? "−" : "+"}</span>`;
+      cities.hidden = !expanded;
       toggle.addEventListener("click", () => {
         const expanded = toggle.getAttribute("aria-expanded") === "true";
         toggle.setAttribute("aria-expanded", String(!expanded));
+        expandedYears.set(year, !expanded);
         toggle.querySelector(".year-toggle-icon").textContent = expanded ? "+" : "−";
         cities.hidden = expanded;
       });
@@ -759,7 +773,11 @@
       return;
     }
 
-    const visible = ranked.slice(0, 10);
+    const visible = rankingExpanded ? ranked : ranked.slice(0, 5);
+    const expand = document.querySelector("#ranking-expand");
+    expand.hidden = ranked.length <= 5;
+    expand.setAttribute("aria-expanded", String(rankingExpanded));
+    expand.textContent = rankingExpanded ? "收起排行" : `查看完整排行（${ranked.length} 城）`;
     rankingStatus.textContent = ranked.length > visible.length
       ? `目前 ${ranked.length} 座城市参与排行，展示前 ${visible.length} 名。`
       : `目前 ${ranked.length} 座城市参与排行。`;
@@ -829,7 +847,7 @@
       const tooltip = document.createElement("span");
       tooltip.textContent = `${visit.name} · ${visit.date.slice(0, 4)}`;
       marker.bindTooltip(tooltip, { direction: "top", offset: [0, -8] });
-      marker.on("click", () => openCity(visit));
+      marker.on("click", () => selectMapCity(visit));
       return { marker, visit };
     });
     const getWishlistMapLocation = window.TRAVEL_MAP_ENGINE?.getWishlistMapLocation || (() => null);
@@ -1015,7 +1033,7 @@
         if (mapMode !== "journeys") return;
         const visit = getDistrictEventVisit(event);
         if (visit && visibleJourneyVisits.some((visible) => visible.name === visit.name)) {
-          openCity(visibleJourneyVisits.find((visible) => visible.name === visit.name) || visit);
+          selectMapCity(visibleJourneyVisits.find((visible) => visible.name === visit.name) || visit);
         }
       });
 
@@ -1071,7 +1089,7 @@
           zIndex: 110
         });
         content.addEventListener("click", () => {
-          openCity(visit);
+          selectMapCity(visit);
         });
         marker.setMap(chinaMap);
         return { marker, visit };
@@ -1319,7 +1337,9 @@
   }
 
   function setMapMode(mode) {
+    if (mode === "wishlist") hideMapPreview();
     mapMode = mode === "wishlist" ? "wishlist" : "journeys";
+    document.querySelector("#map-empty-state").hidden = mapMode === "wishlist" || Boolean(visibleJourneyVisits.length);
     applyMapMode();
   }
 
@@ -1346,6 +1366,12 @@
     const grid = document.querySelector("#journey-card-grid");
     if (!grid) return;
     grid.replaceChildren();
+    const expand = document.querySelector("#journeys-expand");
+    expand.hidden = journeys.length <= 3;
+    expand.textContent = journeysExpanded ? "收起旅程" : `查看全部旅程（${journeys.length}）`;
+    expand.setAttribute("aria-expanded", String(journeysExpanded));
+    const latest = document.querySelector("#latest-journey-link");
+    if (journeys[0]) latest.href = journeyHref(journeys[0].slug);
     if (!journeys.length) {
       const empty = document.createElement("p");
       empty.className = "journey-archive-empty";
@@ -1353,19 +1379,28 @@
       grid.append(empty);
       return;
     }
+    const hasPhoto = journey => Boolean(journey.coverUrl || journey.photos?.some(photo => photo.imageUrl));
+    const featuredSlugs = new Set([...journeys.filter(hasPhoto), ...journeys.filter(journey => !hasPhoto(journey))].slice(0, 3).map(journey => journey.slug));
     journeys.forEach((journey, index) => {
       const anchor = document.createElement("a");
       anchor.className = "journey-card";
+      anchor.hidden = !featuredSlugs.has(journey.slug) && !journeysExpanded;
       anchor.href = journeyHref(journey.slug);
       anchor.setAttribute("aria-label", `打开旅程：${journey.title}`);
       const media = document.createElement("span");
       media.className = "journey-card-media";
-      if (journey.coverUrl) {
+      const coverUrl = journey.coverUrl || journey.photos?.[0]?.imageUrl;
+      if (coverUrl) {
         const image = document.createElement("img");
-        image.src = journey.coverUrl;
+        image.src = coverUrl;
         image.alt = `${journey.title}封面`;
         image.loading = "lazy";
         media.append(image);
+      } else {
+        const noPhoto = document.createElement("span");
+        noPhoto.className = "journey-no-photo";
+        noPhoto.textContent = "这趟旅程的照片尚未整理";
+        media.append(noPhoto);
       }
       const number = document.createElement("span");
       number.className = "journey-card-number";
@@ -1390,7 +1425,9 @@
         ? `${journey.distanceEstimated ? "约 " : ""}${new Intl.NumberFormat("zh-CN").format(journey.distanceKm)} 公里`
         : "里程待补充";
       const cityCount = new Set(journey.stops.map((stop) => stop.cityName)).size;
-      meta.textContent = `${journey.days} 天 · ${cityCount} 座城市 · ${distance}`;
+      const photoCount = new Set((journey.photos || []).map(photo => photo.imageUrl).filter(Boolean)).size;
+      meta.textContent = `${journey.days} 天 · ${cityCount} 座城市 · ${photoCount} 张照片`;
+      meta.title = distance;
       const action = document.createElement("span");
       action.className = "journey-card-action";
       action.textContent = "打开旅程档案 ↗";
@@ -1647,7 +1684,8 @@
     }
   }
 
-  async function openCity(visit, { updateUrl = true } = {}) {
+  async function openCity(visit, { updateUrl = true, fromPreview = false } = {}) {
+    if (!fromPreview) hideMapPreview({ clearUrl: false });
     activeCity = visit;
     refreshWorldActiveMarker();
     const markerEntry = chinaMarkers.find((entry) => entry.visit.name === visit.name);
@@ -1675,6 +1713,7 @@
     document.querySelector("#share-status").textContent = "";
     renderCityJourneyHistory(visit.name);
     renderGuideLinks(document.querySelector("#city-guide-documents"), guidesFor("visited", visit.name));
+    document.querySelector("#city-guide-documents").closest("section").hidden = !guidesFor("visited", visit.name).length;
     document.querySelector("#photo-grid").replaceChildren();
     document.querySelector("#photo-status").textContent = "正在寻找这座城市的旅行照片…";
     if (!cityDialog.open) cityDialog.showModal();
@@ -1868,6 +1907,16 @@
         panel.hidden = panelName !== name;
       });
       setMapMode(name);
+      document.querySelectorAll('[data-home-tab-target="wishlist"]').forEach(link => {
+        if (name === "wishlist") link.setAttribute("aria-current", "location");
+        else link.removeAttribute("aria-current");
+      });
+      document.body.dataset.currentSection = name === "wishlist" ? "wishlist-panel" : scrollTarget.slice(1);
+      document.querySelector(".mobile-brand-title").textContent = name === "journeys" && scrollTarget === "#map-section" ? "我的旅行地图" : "SEHURI / JOURNEYS";
+      document.querySelectorAll("[data-section-link]").forEach(link => {
+        if (name === "journeys" && link.dataset.sectionLink === scrollTarget.slice(1)) link.setAttribute("aria-current", "location");
+        else link.removeAttribute("aria-current");
+      });
       if (scroll) {
         document.querySelector(scrollTarget)?.scrollIntoView({
           behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"
@@ -1964,6 +2013,155 @@
     }
   }
 
+  function hideMapPreview({ clearUrl = true, restoreFocus = false } = {}) {
+    const preview = document.querySelector("#map-city-preview");
+    preview.hidden = true;
+    if (!cityDialog.open) {
+      activeCity = null;
+      refreshWorldActiveMarker();
+      refreshChinaDistrictStyles();
+      if (clearUrl) clearCityUrl();
+    }
+    chinaMap?.resize?.();
+    worldMap?.invalidateSize?.(false);
+    if (restoreFocus) (previewFocus?.isConnected ? previewFocus : citySearch)?.focus?.({ preventScroll: true });
+  }
+
+  function focusMapCity(visit) {
+    if (mapView === "world" && worldMap) {
+      worldMap.invalidateSize(false);
+      worldMap.setView?.([visit.coord[1], visit.coord[0]], 6, { animate: false });
+    } else if (chinaMap) {
+      chinaMap.resize();
+      const marker = chinaMarkers.find(entry => entry.visit.name === visit.name)?.marker;
+      if (marker) chinaMap.setFitView([marker], false, window.matchMedia("(max-width: 767px)").matches ? [40, 40, 40, 40] : [60, 340, 60, 60], 7);
+    }
+  }
+
+  function selectMapCity(visit, { updateUrl = true } = {}) {
+    const selected = visibleJourneyVisits.find(item => visitKey(item) === visitKey(visit))
+      || visibleJourneyVisits.find(item => item.name === visit.name) || visit;
+    activeCity = selected;
+    if (!["中国", "日本"].includes(selected.country) && worldMap && mapView !== "world") setMapView("world");
+    previewFocus = document.activeElement;
+    const preview = document.querySelector("#map-city-preview");
+    preview.hidden = false;
+    document.querySelector("#preview-body").hidden = false;
+    document.querySelector("#preview-collapse").setAttribute("aria-expanded", "true");
+    document.querySelector("#preview-collapse").textContent = "收起城市卡";
+    document.querySelector("#preview-city").textContent = selected.name;
+    const photos = photoManifest[selected.name] || [];
+    document.querySelector("#preview-meta").textContent = `${selected.date.replaceAll("-", ".")} · ${photos.length} 张照片`;
+    const image = document.querySelector("#preview-image");
+    const source = selected.coverUrl || photos[0];
+    image.hidden = !source;
+    document.querySelector("#preview-no-photo").hidden = Boolean(source);
+    if (source) { image.src = source; image.alt = `${selected.name}旅行照片`; }
+    else { image.removeAttribute("src"); image.alt = ""; }
+    const dates = visits.filter(item => item.name === selected.name).sort((a, b) => b.date.localeCompare(a.date));
+    const select = document.querySelector("#preview-visit-date");
+    select.replaceChildren(...dates.map(item => new Option(item.date, item.date)));
+    select.value = selected.date;
+    document.querySelector("#preview-visits").hidden = dates.length <= 1;
+    refreshWorldActiveMarker();
+    const marker = chinaMarkers.find(entry => entry.visit.name === selected.name)?.marker;
+    if (marker) setActiveMarker(marker);
+    focusMapCity(selected);
+    if (window.matchMedia("(max-width: 767px)").matches && !document.querySelector("#map-section").classList.contains("is-fullscreen")) {
+      document.querySelector("#map-section").scrollIntoView({ block: "start", behavior: "instant" });
+    }
+    if (updateUrl) updateCityUrl(selected);
+  }
+
+  function initializeEditorialUI() {
+    document.querySelector("#content-retry").addEventListener("click", () => window.location.reload());
+    const menu = document.querySelector("#site-menu");
+    const menuButton = document.querySelector("#site-menu-toggle");
+    menu.addEventListener("toggle", event => {
+      const open = event.newState === "open";
+      menuButton.setAttribute("aria-expanded", String(open));
+      menuButton.setAttribute("aria-label", open ? "关闭导航菜单" : "打开导航菜单");
+    });
+    menu.querySelectorAll("a").forEach(link => link.addEventListener("click", () => menu.hidePopover()));
+    document.querySelector("#journeys-expand").addEventListener("click", () => {
+      journeysExpanded = !journeysExpanded;
+      renderJourneyArchive();
+    });
+    document.querySelector("#ranking-expand").addEventListener("click", () => {
+      rankingExpanded = !rankingExpanded;
+      renderRanking();
+    });
+    document.querySelector("#filter-more").addEventListener("click", event => {
+      const button = event.currentTarget;
+      const expanded = button.getAttribute("aria-expanded") !== "true";
+      button.setAttribute("aria-expanded", String(expanded));
+      document.querySelector("#rating-filter-wrap").hidden = !expanded;
+    });
+    document.querySelector("#preview-close").addEventListener("click", () => hideMapPreview({ restoreFocus: true }));
+    document.querySelector("#preview-open").addEventListener("click", () => activeCity && openCity(activeCity, { fromPreview: true }));
+    document.querySelector("#preview-collapse").addEventListener("click", event => {
+      const expanded = event.currentTarget.getAttribute("aria-expanded") !== "true";
+      event.currentTarget.setAttribute("aria-expanded", String(expanded));
+      event.currentTarget.textContent = expanded ? "收起城市卡" : `展开${activeCity?.name || ""}城市卡`;
+      document.querySelector("#preview-body").hidden = !expanded;
+      chinaMap?.resize?.();
+      worldMap?.invalidateSize?.(false);
+      if (activeCity) focusMapCity(activeCity);
+    });
+    document.querySelector("#preview-visit-date").addEventListener("change", event => {
+      const visit = visits.find(item => item.name === activeCity?.name && item.date === event.target.value);
+      if (visit) selectMapCity(visit);
+    });
+    document.querySelector("#preview-image").addEventListener("error", event => {
+      event.currentTarget.hidden = true;
+      document.querySelector("#preview-no-photo").hidden = false;
+    });
+    const mapSection = document.querySelector("#map-section");
+    const fullButton = document.querySelector("#map-fullscreen");
+    function toggleFullscreen(force) {
+      const expanded = force ?? !mapSection.classList.contains("is-fullscreen");
+      mapSection.classList.toggle("is-fullscreen", expanded);
+      document.body.style.overflow = expanded ? "hidden" : "";
+      fullButton.setAttribute("aria-pressed", String(expanded));
+      fullButton.setAttribute("aria-label", expanded ? "退出全屏地图" : "全屏地图");
+      chinaMap?.resize?.();
+      worldMap?.invalidateSize?.(false);
+      if (activeCity) focusMapCity(activeCity);
+      if (!expanded) fullButton.focus({ preventScroll: true });
+    }
+    fullButton.addEventListener("click", () => toggleFullscreen());
+    document.addEventListener("keydown", event => {
+      if (cityDialog.open || statsDialog.open || guideDialog.open || lightbox.open || menu.matches(":popover-open")) return;
+      if (event.key === "Escape") {
+        if (mapSection.classList.contains("is-fullscreen")) toggleFullscreen(false);
+        else if (!document.querySelector("#map-city-preview").hidden) hideMapPreview({ restoreFocus: true });
+      }
+      if (event.key === "Tab" && mapSection.classList.contains("is-fullscreen")) {
+        const controls = [...mapSection.querySelectorAll('button,a[href],input,select,[tabindex="0"]')].filter(el => !el.disabled && el.getClientRects().length);
+        const first = controls[0], last = controls.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
+    });
+    const sectionLinks = [...document.querySelectorAll("[data-section-link]")];
+    const sections = [...new Set(sectionLinks.map(link => link.dataset.sectionLink))].map(id => document.getElementById(id)).filter(Boolean);
+    const observer = new IntersectionObserver(entries => {
+      if (mapMode === "wishlist") return;
+      const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      if (!visible) return;
+      const id = visible.target.id;
+      document.body.dataset.currentSection = id;
+      document.querySelector(".mobile-brand-title").textContent = id === "map-section" ? "我的旅行地图" : "SEHURI / JOURNEYS";
+      sectionLinks.forEach(link => {
+        if (link.dataset.sectionLink === id) link.setAttribute("aria-current", "location");
+        else link.removeAttribute("aria-current");
+      });
+    }, { rootMargin: "-64px 0px -55% 0px", threshold: 0 });
+    sections.forEach(section => observer.observe(section));
+    const status = document.querySelector("#content-status");
+    if (status) status.textContent = window.TRAVEL_CONTENT?.getState?.().connected ? "已同步旅行记录" : "当前显示已保存记录";
+  }
+
   function initializeDialogs() {
     document.querySelector("#stats-dialog-close").addEventListener("click", () => statsDialog.close());
     document.querySelector("#dialog-close").addEventListener("click", () => cityDialog.close());
@@ -1987,9 +2185,9 @@
       });
     });
     cityDialog.addEventListener("close", () => {
-      activeCity = null;
+      if (document.querySelector("#map-city-preview").hidden) activeCity = null;
       document.title = originalTitle;
-      if (!syncingHistory) clearCityUrl();
+      if (!syncingHistory && !activeCity) clearCityUrl();
     });
     window.addEventListener("popstate", syncCityFromUrl);
   }
@@ -2023,6 +2221,7 @@
     initializeWishlist();
     initializeHomeTabs();
     initializeDialogs();
+    initializeEditorialUI();
     photoCinema = window.initializePhotoCinema?.(photoDetails, visits, journeys, () => openStatsDetail("photos"));
     syncCityFromUrl();
   }
