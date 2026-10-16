@@ -36,7 +36,8 @@ const root=path.resolve(__dirname,'..');
       class Map{constructor(id){this.container=document.getElementById(id);}add(){}addControl(){}resize(){}setFitView(markers){this.container.dataset.fitCount=String(markers.length);}}
       class Marker{constructor(o){this.o=o;this.element=o.content;window.__markers.push(this);}setMap(map){this.element.remove();if(map)map.container.append(this.element);}getElement(){return this.element;}getContent(){return this.element;}}
       window.__markers=[];
-      window.AMap={Map,Marker,ToolBar:class{},Polygon:class{setMap(){}on(){}},DistrictLayer:{Country:class{setStyles(){}show(){}hide(){}on(){}}}};
+      const District=class{setStyles(){}show(){}hide(){}on(){}};
+      window.AMap={Map,Marker,ToolBar:class{},DistrictLayer:{Country:District,World:District}};
     });
     const base=`http://127.0.0.1:${server.address().port}`;
     await page.goto(base+'/index.html',{waitUntil:'networkidle'});

@@ -5,8 +5,11 @@
 })(typeof window !== "undefined" ? window : globalThis, function () {
   "use strict";
 
-  const japanesePrefectureByCity = new Map([
-    ["大阪", "大阪"], ["京都", "京都"], ["东京", "东京"], ["镰仓", "神奈川"]
+  const countryAliases = new Map([
+    ["chn", "中国"], ["china", "中国"], ["中华人民共和国", "中国"],
+    ["jpn", "日本"], ["japan", "日本"], ["日本国", "日本"],
+    ["sgp", "新加坡"], ["singapore", "新加坡"], ["新加坡共和国", "新加坡"],
+    ["idn", "印度尼西亚"], ["indonesia", "印度尼西亚"], ["印尼", "印度尼西亚"], ["印度尼西亚共和国", "印度尼西亚"]
   ]);
   const japaneseNames = new Map([
     ["osaka", "大阪"], ["kyoto", "京都"], ["tokyo", "东京"],
@@ -26,13 +29,20 @@
       .replace(/^神奈川県?$/u, "神奈川");
   }
 
+  function normalizeCountryName(value) {
+    const name = String(value || "").trim();
+    return countryAliases.get(name.toLowerCase()) || name;
+  }
+
   function regionForVisit(visit, provinceByCity) {
     if (!visit) return "";
+    const country = normalizeCountryName(visit.country);
+    if (!country) return "";
+    // Overseas footprints are whole countries, irrespective of city/admin1 names.
+    if (country !== "中国") return country;
     const explicit = visit.admin1 || visit.province || visit.state || visit.prefecture;
     if (explicit) return normalizeRegionName(explicit);
-    if (visit.country === "中国") return normalizeRegionName(provinceByCity?.get(visit.name));
-    if (visit.country === "日本") return normalizeRegionName(japanesePrefectureByCity.get(visit.name));
-    return "";
+    return normalizeRegionName(provinceByCity?.get(visit.name));
   }
 
   function regionsByCountry(visits, provinceByCity) {
@@ -40,9 +50,10 @@
     for (const visit of visits || []) {
       const region = regionForVisit(visit, provinceByCity);
       if (!region) continue;
-      if (!regions.has(visit.country)) regions.set(visit.country, new Map());
-      if (!regions.get(visit.country).has(region)) regions.get(visit.country).set(region, []);
-      if (!regions.get(visit.country).get(region).includes(visit.name)) regions.get(visit.country).get(region).push(visit.name);
+      const country = normalizeCountryName(visit.country);
+      if (!regions.has(country)) regions.set(country, new Map());
+      if (!regions.get(country).has(region)) regions.get(country).set(region, []);
+      if (!regions.get(country).get(region).includes(visit.name)) regions.get(country).get(region).push(visit.name);
     }
     return regions;
   }
@@ -51,5 +62,10 @@
     return normalizeRegionName(properties?.NAME_CHN || properties?.NAME_ENG || properties?.name);
   }
 
-  return { normalizeRegionName, regionForVisit, regionsByCountry, districtRegion };
+  function districtCountry(properties) {
+    return countryAliases.get(String(properties?.SOC || "").toLowerCase())
+      || normalizeCountryName(properties?.NAME_CHN || properties?.NAME_ENG || properties?.SOC);
+  }
+
+  return { normalizeRegionName, normalizeCountryName, regionForVisit, regionsByCountry, districtRegion, districtCountry };
 });

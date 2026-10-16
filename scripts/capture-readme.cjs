@@ -58,27 +58,27 @@ async function screenshotViewport(page, filename) {
   if (process.env.CHROME_PATH) launchOptions.executablePath = process.env.CHROME_PATH;
   const browser = await chromium.launch(launchOptions);
   try {
-    const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+    const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1, reducedMotion: "reduce" });
     const page = await context.newPage();
-    await page.route("https://cdn.jsdelivr.net/npm/@supabase/**", (route) => route.fulfill({
-      contentType: "text/javascript",
-      body: ""
-    }));
-    await page.route("https://webapi.amap.com/**", (route) => route.abort());
-
+    // Read the same public content and real map as the site, never mock screenshot data.
     await page.goto(`${base}/index.html?capture=readme`, { waitUntil: "domcontentloaded" });
-    await page.waitForFunction(() => document.querySelector("#city-count")?.textContent === "53");
-    await page.addStyleTag({ content: ".skip-link { display: none !important; }" });
-    await screenshot(page.locator("#top"), "01-home.jpg");
+    await page.waitForFunction(() => Number(document.querySelector("#city-count")?.textContent) > 0);
+    await page.waitForFunction(() => !/正在/.test(document.querySelector("#content-status")?.textContent || "正在读取"));
+    await page.locator(".amap-marker-button").first().waitFor({ state: "visible", timeout: 30000 });
+    await page.getByRole("button", { name: "旅程足迹", exact: true }).click();
+    await screenshotViewport(page, "01-home.jpg");
+    const latestJourney = await page.locator("#latest-journey-link").getAttribute("href");
 
-    await page.getByRole("tab", { name: /仍在期待/ }).click();
+    await page.locator('[data-home-tab-target="wishlist"]:visible').first().click();
     await page.locator(".wish-priority-group").first().waitFor({ state: "visible" });
     await page.locator("#top").scrollIntoViewIfNeeded();
     await screenshotViewport(page, "02-wishlist.jpg");
 
+    await page.locator('[data-home-tab-target="journeys"]:visible').first().click();
     await screenshot(page.locator("#journey-stats"), "03-travel-data.jpg");
 
-    await page.goto(`${base}/journey.html?slug=2026-japan-kansai-kanto`, { waitUntil: "domcontentloaded" });
+    if (!latestJourney || !new URL(latestJourney,base).searchParams.get("slug")) throw new Error("No published journey available for capture.");
+    await page.goto(new URL(latestJourney,base).href, { waitUntil: "domcontentloaded" });
     await page.locator("#journey-content").waitFor({ state: "visible" });
     await screenshot(page.locator("#journey-hero"), "04-journey.jpg");
   } finally {

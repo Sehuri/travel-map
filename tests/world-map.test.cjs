@@ -24,3 +24,11 @@ test('global view follows visited-city filters and the wishlist mode', () => {
   assert.match(app, /worldWishlistMarkers/);
   assert.match(app, /updateWorldMapMode\(\);\s*refreshChinaDistrictStyles\(\)/);
 });
+
+test('journey footprints use province and world country layers without legacy prefecture polygons', () => {
+  assert.match(page, /data-view="province"[^>]*>旅程足迹/);
+  assert.match(app, /new AMap\.DistrictLayer\.World/);
+  assert(!app.includes('japan-visited-prefectures.geojson'));
+  assert(!app.includes('initializeJapanesePrefecturePolygons'));
+  assert.match(app, /country !== "中国" && countries\.has\(country\)/);
+});

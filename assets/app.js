@@ -59,7 +59,7 @@
   let wishlistMarkers = [];
   let chinaDistrictLayer;
   let provinceDistrictLayers = new Map();
-  let japanesePrefecturePolygons = new Map();
+  let foreignCountryLayer;
   let chinaMapPromise;
   let amapLoadPromise;
   let activeMarker = null;
@@ -1071,7 +1071,7 @@
         }
       });
 
-      // 高德的 JPN depth:1 返回“近畿地方”等大区，不能用于都道府县填色。
+      // China retains province-level coverage; overseas coverage uses whole countries.
       for (const country of ["中国"]) {
         const layer = new AMap.DistrictLayer.Country({
           SOC: "CHN",
@@ -1086,14 +1086,29 @@
           if (mapView !== "province" || mapMode !== "journeys") return;
           const properties = event?.properties || event?.props || event?.rawData || event?.data || event?.feature?.properties;
           const regionName = window.TRAVEL_ADMIN_REGION_ENGINE?.districtRegion(properties);
-          const regionCities = getVisibleProvinceRegions().get(country)?.get(regionName);
+          const regionCities = getVisibleFootprintRegions().get(country)?.get(regionName);
           if (regionCities?.length) {
             document.querySelector("#map-interaction-hint").textContent = `${country} · ${properties?.NAME_CHN || regionName}：${regionCities.join("、")}`;
           }
         });
         provinceDistrictLayers.set(country, layer);
       }
-      await initializeJapanesePrefecturePolygons(AMap);
+      foreignCountryLayer = new AMap.DistrictLayer.World({
+        zIndex: 11,
+        zooms: [2, 20],
+        visible: false
+      });
+      foreignCountryLayer.setStyles(createForeignCountryStyles());
+      chinaMap.add(foreignCountryLayer);
+      foreignCountryLayer.on?.("click", (event) => {
+        if (mapView !== "province" || mapMode !== "journeys") return;
+        const properties = event?.properties || event?.props || event?.rawData || event?.data || event?.feature?.properties;
+        const country = window.TRAVEL_ADMIN_REGION_ENGINE?.districtCountry(properties);
+        const cities = getVisibleFootprintRegions().get(country)?.get(country);
+        if (country !== "中国" && cities?.length) {
+          document.querySelector("#map-interaction-hint").textContent = `${country} · 已到访：${cities.join("、")}`;
+        }
+      });
 
       const getAmapCoordinate = mapEngine.getAmapCoordinate || ((place) => place.coord);
       chinaMarkers = uniqueVisits.map((visit) => {
@@ -1209,7 +1224,7 @@
     )));
   }
 
-  function getVisibleProvinceRegions() {
+  function getVisibleFootprintRegions() {
     const engine = window.TRAVEL_ADMIN_REGION_ENGINE;
     return engine?.regionsByCountry(
       visibleJourneyVisits,
@@ -1218,7 +1233,7 @@
   }
 
   function createProvinceDistrictStyles(country) {
-    const regions = getVisibleProvinceRegions().get(country) || new Map();
+    const regions = getVisibleFootprintRegions().get(country) || new Map();
     const districtRegion = window.TRAVEL_ADMIN_REGION_ENGINE?.districtRegion || (() => "");
     return {
       "stroke-width": 1.2,
@@ -1234,53 +1249,20 @@
     };
   }
 
-  async function initializeJapanesePrefecturePolygons(AMap) {
-    try {
-      const response = await fetch("assets/japan-visited-prefectures.geojson");
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const geojson = await response.json();
-      for (const feature of geojson.features || []) {
-        const region = window.TRAVEL_ADMIN_REGION_ENGINE?.normalizeRegionName(feature.properties?.name);
-        if (!region || !["Polygon", "MultiPolygon"].includes(feature.geometry?.type)) continue;
-        const parts = feature.geometry.type === "MultiPolygon"
-          ? feature.geometry.coordinates
-          : [feature.geometry.coordinates];
-        const polygons = parts.map((rings) => {
-          const polygon = new AMap.Polygon({
-            path: rings,
-            strokeColor: "#3268e8",
-            strokeOpacity: .82,
-            strokeWeight: 1,
-            fillColor: "#3268e8",
-            fillOpacity: .28,
-            zIndex: 14,
-            bubble: true,
-            extData: { region, nameJa: feature.properties.nameJa }
-          });
-          polygon.on?.("click", () => {
-            if (mapView !== "province" || mapMode !== "journeys") return;
-            const cities = getVisibleProvinceRegions().get("日本")?.get(region);
-            if (cities?.length) {
-              document.querySelector("#map-interaction-hint").textContent = `日本 · ${feature.properties.nameJa}：${cities.join("、")}`;
-            }
-          });
-          return polygon;
-        });
-        japanesePrefecturePolygons.set(region, polygons);
+  function createForeignCountryStyles() {
+    const countries = getVisibleFootprintRegions();
+    const districtCountry = window.TRAVEL_ADMIN_REGION_ENGINE?.districtCountry || (() => "");
+    return {
+      "stroke-width": 1,
+      "nation-stroke": "rgba(50, 104, 232, .55)",
+      "coastline-stroke": "rgba(50, 104, 232, .55)",
+      fill(properties) {
+        const country = districtCountry(properties);
+        return mapView === "province" && mapMode === "journeys" && country !== "中国" && countries.has(country)
+          ? "rgba(50, 104, 232, .28)"
+          : "rgba(255, 255, 255, 0)";
       }
-      refreshJapanesePrefecturePolygons();
-    } catch (error) {
-      console.warn("日本都道府县边界暂时无法加载。", error);
-    }
-  }
-
-  function refreshJapanesePrefecturePolygons() {
-    const visible = mapView === "province" && mapMode === "journeys"
-      ? getVisibleProvinceRegions().get("日本") || new Map()
-      : new Map();
-    japanesePrefecturePolygons.forEach((polygons, region) => {
-      polygons.forEach((polygon) => polygon.setMap(visible.has(region) ? chinaMap : null));
-    });
+    };
   }
 
   function refreshProvinceDistrictStyles() {
@@ -1290,7 +1272,8 @@
       layer.setStyles(createProvinceDistrictStyles(country));
       layer[show ? "show" : "hide"]?.();
     });
-    refreshJapanesePrefecturePolygons();
+    foreignCountryLayer?.setStyles(createForeignCountryStyles());
+    foreignCountryLayer?.[show ? "show" : "hide"]?.();
   }
 
   function setActiveMarker(marker) {
@@ -1321,21 +1304,23 @@
     const mapRoot = document.querySelector("#travel-map");
     mapRoot.dataset.mapMode = mapMode;
     mapRoot.setAttribute("aria-label", isWishlist ? "想去目的地互动地图" : "旅行城市互动地图");
-    document.querySelector("#china-map").setAttribute("aria-label", isWishlist ? "想去目的地高德地图" : mapView === "province" ? "中国省级地区与日本都道府县足迹地图" : "中国足迹高德地图");
+    document.querySelector("#china-map").setAttribute("aria-label", isWishlist ? "想去目的地高德地图" : mapView === "province" ? "旅程足迹地图：中国按省级地区、海外按国家点亮" : "中国足迹高德地图");
     document.querySelector("#world-map").setAttribute("aria-label", isWishlist ? "全球想去目的地地图" : "全球旅行足迹地图");
     document.querySelector("#map-title").textContent = isWishlist ? "把愿望放到地图上" : "把旅程摊开来看";
     document.querySelector("#map-primary-label").textContent = isWishlist
       ? "想去目的地"
       : mapView === "province"
-        ? `已点亮 ${[...getVisibleProvinceRegions()].filter(([country]) => ["中国", "日本"].includes(country)).reduce((sum, [, regions]) => sum + regions.size, 0)} 个省级地区`
+        ? `已点亮 ${getVisibleFootprintRegions().get("中国")?.size || 0} 个省级地区 · ${[...getVisibleFootprintRegions().keys()].filter((country) => country !== "中国").length} 个海外国家`
         : (filtersActive ? `筛选结果 ${uniqueCityVisits(visibleJourneyVisits).length}` : "已到访");
     document.querySelector("#map-secondary-label").textContent = isWishlist ? "当前选择" : "当前城市";
     document.querySelector("#map-primary-dot").className = `legend-dot ${isWishlist ? "wishlist" : "visited"}`;
     document.querySelector("#map-interaction-hint").textContent = isWishlist
       ? "光点越大代表越想去，点击可查看对应旅行攻略"
-      : (filtersActive
+      : (mapView === "province"
+          ? `中国按省级地区点亮，海外按国家整体点亮${filtersActive ? "；已同步当前筛选" : ""}`
+          : filtersActive
           ? `地图已同步展示筛选后的 ${uniqueCityVisits(visibleJourneyVisits).length} 座城市`
-          : (mapView === "world" ? "中国与海外足迹都能在全球地图上查看" : mapView === "province" ? "去过任一城市，即点亮所属省级地区或日本都道府县" : "中国足迹按市域填色，海外足迹以城市光点标记"));
+          : (mapView === "world" ? "中国与海外足迹都能在全球地图上查看" : "中国足迹按市域填色，海外足迹以城市光点标记"));
     if (isWishlist) {
       const missing = wishlist.filter((destination) => !window.TRAVEL_MAP_ENGINE?.getWishlistMapLocation(destination));
       if (missing.length) {
