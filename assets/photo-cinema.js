@@ -6,6 +6,7 @@
     if (!root) return null;
 
     const allPhotos = [...photoDetails];
+    const photoImages = window.TRAVEL_PHOTOS;
     const photoByUrl = new Map(allPhotos.map(photo => [photo.imageUrl, photo]));
     (journeys || []).forEach(journey => (journey.photos || []).forEach(photo => {
       if (!photo.imageUrl || photoByUrl.has(photo.imageUrl)) return;
@@ -92,7 +93,9 @@
     let active = -1;
     let activeEntry = null;
     let playing = false;
-    let visible = true;
+    let visible = !window.IntersectionObserver;
+    let started = false;
+    let prefetched = "";
     let loading = false;
     let timer;
     let chapterTimer;
@@ -101,6 +104,12 @@
     function schedule() {
       clearTimeout(timer);
       if (playing && visible && !document.hidden && !loading && entries.length > 1) {
+        const source = entries[(index + 1) % entries.length].photo.imageUrl;
+        if (!navigator.connection?.saveData && source !== prefetched) {
+          prefetched = source;
+          // Only the next screen-sized frame, and only during playback.
+          void photoImages.loadImage(source);
+        }
         timer = setTimeout(advance, 6500);
       }
     }
@@ -147,6 +156,8 @@
     }
     async function show(next, options = {}) {
       if (!entries.length) return;
+      started = true;
+      if (!filmstrip.children.length) renderFilmstrip();
       clearTimeout(timer);
       const token = ++request;
       loading = true;
@@ -154,13 +165,7 @@
       const entry = entries[index];
       const target = active === 0 ? 1 : 0;
       status.textContent = "正在打开这一帧回忆…";
-      const loaded = await new Promise(resolve => {
-        const preload = new Image();
-        const timeout = setTimeout(() => resolve(false), 12000);
-        preload.onload = () => { clearTimeout(timeout); resolve(true); };
-        preload.onerror = () => { clearTimeout(timeout); resolve(false); };
-        preload.src = entry.photo.imageUrl;
-      });
+      const loaded = await photoImages.loadImage(entry.photo.imageUrl);
       if (token !== request) return;
       loading = false;
       if (!loaded) {
@@ -170,9 +175,10 @@
       }
       const slide = slides[target];
       const image = slide.querySelector("img");
-      image.src = entry.photo.imageUrl;
+      image.decoding = "async";
+      image.src = loaded;
       image.alt = entry.photo.caption || `${entry.cityName}的旅行照片`;
-      slide.style.setProperty("--photo-background", `url(${JSON.stringify(entry.photo.imageUrl)})`);
+      slide.style.setProperty("--photo-background", `url(${JSON.stringify(loaded)})`);
       slides.forEach(item => { item.classList.remove("is-current"); item.setAttribute("aria-hidden", "true"); });
       slide.classList.add("is-current");
       slide.setAttribute("aria-hidden", "false");
@@ -186,10 +192,6 @@
       activeEntry = entry;
       updateDetails(entry);
       status.textContent = "";
-      if (entries.length > 1) {
-        const upcoming = new Image();
-        upcoming.src = entries[(index + 1) % entries.length].photo.imageUrl;
-      }
       schedule();
     }
     function renderFilmstrip() {
@@ -200,7 +202,7 @@
         button.className = "cinema-thumb";
         button.setAttribute("aria-label", `第 ${position + 1} 张：${entry.cityName}${entry.photo.caption ? `，${entry.photo.caption}` : ""}`);
         const image = document.createElement("img");
-        image.src = entry.photo.imageUrl;
+        photoImages.setImage(image, entry.photo.imageUrl, { size: "thumb" });
         image.alt = "";
         image.loading = "lazy";
         image.decoding = "async";
@@ -281,13 +283,13 @@
     document.addEventListener("visibilitychange", updatePlayback);
     if (window.IntersectionObserver) new IntersectionObserver(observations => {
       visible = observations[0].isIntersecting;
+      if (visible && !started) show(0);
       updatePlayback();
     }, { threshold: .1 }).observe(root);
 
-    renderFilmstrip();
     updateShuffleButton();
     updatePlayback();
-    show(0);
+    if (visible) show(0);
     return {
       playAll() {
         selectMode("all");

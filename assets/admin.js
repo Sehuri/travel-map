@@ -1,5 +1,6 @@
 (function () {
   "use strict";
+  const photoImages = window.TRAVEL_PHOTOS;
 
   const config = window.SUPABASE_CONFIG || {};
   const baseVisits = window.TRAVEL_DATA?.visits || [];
@@ -475,7 +476,7 @@
         else journeySelectedPhotos.delete(photo.imageUrl);
       });
       const image = document.createElement("img");
-      image.src = photo.imageUrl;
+      photoImages.setImage(image, photo.imageUrl, { size: "thumb" });
       image.alt = photo.caption || `${photo.cityName}旅行照片`;
       image.loading = "lazy";
       const caption = document.createElement("span");
@@ -801,7 +802,7 @@
     const card = document.createElement("article");
     card.className = "photo-admin-card";
     const image = document.createElement("img");
-    image.src = photo.image_url;
+    photoImages.setImage(image, photo.image_url);
     image.alt = `${photo.city_name}照片`;
     image.loading = "lazy";
     const copy = document.createElement("div");
@@ -848,7 +849,7 @@
           const card = document.createElement("article");
           card.className = "photo-admin-card";
           const image = document.createElement("img");
-          image.src = url;
+          photoImages.setImage(image, url);
           image.alt = `${cityName}现有照片`;
           const copy = document.createElement("div");
           copy.className = "photo-card-copy";
@@ -901,6 +902,7 @@
       return;
     }
     elements.upload_photos.disabled = true;
+    const previewWarnings = [];
     try {
       await importLocalPhotos(cityName, true);
       const existing = (await fetchPhotoRows(cityName)).filter((photo) => !photo.is_hidden);
@@ -911,10 +913,10 @@
         // Supabase Storage object keys only accept a restricted ASCII character set.
         // Keep the Chinese city name in the database and use an ASCII-only object path
         // so photos selected from macOS Photos/Finder can be uploaded directly.
-        const path = `cities/${Date.now()}-${crypto.randomUUID()}.${extension}`;
-        status(elements.photo_admin_status, `正在上传 ${file.name}…`);
-        const upload = await client.storage.from("city-photos").upload(path, file, { upsert: false, contentType: file.type });
-        if (upload.error) throw upload.error;
+        const name = `${Date.now()}-${crypto.randomUUID()}.${extension}`;
+        const { path, previewWarning } = await photoImages.uploadOriginal(client.storage.from("city-photos"), file, name,
+          message => status(elements.photo_admin_status, message));
+        if (previewWarning) previewWarnings.push(file.name);
         const publicUrl = client.storage.from("city-photos").getPublicUrl(path).data.publicUrl;
         const insert = await client.from("city_photos").insert({
           city_name: cityName,
@@ -926,8 +928,8 @@
         if (insert.error) throw insert.error;
       }
       elements.photo_files.value = "";
-      status(elements.photo_admin_status, `${files.length} 张照片上传完成。` );
       await loadPhotos(cityName);
+      status(elements.photo_admin_status, `${files.length} 张照片上传完成，原图完整保留。${previewWarnings.length ? `其中 ${previewWarnings.length} 张预览图生成失败，已保留原图展示，可稍后补生成。` : ""}` );
     } catch (error) {
       status(elements.photo_admin_status, `上传失败：${error.message}`, true);
     } finally {

@@ -92,6 +92,8 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     });
 
     await page.goto(`${base}/index.html?qa=site-browser`, { waitUntil: 'networkidle' });
+    assert.equal(await page.locator('.cinema-slide img[src]').count(), 0, 'offscreen cinema does not preload a frame');
+    assert.equal(await page.locator('#cinema-filmstrip img').count(), 0, 'offscreen filmstrip does not create image requests');
     assert.equal(await page.locator('.amap-marker-button').count(), 57);
     assert.equal(await page.locator('.site-menu').isVisible(),false);
     assert(await page.locator('.hero').evaluate(el=>el.offsetHeight<420));
@@ -199,6 +201,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.match(await page.locator('.photo-archive-card figcaption').first().innerText(), /东京.*到访/s);
     await page.locator('.photo-archive-card button').first().click();
     await page.locator('#lightbox').waitFor({ state: 'visible' });
+    assert(!/previews/.test(await page.locator('#lightbox-image').getAttribute('src')), 'zoom still uses the original');
     await page.locator('#lightbox-close').click();
     await page.locator('#stats-dialog').waitFor({ state: 'visible' });
     assert.equal(await page.locator('#stats-dialog-title').innerText(), '全部旅行照片');
@@ -418,10 +421,10 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     // Isolated image failures exercise UI states without changing saved photos or backend data.
     await page.goto(`${base}/index.html?city=${encodeURIComponent('东京')}`, { waitUntil: 'networkidle' });
     assert.equal(await page.locator('#dialog-title').innerText(),'东京');
-    await page.locator('#photo-grid img').first().evaluate(img=>{img.src='/qa-missing-thumbnail.jpg';});
+    await page.locator('#photo-grid img').first().evaluate(img=>window.TRAVEL_PHOTOS.setImage(img,'/qa-missing-thumbnail.jpg', {loading:'eager'}));
     await page.locator('#photo-grid .photo-unavailable').waitFor({state:'visible'});
     assert(await page.locator('#photo-grid .photo-unavailable').isDisabled());
-    await page.locator('#dialog-cover').evaluate(img=>{img.hidden=false;img.src='/qa-missing-cover.jpg';});
+    await page.locator('#dialog-cover').evaluate(img=>{img.hidden=false;window.TRAVEL_PHOTOS.setImage(img,'/qa-missing-cover.jpg',{loading:'eager'});});
     await page.locator('#dialog-cover-status').waitFor({state:'visible'});
     await page.locator('#photo-grid button:not(:disabled)').first().click();
     await page.locator('#lightbox-image').evaluate(img=>{img.src='/qa-missing-lightbox.jpg';});

@@ -6,6 +6,7 @@
   let photoManifest = {};
   let photoDetails = [];
   let photoCinema = null;
+  const photoImages = window.TRAVEL_PHOTOS;
   let guideDocuments = [];
   let journeys = [];
   let personalStats = null;
@@ -402,7 +403,7 @@
       button.type = "button";
       button.setAttribute("aria-label", `放大查看${photo.cityName}第${photo.order}张照片`);
       const image = document.createElement("img");
-      image.src = photo.imageUrl;
+      photoImages.setImage(image, photo.imageUrl);
       image.alt = photo.caption || `${photo.cityName}旅行照片 ${photo.order}`;
       image.loading = "lazy";
       addPhotoFailureState(image, button);
@@ -752,7 +753,7 @@
     const photo = visit.coverUrl || photoManifest[visit.name]?.[0];
     if (photo) {
       const image = document.createElement("img");
-      image.src = photo;
+      photoImages.setImage(image, photo, { size: "thumb" });
       image.alt = "";
       image.loading = "lazy";
       image.addEventListener("error", () => { image.remove(); thumbnail.classList.add("is-empty"); thumbnail.textContent = "照片暂不可用"; }, { once: true });
@@ -1410,7 +1411,7 @@
       const coverUrl = journey.coverUrl || journey.photos?.[0]?.imageUrl;
       if (coverUrl) {
         const image = document.createElement("img");
-        image.src = coverUrl;
+        photoImages.setImage(image, coverUrl, { size: "cover" });
         image.alt = `${journey.title}封面`;
         image.loading = "lazy";
         image.addEventListener("error", () => {
@@ -1540,10 +1541,10 @@
     image.closest(".memory-rewind-card--random").classList.toggle("is-text-only", !imageUrl);
     image.hidden = !imageUrl;
     if (imageUrl) {
-      image.src = imageUrl;
+      photoImages.setImage(image, imageUrl, { size: "cover" });
       image.alt = `${randomMemory.name}旅行回忆`;
     } else {
-      image.removeAttribute("src");
+      photoImages.clearImage(image);
       image.alt = "";
     }
     openButton.disabled = false;
@@ -1733,10 +1734,10 @@
     document.querySelector("#dialog-cover-status").hidden = true;
     cover.hidden = !visit.coverUrl;
     if (visit.coverUrl) {
-      cover.src = visit.coverUrl;
+      photoImages.setImage(cover, visit.coverUrl, { size: "cover", loading: "eager" });
       cover.alt = `${visit.name}城市封面`;
     } else {
-      cover.removeAttribute("src");
+      photoImages.clearImage(cover);
       cover.alt = "";
     }
     document.querySelector("#share-status").textContent = "";
@@ -1842,7 +1843,7 @@
       button.type = "button";
       button.setAttribute("aria-label", `放大查看${cityName}照片`);
       const image = document.createElement("img");
-      image.src = source;
+      photoImages.setImage(image, source);
       image.alt = `${cityName}旅行照片`;
       image.loading = "lazy";
       addPhotoFailureState(image, button);
@@ -2097,8 +2098,8 @@
     const source = selected.coverUrl || photos[0];
     image.hidden = !source;
     document.querySelector("#preview-no-photo").hidden = Boolean(source);
-    if (source) { image.src = source; image.alt = `${selected.name}旅行照片`; }
-    else { image.removeAttribute("src"); image.alt = ""; }
+    if (source) { photoImages.setImage(image, source, { size: "thumb", loading: "eager" }); image.alt = `${selected.name}旅行照片`; }
+    else { photoImages.clearImage(image); image.alt = ""; }
     const dates = visits.filter(item => item.name === selected.name).sort((a, b) => b.date.localeCompare(a.date));
     const select = document.querySelector("#preview-visit-date");
     select.replaceChildren(...dates.map(item => new Option(item.date, item.date)));

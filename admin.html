@@ -163,7 +163,7 @@
           <button id="upload-photos" type="button">上传照片</button>
           <button class="quiet-button" id="import-photos" type="button">导入现有照片顺序</button>
         </div>
-        <p class="hint">单张不超过 15 MB。上传后可调整顺序、设为封面或删除。</p>
+        <p class="hint">单张不超过 15 MB。JPEG / PNG 上传时自动生成清晰预览图，原图完整保留；其他格式保留原文件。上传后可调整顺序、设为封面或删除。</p>
         <p class="status" id="photo-admin-status" aria-live="polite"></p>
         <div class="admin-photo-grid" id="admin-photo-grid"></div>
       </section>
@@ -261,11 +261,13 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
   <script src="./assets/data.js?v=20261009.1"></script>
   <script src="./assets/photos.js"></script>
+  <script src="./assets/photo-previews.js?v=20261019.1"></script>
+  <script src="./assets/photo-preview.js?v=20261019.1"></script>
   <script src="./assets/supabase-config.js"></script>
   <script src="./assets/journey-engine.js?v=20260929.1"></script>
   <script src="./assets/wishlist-engine.js?v=20260915.1"></script>
   <script src="./assets/visit-engine.js?v=20261008.1"></script>
   <script src="./assets/map-engine.js?v=20261010.1"></script>
-  <script src="./assets/admin.js?v=20261010.1"></script>
+  <script src="./assets/admin.js?v=20261019.1"></script>
 </body>
 </html>

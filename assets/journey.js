@@ -1,5 +1,6 @@
 (function () {
   "use strict";
+  const photoImages = window.TRAVEL_PHOTOS;
 
   const byId = (id) => document.getElementById(id);
   const dateFormatter = new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long", day: "numeric" });
@@ -332,10 +333,10 @@
     const photo = byId("route-replay-photo");
     photo.hidden = !stop.photoUrl;
     if (stop.photoUrl) {
-      photo.src = stop.photoUrl;
+      photoImages.setImage(photo, stop.photoUrl, { size: "cover", loading: "eager" });
       photo.alt = replayPhotoAlt(stop);
     } else {
-      photo.removeAttribute("src");
+      photoImages.clearImage(photo);
       photo.alt = "";
     }
     const arrivalCard = byId("route-arrival-card");
@@ -563,7 +564,7 @@
       button.type = "button";
       button.setAttribute("aria-label", `查看${photo.cityName || "旅程"}照片 ${index + 1}`);
       const image = document.createElement("img");
-      image.src = photo.imageUrl;
+      photoImages.setImage(image, photo.imageUrl);
       image.alt = photo.caption || `${photo.cityName || "旅程"}照片`;
       image.loading = "lazy";
       button.append(image);
@@ -621,7 +622,7 @@
     byId("journey-reflection").textContent = journey.reflection || "旅行后的感想尚未整理。";
     const cover = byId("journey-cover");
     if (journey.coverUrl) {
-      cover.src = journey.coverUrl;
+      photoImages.setImage(cover, journey.coverUrl, { size: "cover", loading: "eager", sizes: "100vw" });
       cover.alt = `${journey.title}封面`;
       cover.hidden = false;
     }
