@@ -8,7 +8,7 @@
   <link rel="apple-touch-icon" href="./assets/favicon-fuji.png?v=20260914.1">
   <meta name="robots" content="noindex,nofollow">
   <title>站主管理｜Sehuri 的旅行足迹</title>
-  <link rel="stylesheet" href="./assets/admin.css?v=20260915.1">
+  <link rel="stylesheet" href="./assets/admin.css?v=20261020.1">
 </head>
 <body>
   <header class="admin-header">
@@ -159,11 +159,23 @@
         </div>
         <div class="photo-toolbar">
           <label>城市<select id="photo-city"></select></label>
-          <label class="file-field">选择照片<input id="photo-files" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple></label>
+          <label class="file-field photo-file-picker"><span>选择照片</span><span class="photo-file-button">从相册 / 文件选择</span><input id="photo-files" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple></label>
           <button id="upload-photos" type="button">上传照片</button>
           <button class="quiet-button" id="import-photos" type="button">导入现有照片顺序</button>
         </div>
+        <div class="photo-dropzone" id="photo-dropzone" role="region" aria-label="照片拖入区域" aria-describedby="photo-drop-help">
+          <strong>把照片拖到这里，加入待上传列表</strong>
+          <p id="photo-drop-help">Mac：从“照片 App”选中照片缩略图，直接拖入；也支持从访达拖入文件。可多次添加，确认后再上传。</p>
+          <button class="quiet-button" id="photo-choose-more" type="button">选择更多照片</button>
+        </div>
+        <div class="photo-pending-heading">
+          <p id="photo-pending-count" role="status">尚未添加待上传照片</p>
+          <button class="quiet-button" id="photo-clear-pending" type="button" disabled>清空待上传</button>
+        </div>
+        <ul class="photo-pending-list" id="photo-pending-list" aria-label="待上传照片"></ul>
+        <p class="status" id="photo-selection-status" role="status" aria-atomic="true"></p>
         <p class="hint">单张不超过 15 MB。JPEG / PNG 上传时自动生成清晰预览图，原图完整保留；其他格式保留原文件。上传后可调整顺序、设为封面或删除。</p>
+        <p class="hint">若未能读取拖入文件，请先在“照片 App”中下载 iCloud 原片后重试。HEIC / HEIF 暂不支持，请导出 JPEG 后添加。拖入只在本机暂存，刷新页面会清空待上传列表。</p>
         <p class="status" id="photo-admin-status" aria-live="polite"></p>
         <div class="admin-photo-grid" id="admin-photo-grid"></div>
       </section>
@@ -263,11 +275,12 @@
   <script src="./assets/photos.js"></script>
   <script src="./assets/photo-previews.js?v=20261019.1"></script>
   <script src="./assets/photo-preview.js?v=20261019.1"></script>
+  <script src="./assets/photo-upload.js?v=20261020.1"></script>
   <script src="./assets/supabase-config.js"></script>
   <script src="./assets/journey-engine.js?v=20260929.1"></script>
   <script src="./assets/wishlist-engine.js?v=20260915.1"></script>
   <script src="./assets/visit-engine.js?v=20261008.1"></script>
   <script src="./assets/map-engine.js?v=20261010.1"></script>
-  <script src="./assets/admin.js?v=20261019.1"></script>
+  <script src="./assets/admin.js?v=20261020.1"></script>
 </body>
 </html>

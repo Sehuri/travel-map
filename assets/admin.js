@@ -59,6 +59,7 @@
   let creatingJourney = false;
   let journeyStopsDraft = [];
   let journeySelectedPhotos = new Set();
+  let photoQueue;
 
   function configured() {
     return Boolean(window.supabase?.createClient && config.url && config.publishableKey);
@@ -895,13 +896,15 @@
   }
 
   async function uploadPhotos() {
+    if (photoQueue.isBusy()) return;
     const cityName = elements.photo_city.value;
-    const files = [...elements.photo_files.files];
+    const files = photoQueue.files();
     if (!cityName || !files.length) {
       status(elements.photo_admin_status, "请先选择城市和照片文件。", true);
       return;
     }
-    elements.upload_photos.disabled = true;
+    photoQueue.setUploading(true);
+    let completed = 0;
     const previewWarnings = [];
     try {
       await importLocalPhotos(cityName, true);
@@ -926,14 +929,15 @@
           created_by: user.id
         });
         if (insert.error) throw insert.error;
+        completed++;
+        photoQueue.complete(file);
       }
-      elements.photo_files.value = "";
       await loadPhotos(cityName);
       status(elements.photo_admin_status, `${files.length} 张照片上传完成，原图完整保留。${previewWarnings.length ? `其中 ${previewWarnings.length} 张预览图生成失败，已保留原图展示，可稍后补生成。` : ""}` );
     } catch (error) {
-      status(elements.photo_admin_status, `上传失败：${error.message}`, true);
+      status(elements.photo_admin_status, `上传失败：${error.message}。已完成 ${completed} 张，剩余照片保留在待上传列表，可再次点击上传。`, true);
     } finally {
-      elements.upload_photos.disabled = false;
+      photoQueue.setUploading(false);
     }
   }
 
@@ -1417,6 +1421,7 @@
   }
 
   function bindEvents() {
+    photoQueue = window.TRAVEL_PHOTO_UPLOAD.initialize(document.querySelector("#photos"));
     elements.login_form.addEventListener("submit", sendLogin);
     elements.sign_out.addEventListener("click", signOut);
     elements.city_picker.addEventListener("change", () => renderCityForm(elements.city_picker.value));
