@@ -37,7 +37,8 @@
     内蒙古: ["阿拉善盟"],
     辽宁: ["大连", "沈阳"],
     黑龙江: ["哈尔滨"],
-    湖南: ["长沙", "湘潭", "衡阳"]
+    湖南: ["长沙", "湘潭", "衡阳"],
+    重庆: ["重庆"]
   };
   const provinceByCity = new Map(
     Object.entries(provinceCities).flatMap(([province, cities]) => cities.map((city) => [city, province]))

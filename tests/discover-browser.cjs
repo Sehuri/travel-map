@@ -56,6 +56,7 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.jpg
     assert.equal(await page.locator('.candidate-card').count(),3);
     assert.match(await page.locator('.candidate-card').first().innerText(),/高铁|动车/);
     const firstGroup=await page.locator('.candidate-card h3').allTextContents();
+    assert(!firstGroup.includes('重庆'), 'newly visited Chongqing is excluded');
     assert(await page.locator('#conditions-view').isHidden());
     await page.locator('#comparison [data-edit-conditions]').click();
     assert.equal(await page.locator('#origin').inputValue(),'江苏省 · 南京');
@@ -95,8 +96,13 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.jpg
     await page.locator('#again').click();
     await page.waitForFunction(()=>!document.querySelector('#draw').disabled);
     const secondGroup=await page.locator('.candidate-card h3').allTextContents();
-    assert.notDeepEqual(secondGroup,firstGroup);
-    await page.locator('.choose-candidate').first().click();
+    // After Chongqing is visited, only three sample cities remain eligible. Once
+    // that pool is exhausted a new batch may legitimately repeat the same order.
+    assert.equal(new Set(secondGroup).size, 3);
+    assert(!secondGroup.includes('重庆'));
+    const nextIndex = secondGroup.findIndex(name => name !== first);
+    assert(nextIndex >= 0);
+    await page.locator('.choose-candidate').nth(nextIndex).click();
     await page.waitForFunction(()=>!document.querySelector('#result').hidden);
     assert.notEqual(await page.locator('#result-title').innerText(),first);
     await page.locator('#result').screenshot({path:path.join(os.tmpdir(),'travel-discover-result.png')});

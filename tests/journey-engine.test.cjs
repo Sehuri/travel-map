@@ -19,7 +19,7 @@ function loadFixtures() {
 test('built-in journeys become complete ordered archives', () => {
   const { data, photos } = loadFixtures();
   const journeys = engine.mergeJourneys(data.journeys, [], [], [], [], photos);
-  assert.equal(journeys.length, 7);
+  assert.equal(journeys.length, 8);
   const japan = journeys.find((journey) => journey.slug === '2026-japan-kansai-kanto');
   assert.equal(japan.days, 10);
   assert.deepEqual(japan.stops.map((stop) => stop.cityName), ['大阪', '京都', '东京', '镰仓']);
@@ -120,7 +120,29 @@ test('database journey overrides the fallback and can be unpublished', () => {
   assert.equal(overridden.distanceEstimated, false);
   assert.equal(overridden.stops.length, 1);
   assert.equal(overridden.guides.length, 1);
-  assert.equal(engine.mergeJourneys(data.journeys, [{ ...row, is_published: false }], [], [], [], photos).length, 6);
+  assert.equal(engine.mergeJourneys(data.journeys, [{ ...row, is_published: false }], [], [], [], photos).length, 7);
+});
+
+test('Chongqing records the supplied two-day stay without inventing trip details', () => {
+  const { data, photos } = loadFixtures();
+  const all = engine.mergeJourneys(data.journeys, [], [], [], [], photos);
+  const journey = all.find((item) => item.slug === '2026-chongqing');
+  assert.equal(all[0].slug, journey.slug);
+  assert.equal(journey.days, 2);
+  assert.equal(journey.startDate, '2026-10-21');
+  assert.equal(journey.endDate, '2026-10-22');
+  assert.deepEqual(journey.stops.map((stop) => [stop.cityName, stop.arrivalDate, stop.departureDate]), [
+    ['重庆', '2026-10-21', '2026-10-22']
+  ]);
+  assert.equal(engine.validateJourneyStops(journey.startDate, journey.endDate, journey.stops), '');
+  assert.equal(engine.journeysForCity(all, '重庆').length, 1);
+  assert.equal(journey.distanceKm, 0);
+  assert.equal(journey.budgetAmount, null);
+  assert.equal(journey.stops[0].transportToNext, '');
+  assert.deepEqual(journey.photos, []);
+  const replay = require('../assets/route-replay-engine.js').buildReplay(journey, data.visits, photos);
+  assert.deepEqual(replay.stops[0].coord, [106.55, 29.56]);
+  assert.equal(replay.segments.length, 0);
 });
 
 test('journey migration protects owner writes and expands guide types', () => {

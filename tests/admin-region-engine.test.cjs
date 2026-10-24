@@ -31,7 +31,7 @@ test('footprints group China by province and overseas cities by whole country on
 
 test('AMap province and country names/codes match visited coverage', () => {
   for (const [name, expected] of [
-    ['江苏省', '江苏'], ['广西壮族自治区', '广西'], ['香港特别行政区', '香港'],
+    ['江苏省', '江苏'], ['重庆市', '重庆'], ['广西壮族自治区', '广西'], ['香港特别行政区', '香港'],
     ['大阪府', '大阪'], ['京都府', '京都'], ['东京都', '东京'], ['神奈川县', '神奈川'],
     ['Tokyo', '东京'], ['Kanagawa', '神奈川']
   ]) {
@@ -47,12 +47,14 @@ test('AMap province and country names/codes match visited coverage', () => {
   assert.equal(regions.districtCountry(null), '');
 });
 
-test('actual archive lights 19 Chinese provinces and all three overseas countries; filtering removes coverage', () => {
+test('actual archive lights 20 Chinese provinces and all three overseas countries; filtering removes coverage', () => {
   const context = {window:{}};
   vm.runInNewContext(fs.readFileSync('assets/data.js','utf8'), context);
   const visits = context.window.TRAVEL_DATA.visits;
   const all = regions.regionsByCountry(visits, stats.provinceByCity);
-  assert.equal(all.get('中国').size, 19);
+  assert.equal(all.get('中国').size, 20);
+  assert.deepEqual(all.get('中国').get('重庆'), ['重庆']);
+  assert.equal(regions.regionsByCountry(visits.filter(visit=>visit.date<'2026-10-21'), stats.provinceByCity).get('中国').has('重庆'), false);
   assert.deepEqual([...all.keys()].filter(country=>country!=='中国').sort(), ['印度尼西亚','新加坡','日本'].sort());
   const indonesia = regions.regionsByCountry(visits.filter(visit=>visit.country==='印度尼西亚'), stats.provinceByCity);
   assert.equal(indonesia.size, 1);

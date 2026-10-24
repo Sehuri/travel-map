@@ -2,6 +2,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const engine = require('../assets/memory-engine.js');
 const journeys = require('../assets/journey-engine.js');
+const fs = require('node:fs');
+const vm = require('node:vm');
 
 const visits = [
   { name: '上海', country: '中国', date: '2024-02-03', desc: '第一次上海之旅' },
@@ -74,4 +76,19 @@ test('an evening transfer may overlap both stops but the newer arrival takes pri
   const exact = engine.buildMemorySnapshot([{ name: '深圳', date: '2025-08-10' }], [bay], '2026-08-10');
   assert.equal(exact.onThisDay[0].name, '深圳');
   assert.equal(exact.onThisDay[0].journeySlug, undefined);
+});
+
+test('Chongqing arrival and departure anniversaries remember the same single visit', () => {
+  const context = { window: {} };
+  vm.runInNewContext(fs.readFileSync(require.resolve('../assets/data.js'), 'utf8'), context);
+  const data = context.window.TRAVEL_DATA;
+  const archive = journeys.mergeJourneys(data.journeys, [], [], [], [], {});
+  const arrival = engine.buildMemorySnapshot(data.visits, archive, '2027-10-21').onThisDay;
+  assert.equal(arrival[0].name, '重庆');
+  assert.equal(arrival[0].journeySlug, undefined, 'actual arrival record takes priority');
+  const departure = engine.buildMemorySnapshot(data.visits, archive, '2027-10-22').onThisDay;
+  assert.equal(departure[0].name, '重庆');
+  assert.equal(departure[0].journeySlug, '2026-chongqing');
+  assert.equal(departure[0].departureDate, '2026-10-22');
+  assert.equal(engine.buildMemorySnapshot(data.visits, archive, '2027-10-23').onThisDay.some((visit) => visit.name === '重庆'), false);
 });

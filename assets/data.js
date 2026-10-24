@@ -57,9 +57,33 @@ window.TRAVEL_DATA = {
     { name:"雅加达", country:"印度尼西亚", region:"印度尼西亚 · 雅加达", admin1:"雅加达", date:"2026-10-02", coord:[106.8272,-6.1754], desc:"10 月 2 日首次抵达，10 月 4 日从泗水返回；行程串联国家纪念塔、Kota Tua 老城、独立广场周边与 Thamrin 商圈。" },
     { name:"泗水", country:"印度尼西亚", region:"印度尼西亚 · 东爪哇", admin1:"东爪哇", date:"2026-10-03", coord:[112.7871,-7.3798], desc:"10 月 3 日抵达朱安达机场，作为布罗莫火山日出行程的接驳点；10 月 4 日返回机场，再飞往雅加达。地图标记采用行程书中的到达机场坐标。" },
     { name:"雅加达", country:"印度尼西亚", region:"印度尼西亚 · 雅加达", admin1:"雅加达", date:"2026-10-04", coord:[106.8272,-6.1754], desc:"10 月 2 日首次抵达，10 月 4 日从泗水返回；行程串联国家纪念塔、Kota Tua 老城、独立广场周边与 Thamrin 商圈。" },
-    { name:"广州", country:"中国", region:"中国 · 华南", date:"2026-10-06", coord:[113.2644,23.1291], desc:"10 月 6 日从雅加达抵达广州，次日以陈家祠、永庆坊、西关与沙面串联城市停留，晚间返回南京。" }
+    { name:"广州", country:"中国", region:"中国 · 华南", date:"2026-10-06", coord:[113.2644,23.1291], desc:"10 月 6 日从雅加达抵达广州，次日以陈家祠、永庆坊、西关与沙面串联城市停留，晚间返回南京。" },
+    { name:"重庆", country:"中国", region:"中国 · 西南", admin1:"重庆", date:"2026-10-21", coord:[106.55,29.56], desc:"2026 年 10 月 21 日抵达重庆，10 月 22 日离开。" }
   ],
   journeys: [
+    {
+      id: "base-chongqing-2026",
+      slug: "2026-chongqing",
+      title: "2026 重庆之行",
+      startDate: "2026-10-21",
+      endDate: "2026-10-22",
+      coverUrl: "",
+      summary: "10 月 21 日抵达重庆，10 月 22 日离开，记录这次两天的城市停留。",
+      distanceKm: 0,
+      distanceEstimated: true,
+      accommodation: "",
+      budgetAmount: null,
+      budgetCurrency: "CNY",
+      companions: "",
+      planningNotes: "",
+      travelNotes: "2026 年 10 月 21 日到达，10 月 22 日离开；具体游览、交通与费用待补充。",
+      reflection: "",
+      sortOrder: 0,
+      photoCities: ["重庆"],
+      stops: [
+        { cityName:"重庆", stopOrder:0, arrivalDate:"2026-10-21", departureDate:"2026-10-22", transportToNext:"", distanceToNextKm:0, notes:"10 月 21 日抵达，10 月 22 日离开。" }
+      ]
+    },
     {
       id: "base-singapore-indonesia-2026",
       slug: "2026-singapore-indonesia-national-day",

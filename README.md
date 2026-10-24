@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img alt="57 座城市" src="https://img.shields.io/badge/足迹-57_座城市-3268e8?style=flat-square&labelColor=53657b">
+  <img alt="58 座城市" src="https://img.shields.io/badge/足迹-58_座城市-3268e8?style=flat-square&labelColor=53657b">
   <img alt="4 个国家" src="https://img.shields.io/badge/版图-4_个国家-3268e8?style=flat-square&labelColor=53657b">
   <img alt="原生前端" src="https://img.shields.io/badge/构建-HTML_·_CSS_·_JavaScript-3268e8?style=flat-square&labelColor=53657b">
   <img alt="GitHub Pages" src="https://img.shields.io/badge/部署-GitHub_Pages-3268e8?style=flat-square&labelColor=53657b">
@@ -29,7 +29,9 @@
   </a>
 </p>
 
-从 2013 年黄海边的第一次远行，到 2026 年国庆的新加坡与印尼之旅。这里不只记录打卡数字，也保存城市、路线、照片、攻略，以及仍在期待的下一站。
+从 2013 年黄海边的第一次远行，到 2026 年秋天的重庆停留。这里不只记录打卡数字，也保存城市、路线、照片、攻略，以及仍在期待的下一站。
+
+> **2026-10-24 足迹更新**：新增重庆，2026 年 10 月 21 日到达、10 月 22 日离开；同步记录两天停留档案，并点亮重庆直辖市。内置资料现有 58 座城市，未知的照片、交通与费用保留待补充状态。
 
 > **更新于 2026-10-16**：首页与随机旅行页已统一为清爽白蓝风格；“旅程足迹”中国按省级点亮，海外按整个国家点亮。
 
