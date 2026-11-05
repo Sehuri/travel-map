@@ -32,6 +32,35 @@ test('distance, days and province filters remain strict',()=>{
   assert.throws(()=>engine.candidates(cities,{origin:null,days:3}));
   assert.throws(()=>engine.candidates(cities,{origin,days:2.5}));
 });
+test('direct city exploration uses directory IDs and ignores random-only filters', () => {
+  const origin = { id:'origin', name:'南京市', coord:[118.8,32.06] };
+  const destinations = [
+    { id:'a',name:'同名市',label:'甲省 · 同名市',province:'甲省',coord:[100,25] },
+    { id:'b',name:'同名市',label:'乙省 · 同名市',province:'乙省',coord:[120,31] }
+  ];
+  const result = engine.exploreCity(destinations,{origin,destination:{id:'b',coord:[0,0]},days:4,month:'11',radius:1,budgetMax:1,province:'甲省',exclude:['b']});
+  assert.equal(result.id,'b');
+  assert.equal(result.label,'乙省 · 同名市');
+  assert.deepEqual(result.coord,[120,31], 'coordinates must come from the directory, not input');
+  assert(result.distance > 0);
+  assert(result.budget.typical > 1);
+  assert(result.season.score >= 1);
+  assert.equal(destinations[1].distance,undefined, 'directory remains unchanged');
+});
+test('direct exploration supports no origin and same-city trips without fictitious intercity data', () => {
+  const city = { id:'cq',name:'重庆',province:'重庆市',coord:[106.55,29.56] };
+  const result = engine.exploreCity([city],{destination:city,days:2});
+  assert.equal(result.distance,null);
+  assert.equal(result.budget,null);
+  assert.equal(result.routes,undefined);
+  const local = engine.exploreCity([city],{destination:city,origin:city,days:2});
+  assert.equal(local.local,true);
+  assert.equal(local.distance,0);
+  assert(local.budget.min > 0);
+  for(const days of [0,15,2.5]) assert.throws(()=>engine.exploreCity([city],{destination:city,days}),/1—14/);
+  assert.throws(()=>engine.exploreCity([city],{destination:{id:'fake'},days:2}),/目的地/);
+  assert.throws(()=>engine.exploreCity([city],{destination:city,origin:{coord:[NaN,0]},days:2}),/出发地/);
+});
 test('draw does not repeat until all candidates used; empty pool is safe',()=>{
   const pool=[{id:'a'},{id:'b'},{id:'c'}], seen=new Set();
   assert.deepEqual([1,2,3].map(()=>engine.draw(pool,seen,()=>0).id),['a','b','c']);

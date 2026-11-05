@@ -78,6 +78,15 @@
     seen.add(city.id);
     return city;
   }
+  function exploreCity(cities, options) {
+    const { destination, origin, days, month } = options;
+    const city = cities.find(item => item.id === destination?.id);
+    if (!city || !validCoord(city.coord)) throw new Error("请从列表选择具有完整行政归属的目的地城市。");
+    if (!Number.isInteger(days) || days < 1 || days > 14) throw new Error("游玩天数请填写 1—14 的整数。");
+    if (origin && !validCoord(origin.coord)) throw new Error("请选择有效的出发地。");
+    const km = origin ? distance(origin.coord, city.coord) : null;
+    return { ...city, distance: km, local: origin?.id === city.id, budget: origin ? estimateBudget(km, days) : null, season: seasonSuitability(city, month) };
+  }
   function drawMany(pool, seen = new Set(), count = 3, rng = Math.random) {
     const selected = [];
     while (selected.length < Math.min(count, pool.length)) {
@@ -112,7 +121,7 @@
     for (const root of roots || []) walk(root);
     return [...result.values()].sort((a, b) => a.id.localeCompare(b.id));
   }
-  const api = { distance, radiusForDays, estimateRoutes, estimateBudget, seasonSuitability, candidates, draw, drawMany, flattenDistricts, validCoord };
+  const api = { distance, radiusForDays, estimateRoutes, estimateBudget, seasonSuitability, candidates, exploreCity, draw, drawMany, flattenDistricts, validCoord };
   if (typeof module === "object" && module.exports) module.exports = api;
   else root.TRAVEL_DISCOVER_ENGINE = api;
 })(typeof window !== "undefined" ? window : globalThis);

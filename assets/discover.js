@@ -6,6 +6,7 @@
   let cities = [], origins = [], preview = false, busy = false, map = null, current = null, mapRevision = 0;
   let itinerary = null;
   let batch = null, stage = "conditions", connecting = false, chosenIndex = 0;
+  let discoveryMode = "random";
   let exploreMode = "resources", selectedDay = 0, resourceCategory = "all", mapView = null;
   const seen = new Set();
   let signature = "";
@@ -21,8 +22,40 @@
     return total < 60 ? `${total} 分钟` : `${Math.floor(total / 60)} 小时${total % 60 ? ` ${total % 60} 分` : ""}`;
   };
   const formatBudget = budget => `¥${budget.min.toLocaleString("zh-CN")}—${budget.max.toLocaleString("zh-CN")}`;
-  const conditionKey = () => JSON.stringify([...["origin","days","radius","month","budget","province","pace"].map(id=>$(id).value),$("exclude-visited").checked,interestValues(),preview]);
-  const brief = opts => `${opts.origin.name}出发 · ${opts.days} 天${opts.month ? ` · ${opts.month} 月` : " · 月份不限"} · ${Number(opts.budgetMax) === Infinity ? "预算不限" : `预算 ¥${Number(opts.budgetMax).toLocaleString("zh-CN")} 内`}`;
+  const conditionKey = () => JSON.stringify([discoveryMode,...(discoveryMode === "city" ? ["destination","origin","days","month","pace"] : ["origin","days","radius","month","budget","province","pace"]).map(id=>$(id).value),discoveryMode === "random" && $("exclude-visited").checked,interestValues(),preview]);
+  const brief = opts => `${opts.mode === "city" ? `指定城市 · ${opts.destination.name} · ${opts.origin ? opts.origin.name + "出发" : "未设出发地"}` : opts.origin.name + "出发"} · ${opts.days} 天${opts.month ? ` · ${opts.month} 月` : " · 月份不限"}${opts.mode === "city" ? "" : ` · ${Number(opts.budgetMax) === Infinity ? "预算不限" : `预算 ¥${Number(opts.budgetMax).toLocaleString("zh-CN")} 内`}`}`;
+  function syncModeControls() {
+    const direct = discoveryMode === "city";
+    document.body.dataset.discoveryMode = discoveryMode;
+    document.querySelectorAll("[data-discovery-mode]").forEach(button => {
+      button.setAttribute("aria-pressed", String(button.dataset.discoveryMode === discoveryMode));
+      button.disabled = busy || connecting;
+    });
+    $("destination-field").hidden = !direct;
+    $("destination").required = direct;
+    $("destination").disabled = !direct || busy || connecting || !cities.length;
+    $("origin").required = !direct;
+    $("origin").disabled = busy || connecting || !cities.length;
+    $("origin-label").textContent = direct ? "从哪里出发（选填，用于交通与预算估算）" : "01 / 从哪里出发";
+    $("days-label").textContent = direct ? "游玩天数" : "02 / 游玩天数";
+    $("month-label").textContent = direct ? "出行月份" : "04 / 出行月份";
+    // Keep keyboard order aligned with the visual layout when the mode changes.
+    const originField = $("origin").closest("label"), daysField = $("days").closest(".days-field");
+    const first = direct ? daysField : originField, second = direct ? originField : daysField;
+    if (first.nextElementSibling !== second) second.parentElement.insertBefore(first, second);
+    $("conditions-title").textContent = direct ? "这次，想探索哪座城？" : "这次，想怎么出发？";
+    $("mode-description").textContent = direct ? "选定目的地，直接探索景点、美食和每日攻略；出发地可留空。距离、预算和已去过筛选仅用于随机推荐。" : "告诉我从哪里出发，先比较三个方向，再决定去哪。";
+    document.querySelectorAll("[data-random-only]").forEach(field => {
+      field.hidden = direct;
+      field.querySelectorAll("input,select").forEach(input => { input.disabled = direct || busy; });
+    });
+    $("draw").disabled = busy || connecting || !cities.length;
+    $("draw").textContent = busy ? (direct ? "正在探索目的地…" : "正在准备候选…") : direct ? "探索这座城市" : "给我 3 个候选";
+    if (!busy) { const arrow = text("span", "", "ui-icon icon-arrow"); arrow.setAttribute("aria-hidden", "true"); $("draw").append(arrow); }
+    const resultDirect = current?.mode === "city";
+    $("back-candidates").textContent = resultDirect ? "返回城市选择" : "返回候选";
+    $("again").textContent = busy ? "正在加载…" : resultDirect ? "探索另一座城市" : "换一组，继续探索";
+  }
   function feedback(message, error = false) {
     $("draw-status").textContent = message;
     $("draw-status").dataset.error = String(error);
@@ -39,15 +72,20 @@
     $("result").hidden = next !== "destination";
     $("copy-fallback").hidden = true;
     const steps = ["conditions","comparison","destination"];
+    const direct = (next === "conditions" ? discoveryMode : next === "destination" ? current?.mode : batch?.opts.mode) === "city";
+    const visibleSteps = direct ? ["conditions", "destination"] : steps;
     document.querySelectorAll("[data-step]").forEach(button=>{
       const active = button.dataset.step === next, li = button.closest("li");
+      li.hidden = !visibleSteps.includes(button.dataset.step);
+      button.querySelector("span").textContent = String(visibleSteps.indexOf(button.dataset.step) + 1);
       li.classList.toggle("complete",steps.indexOf(button.dataset.step) < steps.indexOf(next));
       if (active) li.setAttribute("aria-current","step"); else li.removeAttribute("aria-current");
-      button.disabled = busy || (button.dataset.step === "comparison" && !batch) || (button.dataset.step === "destination" && !current);
+      button.disabled = busy || (button.dataset.step === "comparison" && (!batch || batch.opts.mode === "city")) || (button.dataset.step === "destination" && !current);
     });
+    syncModeControls();
     refreshBatch();
     if (focus) {
-      (next === "conditions" ? $("origin") : next === "comparison" ? $("comparison") : $("result")).focus({preventScroll:true});
+      (next === "conditions" ? $(discoveryMode === "city" ? "destination" : "origin") : next === "comparison" ? $("comparison") : $("result")).focus({preventScroll:true});
       window.scrollTo({top:0,behavior:matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"});
     }
   }
@@ -55,7 +93,9 @@
     $("previous-results").hidden = !batch;
     if (!batch) return;
     const dirty = batch.key !== conditionKey();
-    $("conditions-changed").textContent = dirty ? "条件已修改。上次候选仍基于旧条件，重新提交后才会更新。" : "已保留上次抽取结果，可以返回继续比较。";
+    const direct = batch.opts.mode === "city";
+    $("restore-comparison").textContent = direct ? "返回上次目的地" : "查看上次候选";
+    $("conditions-changed").textContent = dirty ? `条件已修改。上次${direct ? "目的地" : "候选"}仍基于旧条件，重新提交后才会更新。` : direct ? "已保留上次选择的城市，可以返回继续探索。" : "已保留上次抽取结果，可以返回继续比较。";
     $("batch-summary").textContent = brief(batch.opts);
     $("batch-note").textContent = `${batch.preview ? "18 城示例 · " : ""}${dirty ? "旧条件结果 · 请修改条件后重新提交；以下仍为上次候选。" : `已准备好 ${batch.candidates.length} 个候选${batch.candidates.length < 3 ? "；符合条件的城市不足 3 个，没有自动放宽条件。" : "；选择一个展开资源。"}`}`;
     $("batch-tags").replaceChildren(...batch.interests.map(id=>text("span",data.tags[id].label)));
@@ -63,21 +103,19 @@
   function setBusy(value, kind = "draw") {
     busy = value;
     for (const field of $("discover-form").elements) field.disabled = value;
-    $("origin").disabled = value || connecting || !cities.length;
-    $("draw").disabled = value || connecting || !cities.length;
-    $("draw").textContent = value ? "正在准备候选…" : "给我 3 个候选";
-    if(!value) { const arrow=text("span","","ui-icon icon-arrow");arrow.setAttribute("aria-hidden","true");$("draw").append(arrow); }
     $("discover-form").setAttribute("aria-busy",String(value));
     $("draw-status").setAttribute("aria-busy",String(value));
     $("compare-again").textContent=value ? (kind === "resources" ? "正在加载资源…" : "正在抽取…") : "换一组";
-    $("again").textContent=value ? (kind === "resources" ? "正在加载资源…" : "正在抽取…") : "换一组，继续探索";
-    document.querySelectorAll("[data-step],[data-edit-conditions],#compare-again,#again,#back-candidates,#restore-comparison,.choose-candidate").forEach(button=>{ button.disabled = value; });
+    document.querySelectorAll("[data-step],[data-edit-conditions],#compare-again,#again,#back-candidates,#restore-comparison,#retry-destination,.choose-candidate").forEach(button=>{ button.disabled = value; });
+    syncModeControls();
     if (!value) { setStage(stage,false); refresh(); }
   }
   function validateFields(show = false) {
-    const originError = origins.some(c=>c.label === $("origin").value) ? "" : "请从列表选择具有完整行政归属的出发地。";
+    const direct = discoveryMode === "city";
+    const originError = (direct && !$("origin").value.trim()) || origins.some(c=>c.label === $("origin").value) ? "" : "请从列表选择具有完整行政归属的出发地。";
+    const destinationError = !direct || cities.some(c=>c.label === $("destination").value) ? "" : "请从列表选择具有完整行政归属的目的地城市。";
     const days = Number($("days").value), daysError = Number.isInteger(days) && days >= 1 && days <= 14 ? "" : "游玩天数请填写 1—14 的整数。";
-    for (const [id,error] of [["origin",originError],["days",daysError]]) {
+    for (const [id,error] of [["origin",originError],["destination",destinationError],["days",daysError]]) {
       $(id).setCustomValidity(error);
       if (show || $(id).getAttribute("aria-invalid") === "true") {
         $(id).setAttribute("aria-invalid",String(Boolean(error)));
@@ -85,13 +123,15 @@
         $(`${id}-error`).hidden = !error;
       }
     }
-    return originError || daysError;
+    return destinationError || originError || daysError;
   }
   function options() {
     const exclude = $("exclude-visited").checked
       ? cities.filter(city => visitedNames.has(normalName(city.name))).map(city => city.id)
       : [];
     return {
+      mode: discoveryMode,
+      destination: discoveryMode === "city" ? cities.find(c => c.label === $("destination").value) : undefined,
       origin: origins.find(c => c.label === $("origin").value),
       days: Number($("days").value),
       radius: $("radius").value,
@@ -108,16 +148,20 @@
     return pool;
   }
   function refresh() {
+    syncModeControls();
     validateFields();
     const excludedCount = $("exclude-visited").checked
       ? cities.filter(city => visitedNames.has(normalName(city.name))).length
       : 0;
     $("exclude-summary").textContent = $("exclude-visited").checked ? `当前排除 ${excludedCount} 座` : "当前不排除";
-    try { $("candidate-status").textContent = `${getPool().length} 座城市符合距离、预算与省份条件${preview ? " · 示例范围" : " · 将为 3 个候选核验交通"}`; }
-    catch { $("candidate-status").textContent = "请选择完整出发地与 1–14 天的游玩天数。"; }
+    if (discoveryMode === "city") $("candidate-status").textContent = `${preview ? "示例目录内选择" : "选择目录内城市"}，直接探索；不进行随机抽取。`;
+    else {
+      try { $("candidate-status").textContent = `${getPool().length} 座城市符合距离、预算与省份条件${preview ? " · 示例范围" : " · 将为 3 个候选核验交通"}`; }
+      catch { $("candidate-status").textContent = "请选择完整出发地与 1–14 天的游玩天数。"; }
+    }
     const opts = options();
-    $("summary-main").textContent = `${opts.origin ? opts.origin.name + "出发" : "选择出发地"} · ${Number.isInteger(opts.days) && opts.days >= 1 && opts.days <= 14 ? opts.days + " 天" : "天数待确认"}`;
-    $("summary-facts").replaceChildren(metric("出行月份",opts.month ? `${opts.month} 月出行` : "月份不限"),metric("探索范围",$("radius").selectedOptions[0].textContent),metric("人均预算",$("budget").selectedOptions[0].textContent),metric("旅行节奏",$("pace").selectedOptions[0].textContent));
+    $("summary-main").textContent = `${opts.mode === "city" ? opts.destination?.name || "选择目的地" : opts.origin ? opts.origin.name + "出发" : "选择出发地"} · ${Number.isInteger(opts.days) && opts.days >= 1 && opts.days <= 14 ? opts.days + " 天" : "天数待确认"}`;
+    $("summary-facts").replaceChildren(metric("出行月份",opts.month ? `${opts.month} 月出行` : "月份不限"), ...(opts.mode === "city" ? [metric("出发地",opts.origin?.label || "未设置 · 不估算交通与总预算")] : [metric("探索范围",$("radius").selectedOptions[0].textContent),metric("人均预算",$("budget").selectedOptions[0].textContent)]),metric("旅行节奏",$("pace").selectedOptions[0].textContent));
     $("interest-count").textContent = `已选 ${interestValues().length}/3`;
     $("summary-tags").replaceChildren(...interestValues().map(id=>{
       const button = text("button",data.tags[id].label), icon = text("span","","ui-icon icon-close");
@@ -126,7 +170,7 @@
       button.onclick=()=>{ $("interests").querySelector(`input[value="${id}"]`).checked=false; refresh(); };
       return button;
     }));
-    if (!interestValues().length) $("summary-tags").append(text("p","偏好不限，让城市随机出现。","small"));
+    if (!interestValues().length) $("summary-tags").append(text("p",opts.mode === "city" ? "偏好不限，探索这座城的景点与美食。" : "偏好不限，让城市随机出现。","small"));
     $("days-minus").disabled = busy || opts.days <= 1;
     $("days-plus").disabled = busy || opts.days >= 14;
     refreshBatch();
@@ -143,19 +187,22 @@
     if(map) { map.destroy ? map.destroy() : map.remove();map=null; }
     setStage("conditions",false);
     $("origin-list").replaceChildren(...origins.map(c => { const o = document.createElement("option"); o.value = c.label; return o; }));
+    $("destination-list").replaceChildren(...cities.map(c => { const o = document.createElement("option"); o.value = c.label; return o; }));
     $("province").replaceChildren(new Option("全部省份", ""), ...[...new Set(cities.map(c => c.province))].sort().map(p => new Option(p, p)));
     $("origin").disabled = false; $("draw").disabled = false;
     if (!origins.some(c => c.label === $("origin").value)) $("origin").value = "";
+    if (!cities.some(c => c.label === $("destination").value)) $("destination").value = "";
     seen.clear(); signature = ""; refresh();
   }
   async function connect() {
     if (connecting || busy) return;
     connecting = true;
     $("draw").disabled = true; $("origin").disabled = true;
+    syncModeControls();
     $("connect-retry").hidden = true; $("preview-button").hidden = true;
     if (!endpoint) {
       $("connection-status").textContent = "全国推荐尚未启用：需要配置高德 Web 服务 Key，并部署旅行资源服务。";
-      $("preview-button").hidden = false; connecting = false; return;
+      $("preview-button").hidden = false; connecting = false; syncModeControls(); return;
     }
     $("connection-status").textContent = "正在连接全国城市目录…";
     try {
@@ -168,7 +215,7 @@
     } catch (error) {
       $("connection-status").textContent = `全国目录未连接：${error.message}`;
       $("connect-retry").hidden = false; $("preview-button").hidden = false;
-    } finally { connecting = false;$("origin").disabled=!cities.length;$("draw").disabled=!cities.length; }
+    } finally { connecting = false;syncModeControls(); }
   }
   function startPreview() {
     preview = true;
@@ -315,21 +362,24 @@
     places = ["sight","food"].flatMap(category=>places.filter(p=>p.category === category).slice(0,10)).map((p,i)=>({...p,mapNumber:String(i+1).padStart(2,"0")}));
     const curated = data.cities.find(c => c.province === city.province && normalName(c.name) === normalName(city.name));
     const intro = curated?.intro || `${city.label}。这次可从${places.slice(0,3).map(p=>p.name).join("、")}开始探索，按所在区域组合游览，避免在同一天跨城奔波。`;
-    current = { city, places, intro, days:opts.days, pace:opts.pace, interests, origin:opts.origin.name, month:opts.month, routes:city.routes, budget:city.budget, preview, key:batch.key };
+    current = { city, places, intro, mode:opts.mode, days:opts.days, pace:opts.pace, interests, origin:opts.origin?.name || "", month:opts.month, routes:city.routes, budget:city.budget, preview, key:batch.key };
     setStage("destination",false);
     $("result-context").textContent=`${preview ? "18 城示例 · " : ""}${brief(opts)}`;
     $("result-region").textContent = city.label;
     $("result-title").textContent = city.name;
-    $("result-distance").textContent = `直线距离约 ${Math.round(city.distance)} km · ${transportSummary([city])}`;
+    $("result-distance").textContent = !opts.origin ? "未设置出发地，暂不估算城际交通与人均总预算。" : city.local ? "同城探索，无需城际交通；市内交通与实际费用需自行核验。" : `直线距离约 ${Math.round(city.distance)} km · ${transportSummary([city])}`;
+    $("trip-facts").classList.toggle("without-origin", !opts.origin);
     $("trip-facts").replaceChildren(
-      metric("直线距离",`${Math.round(city.distance)} km`),
-      metric("高铁 / 动车", transportText(city.routes, "rail"),routeSource(city.routes,"rail")),
-      metric("驾车", transportText(city.routes, "driving"),routeSource(city.routes,"driving")),
-      metric("人均预算参考", formatBudget(city.budget)),
+      ...(!opts.origin ? [metric("游玩天数",`${opts.days} 天`),metric("交通与总预算","未设出发地，暂不估算")] : [
+        metric("直线距离",`${Math.round(city.distance)} km`),
+        metric("高铁 / 动车", city.local ? "同城探索" : transportText(city.routes, "rail"),city.local ? "无需城际交通" : routeSource(city.routes,"rail")),
+        metric("驾车", city.local ? "市内交通请另查" : transportText(city.routes, "driving"),city.local ? "不以城际路线估算" : routeSource(city.routes,"driving")),
+        metric("人均预算参考", formatBudget(city.budget))
+      ]),
       metric(`${opts.month ? `${opts.month} 月` : "季节"}适宜度`, `${city.season.label} · ${city.season.score}/5`)
     );
     $("result-intro").textContent = intro;
-    $("result-reason").textContent = `${preview ? "示例抽签" : "城市抽签"} · 从${opts.origin.name}出发 · ${opts.days} 天游玩${opts.month ? ` · ${opts.month} 月出行` : ""} · ${interests.length ? interests.map(t=>data.tags[t].label).join(" / ") : "偏好不限"}。${city.season.note}`;
+    $("result-reason").textContent = `${opts.mode === "city" ? "指定城市探索" : preview ? "示例抽签" : "城市抽签"}${opts.origin ? ` · 从${opts.origin.name}出发` : " · 未设出发地"} · ${opts.days} 天游玩${opts.month ? ` · ${opts.month} 月出行` : ""} · ${interests.length ? interests.map(t=>data.tags[t].label).join(" / ") : "偏好不限"}。${city.season.note}`;
     $("result-tip").textContent = `${curated?.tip || "以下为按类型检索的旅游资源线索，分类不等于实地品质评价。"} 本次列出 ${places.length} 个重点，并非覆盖 ${opts.days} 天的完整行程。`;
     $("city-map-link").href = mapLink(city);
     $("map-caption").textContent = preview ? "示例点位为近似位置，仅供浏览；实际入口请查看景区指引。" : "按住鼠标拖动地图，滚轮缩放 · 绿色为景点，橙色为美食 · 点击编号查看下方介绍。";
@@ -457,7 +507,7 @@
     saved.push({
       name: current.city.label || current.city.name,
       icon: "签",
-      desc: `随机旅行候选 · 从${current.origin}出发 · 人均参考 ${formatBudget(current.budget)}`,
+      desc: `${current.mode === "city" ? "指定城市探索" : "随机旅行候选"}${current.origin ? ` · 从${current.origin}出发` : ""}${current.budget ? ` · 人均参考 ${formatBudget(current.budget)}` : " · 未估算交通与总预算"}`,
       guide: `${current.intro} 建议安排 ${current.days} 天。${current.city.season.note} 交通时间与预算请在出发前再次核对。`,
       plannedTime,
       priorityLevel: 1,
@@ -483,12 +533,17 @@
       return;
     }
     setBusy(true,"resources");
-    const entry=$("candidate-grid").querySelectorAll(".choose-candidate")[chosenIndex];
+    $("retry-destination").hidden = true;
+    const entry=opts.mode === "city" ? null : $("candidate-grid").querySelectorAll(".choose-candidate")[chosenIndex];
     if(entry) entry.firstChild.textContent="正在加载资源…";
     feedback(`正在展开${candidate.name}的旅游资源…`);
     $("save-wishlist").disabled = true;
     $("candidate-grid").querySelectorAll("button").forEach(button => { button.disabled = true; });
     try {
+      if (opts.mode === "city" && opts.origin && !candidate.local && !candidate.routes) {
+        candidate.routes = await routeFor(candidate, opts);
+        candidate.budget = engine.estimateBudget(candidate.distance, opts.days, candidate.routes);
+      }
       let places;
       if (preview) places = candidate.places;
       else {
@@ -503,11 +558,12 @@
           places = [...unique.values()];
         }
       }
-      if (!places.length) throw new Error(`${candidate.name}暂未检索到匹配资源，请从另外两个候选中选择。`);
+      if (!places.length) throw new Error(`${candidate.name}暂未检索到匹配资源。`);
       feedback("");
       await render(candidate, places, opts, interests);
     } catch (error) {
-      feedback(`${error.message} 可以重试这个目的地，或选择其他候选。`,true);
+      feedback(`${error.message} ${opts.mode === "city" ? "可以重试加载，或修改目的地城市。" : "可以重试这个目的地，或选择其他候选。"}`,true);
+      $("retry-destination").hidden = false;
     } finally {
       if(entry) entry.firstChild.textContent="查看这个目的地";
       setBusy(false);
@@ -522,6 +578,14 @@
     try {
       const opts = options(), interests = interestValues();
       if (interests.length > 3) throw new Error("每次最多选择 3 项喜好，或全部取消让城市随机出现。");
+      $("retry-destination").hidden = true;
+      if (opts.mode === "city") {
+        const candidate = engine.exploreCity(cities, opts);
+        batch = {candidates:[candidate],opts,interests,preview,key:conditionKey()};
+        chosenIndex = 0; current = null; itinerary = null;
+        await selectCandidate(candidate, opts, interests);
+        return;
+      }
       const pool = getPool();
       if (!pool.length) throw new Error("当前范围没有候选城市，请扩大距离或更换省份；没有自动放宽你的条件。");
       const nextSignature = JSON.stringify([opts,interests,preview]);
@@ -559,11 +623,30 @@
   };
   const backToComparison=()=>{
     if(!batch || busy) return;
+    if (batch.opts.mode === "city") {
+      if (!current) { feedback("这个目的地尚未加载成功，请重试加载或重新提交条件。", true); return; }
+      feedback(batch.key !== conditionKey() ? "当前显示上次条件的目的地；新条件需重新提交。" : "已恢复上次目的地，没有重新请求资源。");
+      setStage("destination");
+      if(exploreMode === "itinerary") showItineraryDay(selectedDay);else showResources(resourceCategory);
+      return;
+    }
     feedback(batch.key !== conditionKey() ? "当前显示旧条件的候选，重新提交后才会更新。" : "已恢复同一批候选，没有重新抽取。");
     setStage("comparison",false);moveTo($("candidate-grid").querySelectorAll(".choose-candidate")[chosenIndex] || $("comparison"));
   };
   document.querySelectorAll("[data-edit-conditions]").forEach(button=>button.onclick=()=>{ if(!busy) { feedback("");setStage("conditions"); } });
-  $("back-candidates").onclick=backToComparison;$("restore-comparison").onclick=backToComparison;
+  $("back-candidates").onclick=()=>{ if(current?.mode === "city") { feedback("");setStage("conditions"); } else backToComparison(); };
+  $("restore-comparison").onclick=backToComparison;
+  document.querySelectorAll("[data-discovery-mode]").forEach(button => button.onclick = () => {
+    if (busy || connecting) return;
+    discoveryMode = button.dataset.discoveryMode;
+    feedback(""); $("retry-destination").hidden = true;
+    refresh(); setStage("conditions", false);
+  });
+  $("retry-destination").onclick = () => {
+    if (!batch || busy) return;
+    if (batch.key !== conditionKey()) { feedback("条件已修改，请重新提交后探索，避免使用上次条件。", true); return; }
+    selectCandidate(batch.candidates[chosenIndex], batch.opts, batch.interests);
+  };
   document.querySelectorAll("[data-step]").forEach(button=>button.onclick=()=>{
     if(busy) return;
     if(button.dataset.step === "comparison") backToComparison();
@@ -579,7 +662,10 @@
   $("retry-map").onclick=()=>{ if(mapView) showMap(mapView.city,mapView.places,mapView.interests,mapView.routes); };
   $("close-copy").onclick=()=>{ $("copy-fallback").hidden=true; };
   $("discover-menu").addEventListener("toggle",event=>$("discover-menu-toggle").setAttribute("aria-expanded",String(event.newState === "open")));
-  $("again").addEventListener("click",draw);
+  $("again").addEventListener("click",event => {
+    if (current?.mode === "city") { discoveryMode="city";feedback("");setStage("conditions"); }
+    else draw(event);
+  });
   $("compare-again").addEventListener("click",draw);
   $("save-wishlist").addEventListener("click",saveCurrentWishlist);
   $("connect-retry").addEventListener("click",connect);
@@ -587,7 +673,8 @@
   $("copy-result").addEventListener("click",async () => {
     if (!current) return;
     const {city,places,intro,days,origin,routes,budget,month} = current;
-    const value = `${preview ? "【示例灵感】" : "【下一站去哪】"}${city.label}\n从${origin}出发，游玩 ${days} 天${month ? `，${month} 月出行` : ""}\n高铁/动车：${transportText(routes,"rail")}；驾车：${transportText(routes,"driving")}；人均预算参考：${formatBudget(budget)}\n${intro}\n探索：${places.map(p=>p.name).join("、")}\n${$("city-map-link").href}`;
+    const transport = !origin ? "未设出发地，暂不估算交通与人均总预算。" : city.local ? `同城探索，无需城际交通；人均预算参考：${formatBudget(budget)}` : `高铁/动车：${transportText(routes,"rail")}；驾车：${transportText(routes,"driving")}；人均预算参考：${formatBudget(budget)}`;
+    const value = `${current.preview ? "【示例灵感】" : "【下一站去哪】"}${city.label}\n${origin ? `从${origin}出发，` : "指定城市探索，"}游玩 ${days} 天${month ? `，${month} 月出行` : ""}\n${transport}\n${intro}\n探索：${places.map(p=>p.name).join("、")}\n${$("city-map-link").href}\n攻略为规划参考，请出发前核验。`;
     await copyText(value,"旅行灵感已复制。","result-action-status");
   });
   $("month").value = String(new Date().getMonth() + 1);

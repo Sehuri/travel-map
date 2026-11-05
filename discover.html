@@ -3,44 +3,48 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="根据假期、出发地与旅行喜好，抽取你的下一座目的地城市。支持全国城市目录与县级市。">
+  <meta name="description" content="随机推荐下一站，或指定城市探索景点、美食与每日攻略。支持全国城市目录与县级市。">
   <meta name="theme-color" content="#ffffff">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-fuji.png?v=20260914.1">
   <link rel="apple-touch-icon" href="./assets/favicon-fuji.png?v=20260914.1">
   <title>下一站去哪｜Sehuri 的旅行灵感</title>
   <link rel="stylesheet" href="./assets/styles.css?v=20261012.1">
   <link rel="stylesheet" href="./assets/site-bgm.css?v=20261015.1">
-  <link rel="stylesheet" href="./assets/discover.css?v=20261015.1">
+  <link rel="stylesheet" href="./assets/discover.css?v=20261105.1">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body class="discover-page" data-discover-stage="conditions">
-  <a class="skip-link" href="#discover-form">跳到推荐条件</a>
+  <a class="skip-link" href="#discover-form">跳到旅行条件</a>
   <header class="discover-header" aria-label="主导航">
     <a class="brand" href="./index.html"><span class="brand-mark" aria-hidden="true">S</span><span>SEHURI <small>旅行足迹</small></span></a>
     <nav class="desktop-nav" aria-label="旅行主题"><a href="./index.html#map-section">地图</a><a href="./index.html#journey-archive">旅程</a><a href="./index.html#photo-cinema">影像</a><a href="./index.html#journey-stats">数据</a><a href="./discover.html" aria-current="page">下一站</a></nav>
     <div class="header-actions"><a class="back-home" href="./index.html#map-section">返回地图 <span class="ui-icon icon-arrow" aria-hidden="true"></span></a><button class="icon-button" id="discover-menu-toggle" type="button" popovertarget="discover-menu" aria-label="打开导航菜单" aria-expanded="false"><span class="ui-icon icon-menu" aria-hidden="true"></span></button></div>
   </header>
   <nav id="discover-menu" class="discover-menu" popover aria-label="更多导航"><a href="./index.html#map-section">地图与城市</a><a href="./index.html#journey-archive">全部旅程</a><a href="./index.html#photo-cinema">旅程放映室</a><a href="./index.html#memories">城市时间线</a><a href="./index.html#memory-rewind">往年今日</a><a href="./index.html#journey-stats">旅行数据</a><a href="./index.html#ratings">评分排行</a><a href="./index.html#wishlist-panel">我的愿望</a><a href="./discover.html" aria-current="page">随机旅行</a><a href="./admin.html">站主管理</a></nav>
-  <div class="discover-heading"><div><p class="eyebrow">LET CURIOSITY CHOOSE</p><h1>下一站，交给一点意外。</h1><p>告诉我从哪里出发、准备玩几天。先看三个方向，再决定去哪。</p></div></div>
+  <div class="discover-heading"><div><p class="eyebrow">YOUR NEXT JOURNEY</p><h1>下一站，随心出发。</h1><p>还没想好，就随机发现；已有目的地，就选一座城，探索自己的旅程。</p></div></div>
   <main class="discover-shell">
-    <div class="flow-meta"><ol class="flow-steps" aria-label="随机旅行步骤"><li aria-current="step"><button type="button" data-step="conditions"><span>1</span>填写条件</button></li><li><button type="button" data-step="comparison" disabled><span>2</span>比较候选</button></li><li><button type="button" data-step="destination" disabled><span>3</span>探索目的地</button></li></ol>
+    <div class="flow-meta"><ol class="flow-steps" aria-label="旅行探索步骤"><li aria-current="step"><button type="button" data-step="conditions"><span>1</span>填写条件</button></li><li><button type="button" data-step="comparison" disabled><span>2</span>比较候选</button></li><li><button type="button" data-step="destination" disabled><span>3</span>探索目的地</button></li></ol>
     <section class="discover-notice" aria-label="数据连接状态"><p id="connection-status" role="status">正在准备城市目录…</p><div class="connection-actions"><button id="connect-retry" type="button" hidden>重新连接全国目录</button><button id="preview-button" type="button" hidden>先体验 18 城示例</button></div><details><summary>覆盖说明</summary><p class="small">全国模式包含地级市、直辖市、县级市及港澳，以高德实际目录为准；台湾城市目录尚待补充。示例模式不是全国范围。交通按各方式标注来源，均需出发前核验。</p></details></section></div>
     <p id="draw-status" class="feedback" role="status" aria-live="polite"></p>
+    <button id="retry-destination" type="button" hidden>重试加载目的地</button>
     <div id="conditions-view">
+    <div class="discovery-mode" role="group" aria-label="选择目的地方式"><button id="mode-random" type="button" data-discovery-mode="random" aria-pressed="true" aria-controls="discover-form">随机推荐</button><button id="mode-city" type="button" data-discovery-mode="city" aria-pressed="false" aria-controls="discover-form">指定城市</button></div>
+    <p id="mode-description" class="small mode-description">告诉我从哪里出发，先比较三个方向，再决定去哪。</p>
     <div id="previous-results" class="condition-history" hidden><p id="conditions-changed"></p><button id="restore-comparison" type="button">查看上次候选</button></div>
     <form id="discover-form" class="discover-panel conditions-layout">
-      <div class="condition-fields"><h2>这次，想怎么出发？</h2>
+      <div class="condition-fields"><h2 id="conditions-title">这次，想怎么出发？</h2>
       <div class="field-grid">
-        <label class="origin-field">01 / 从哪里出发<input id="origin" list="origin-list" placeholder="输入城市，选择完整归属" autocomplete="off" required disabled aria-describedby="origin-error"><datalist id="origin-list"></datalist><span id="origin-error" class="field-error" hidden></span></label>
-        <div class="days-field"><label for="days">02 / 游玩天数</label><div class="day-stepper"><button id="days-minus" type="button" aria-label="减少一天">−</button><input id="days" type="number" min="1" max="14" step="1" value="3" required aria-describedby="days-help days-error"><button id="days-plus" type="button" aria-label="增加一天">+</button></div><span id="days-help" class="small">1–14 天，不含往返交通</span><span id="days-error" class="field-error" hidden></span></div>
-        <label>03 / 探索范围<select id="radius"><option value="auto">按天数建议</option><option value="350">直线 350 公里内</option><option value="800">直线 800 公里内</option><option value="1600">直线 1600 公里内</option><option value="Infinity">全国不限距离</option></select></label>
-        <label>04 / 出行月份<select id="month"><option value="">月份不限</option><option value="1">1 月</option><option value="2">2 月</option><option value="3">3 月</option><option value="4">4 月</option><option value="5">5 月</option><option value="6">6 月</option><option value="7">7 月</option><option value="8">8 月</option><option value="9">9 月</option><option value="10">10 月</option><option value="11">11 月</option><option value="12">12 月</option></select></label>
-        <label>05 / 人均总预算<select id="budget"><option value="Infinity">预算不限</option><option value="1500">约 ¥1,500 内</option><option value="3000">约 ¥3,000 内</option><option value="5000">约 ¥5,000 内</option><option value="8000">约 ¥8,000 内</option></select><span class="small">含往返交通与住宿餐饮的启发估算</span></label>
+        <label class="destination-field" id="destination-field" hidden>想探索哪座城市<input id="destination" list="destination-list" placeholder="输入目的地，选择完整归属" autocomplete="off" disabled aria-describedby="destination-help destination-error"><datalist id="destination-list"></datalist><span id="destination-help" class="small">从当前目录选择，也可以探索去过的城市。</span><span id="destination-error" class="field-error" hidden></span></label>
+        <label class="origin-field"><span id="origin-label">01 / 从哪里出发</span><input id="origin" list="origin-list" placeholder="输入城市，选择完整归属" autocomplete="off" required disabled aria-describedby="origin-error"><datalist id="origin-list"></datalist><span id="origin-error" class="field-error" hidden></span></label>
+        <div class="days-field"><label id="days-label" for="days">02 / 游玩天数</label><div class="day-stepper"><button id="days-minus" type="button" aria-label="减少一天">−</button><input id="days" type="number" min="1" max="14" step="1" value="3" required aria-describedby="days-help days-error"><button id="days-plus" type="button" aria-label="增加一天">+</button></div><span id="days-help" class="small">1–14 天，不含往返交通</span><span id="days-error" class="field-error" hidden></span></div>
+        <label data-random-only>03 / 探索范围<select id="radius"><option value="auto">按天数建议</option><option value="350">直线 350 公里内</option><option value="800">直线 800 公里内</option><option value="1600">直线 1600 公里内</option><option value="Infinity">全国不限距离</option></select></label>
+        <label><span id="month-label">04 / 出行月份</span><select id="month"><option value="">月份不限</option><option value="1">1 月</option><option value="2">2 月</option><option value="3">3 月</option><option value="4">4 月</option><option value="5">5 月</option><option value="6">6 月</option><option value="7">7 月</option><option value="8">8 月</option><option value="9">9 月</option><option value="10">10 月</option><option value="11">11 月</option><option value="12">12 月</option></select></label>
+        <label data-random-only>05 / 人均总预算<select id="budget"><option value="Infinity">预算不限</option><option value="1500">约 ¥1,500 内</option><option value="3000">约 ¥3,000 内</option><option value="5000">约 ¥5,000 内</option><option value="8000">约 ¥8,000 内</option></select><span class="small">含往返交通与住宿餐饮的启发估算</span></label>
       </div>
       <fieldset id="interests"><legend>想遇见什么 <span id="interest-count">已选 0/3</span></legend><p class="small">最多选 3 项，任一喜好匹配；不选则随缘。</p><div id="interest-options"></div><p id="interest-status" class="field-error" role="status"></p></fieldset>
-      <details class="more-conditions" open><summary>更多条件</summary><div class="more-fields"><label>目的地省份<select id="province"><option value="">全部省份</option></select></label>
+      <details class="more-conditions" open><summary>更多条件</summary><div class="more-fields"><label data-random-only>目的地省份<select id="province"><option value="">全部省份</option></select></label>
         <label>旅行节奏<select id="pace"><option value="relaxed">慢慢逛 · 每天 1 个重点</option><option value="balanced" selected>适中 · 每天最多 2 个重点</option></select></label>
-        <label class="exclude-field"><input id="exclude-visited" type="checkbox" checked><span>排除已经去过的城市</span><span class="small" id="exclude-summary"></span></label>
+        <label class="exclude-field" data-random-only><input id="exclude-visited" type="checkbox" checked><span>排除已经去过的城市</span><span class="small" id="exclude-summary"></span></label>
       </div></details><p class="small form-disclaimer">交通、预算与季节提示均为规划参考，请在出发前核验；季节提示不等于天气预报。</p></div>
       <aside class="departure-summary" aria-labelledby="summary-title"><h3 id="summary-title">这次的出发计划</h3><p id="summary-main">选择出发地 · 3 天</p><dl id="summary-facts"></dl><div class="summary-interests"><h4>兴趣偏好</h4><div id="summary-tags"></div></div><div class="draw-bar"><button id="draw" class="primary-button" type="submit" disabled>给我 3 个候选 <span class="ui-icon icon-arrow" aria-hidden="true"></span></button><p id="candidate-status" class="small">目录连接后即可抽取。</p></div></aside>
     </form>
@@ -78,10 +82,10 @@
   </main>
   <footer class="discover-footer"><p>让好奇心带路，让每次出发都有新故事。</p><a href="./index.html#map-section">返回我的旅行地图</a></footer>
   <nav class="mobile-dock" aria-label="手机快捷导航"><a href="./index.html#map-section"><span class="ui-icon icon-pin" aria-hidden="true"></span>地图</a><a href="./index.html#journey-archive"><span class="ui-icon icon-list" aria-hidden="true"></span>旅程</a><a href="./index.html#photo-cinema"><span class="ui-icon icon-photo" aria-hidden="true"></span>影像</a><a href="./index.html#wishlist-panel"><span class="ui-icon icon-heart" aria-hidden="true"></span>愿望</a></nav>
-  <script src="./assets/discover-data.js"></script><script src="./assets/discover-engine.js?v=20260910.1"></script><script src="./assets/discover-config.js"></script>
+  <script src="./assets/discover-data.js"></script><script src="./assets/discover-engine.js?v=20261105.1"></script><script src="./assets/discover-config.js"></script>
   <script src="./assets/discover-itinerary.js?v=20260929.2"></script>
   <script src="./assets/amap-map-config.js"></script><script src="./assets/discover-amap.js?v=20260929.1"></script>
-  <script src="./assets/data.js?v=20261024.1"></script><script src="./assets/discover.js?v=20261015.1"></script>
+  <script src="./assets/data.js?v=20261024.1"></script><script src="./assets/discover.js?v=20261105.1"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
   <script src="./assets/site-bgm-config.js?v=20260925.2"></script>
   <script src="./assets/site-bgm.js?v=20261015.1"></script>

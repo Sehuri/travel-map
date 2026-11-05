@@ -29,3 +29,13 @@ test('discover keeps semantic navigation, collapsible extra conditions, feedback
   assert(css.includes('prefers-reduced-motion:reduce'));
   assert(css.includes('min-height:44px'));
 });
+
+test('discovery mode switch and explicit city field reuse the shared accessible form',()=>{
+  for(const id of ['mode-random','mode-city','mode-description','destination','destination-list','destination-error','retry-destination']) {
+    assert.equal((html.match(new RegExp(`id="${id}"`,'g'))||[]).length,1,id);
+  }
+  assert(html.includes('role="group" aria-label="选择目的地方式"'));
+  assert(html.includes('aria-describedby="destination-help destination-error"'));
+  assert(css.includes('.discover-page .discovery-mode'));
+  assert(css.includes('.trip-facts.without-origin'));
+});
