@@ -21,3 +21,12 @@ test('unconfigured BGM does not create a floating control or request audio',()=>
   const context={window:{TRAVEL_SITE_BGM_TRACKS:[{audioUrl:''},{audioUrl:''}]},document:{createElement(){throw Error('Unavailable audio must not render');}},Audio:class{constructor(){throw Error('Unavailable audio must not load');}}};
   vm.runInNewContext(fs.readFileSync('assets/site-bgm.js','utf8'),context);
 });
+
+test('homepage metadata does not freeze the number of cities while data is loading',()=>{
+  const html=fs.readFileSync('index.html','utf8');
+  assert.match(html,/<title>Sehuri 的旅行足迹｜城市与旅行记忆<\/title>/);
+  for(const tag of ['<meta name="description"','<meta property="og:description"']) {
+    const metadata=html.slice(html.indexOf(tag)).split('>')[0];
+    assert(!/\d+\s*座城市/.test(metadata),'static descriptions must not become outdated');
+  }
+});

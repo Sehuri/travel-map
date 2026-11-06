@@ -95,6 +95,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('.cinema-slide img[src]').count(), 0, 'offscreen cinema does not preload a frame');
     assert.equal(await page.locator('#cinema-filmstrip img').count(), 0, 'offscreen filmstrip does not create image requests');
     assert.equal(await page.locator('.amap-marker-button').count(), 58);
+    assert.equal(await page.title(), 'Sehuri 的旅行足迹｜58 座城市与旅行记忆');
     assert.equal(await page.locator('.site-menu').isVisible(),false);
     assert(await page.locator('.hero').evaluate(el=>el.offsetHeight<420));
     assert.equal(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor),'rgb(255, 255, 255)');
@@ -109,10 +110,12 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.match(await page.locator('#preview-meta').innerText(), /2026\.10\.21/);
     await page.locator('#preview-open').click();
     assert.equal(await page.locator('#dialog-title').innerText(), '重庆');
+    assert.equal(await page.title(), '重庆｜Sehuri 的旅行足迹');
     assert.equal(await page.locator('#city-visit-total').innerText(), '1 次');
     assert.match(await page.locator('#dialog-description').innerText(), /10 月 21 日.*10 月 22 日/);
     assert.match(await page.locator('#city-related-journeys').innerText(), /2026 重庆之行/);
     await page.locator('#dialog-close').click();
+    await page.waitForFunction(() => document.title === 'Sehuri 的旅行足迹｜58 座城市与旅行记忆');
     await page.locator('#preview-close').click();
     await page.locator('.amap-marker-button[data-city="新加坡"]').click();
     assert.equal(await page.locator('#preview-city').innerText(),'新加坡');
@@ -319,6 +322,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('#timeline .city-card').count(), 17);
     assert.equal(await page.locator('#city-count').innerText(), '58');
     assert.equal(await page.locator('#route-city-count').innerText(), '17');
+    assert.equal(await page.title(), 'Sehuri 的旅行足迹｜58 座城市与旅行记忆', 'filters must not change the total in the title');
     assert.match(await page.locator('#map-interaction-hint').innerText(), /筛选后的 16 座城市/);
     assert.equal(await page.locator('.extreme-card').count(), 4);
     assert(await page.locator('#clear-filters').isVisible());
@@ -398,6 +402,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('.amap-marker-button').count(), 58);
     assert.equal(await page.locator('#city-count').innerText(), '58');
     assert.equal(await page.locator('#route-city-count').innerText(), '60');
+    assert.equal(await page.title(), 'Sehuri 的旅行足迹｜58 座城市与旅行记忆', 'repeat arrivals must not increase the city count');
     assert.match(await page.locator('#filter-summary').innerText(), /60 次到访 · 58 座城市/);
     assert.equal(await page.locator('#stat-repeat-city').innerText(), '南京、雅加达');
     assert.match(await page.locator('#stat-repeat-count').innerText(), /到访 2 次/);
@@ -451,6 +456,15 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     await page.locator('#lightbox-close').click();
     assert(await page.locator('#city-dialog').isVisible());
     assert(await page.locator('#city-dialog').evaluate(el=>el.scrollWidth<=el.clientWidth));
+
+    // A newly added unique city changes the title automatically, not just 57 → 58.
+    await page.route('**/assets/data.js*', route => route.fulfill({
+      contentType:'text/javascript',
+      body:`${dataSource}\nwindow.TRAVEL_DATA.visits.push({name:'测试新城',country:'中国',date:'2026-11-06',coord:[118.8,32.06],desc:'仅用于标题回归测试'});`
+    }));
+    await page.goto(`${base}/index.html`, {waitUntil:'networkidle'});
+    assert.equal(await page.title(), 'Sehuri 的旅行足迹｜59 座城市与旅行记忆');
+    assert.equal(await page.locator('#city-count').innerText(), '59');
 
     assert.deepEqual(errors, []);
     console.log('Homepage browser checks passed: filters, maps, local wishes, mobile navigation, and visited/wishlist guide links.');

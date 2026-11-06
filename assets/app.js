@@ -18,7 +18,6 @@
     month: "long",
     day: "numeric"
   });
-  const originalTitle = document.title;
   const regionGroups = {
     "中国 · 华东": ["日照", "滁州", "淮安", "青岛", "南京", "杭州", "泰州", "上海", "苏州", "扬州", "合肥", "九江", "南昌", "芜湖", "上饶", "黄山", "泰安", "镇江", "济南", "烟台", "马鞍山", "无锡", "常州", "嘉兴", "厦门", "福州", "漳州", "威海", "宁波", "台州", "六安", "绍兴"],
     "中国 · 华中": ["武汉", "洛阳", "郑州", "长沙", "湘潭", "衡阳"],
@@ -118,6 +117,11 @@
     return [...new Map(items.map((visit) => [visit.name, visit])).values()];
   }
 
+  function homeTitle() {
+    const total = uniqueCityVisits(visits).length;
+    return `Sehuri 的旅行足迹｜${total ? `${total} 座` : ""}城市与旅行记忆`;
+  }
+
   function visitKey(visit) {
     return visit.visitId || `${visit.name}:${visit.date}`;
   }
@@ -155,6 +159,7 @@
 
   function initializeStats() {
     updateTravelStats(visits);
+    document.title = homeTitle();
     document.querySelector("#current-year").textContent = new Date().getFullYear();
   }
 
@@ -2246,7 +2251,7 @@
     });
     cityDialog.addEventListener("close", () => {
       if (document.querySelector("#map-city-preview").hidden) activeCity = null;
-      document.title = originalTitle;
+      document.title = homeTitle();
       if (!syncingHistory && !activeCity) clearCityUrl();
     });
     window.addEventListener("popstate", syncCityFromUrl);
