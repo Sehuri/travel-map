@@ -1994,6 +1994,7 @@
       });
     });
 
+    window.activateTravelHomeTab = activateTab;
     if (window.location.hash === "#wishlist-panel") activateTab("wishlist");
   }
 
@@ -2201,7 +2202,7 @@
     const sectionLinks = [...document.querySelectorAll("[data-section-link]")];
     const sections = [...new Set(sectionLinks.map(link => link.dataset.sectionLink))].map(id => document.getElementById(id)).filter(Boolean);
     const observer = new IntersectionObserver(entries => {
-      if (mapMode === "wishlist") return;
+      if (mapMode === "wishlist" || document.body.dataset.contentView === "hundred") return;
       const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
       if (!visible) return;
       const id = visible.target.id;
@@ -2287,6 +2288,7 @@
     initializeHomeTabs();
     initializeDialogs();
     initializeEditorialUI();
+    window.initializeHundredCities({ getVisits: () => uniqueCityVisits(visits), getJourneys: () => journeys, openCity: visit => openCity(visit, { updateUrl: false }) });
     photoCinema = window.initializePhotoCinema?.(photoDetails, visits, journeys, () => openStatsDetail("photos"));
     syncCityFromUrl();
   }

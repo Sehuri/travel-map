@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="./assets/editorial.css?v=20261015.2">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <title>Sehuri 的旅行足迹｜城市与旅行记忆</title>
+  <link rel="stylesheet" href="./assets/hundred-cities.css">
 </head>
 <body class="editorial-home blue-map-home">
   <a class="skip-link" href="#main">跳到主要内容</a>
@@ -34,12 +35,14 @@
         <a href="#journey-archive" data-section-link="journey-archive">旅程</a>
         <a href="#photo-cinema" data-section-link="photo-cinema">影像</a>
         <a href="#journey-stats" data-section-link="journey-stats">数据</a>
+        <a href="#hundred-cities" data-hundred-link>百城计划</a>
         <a href="#wishlist-panel" data-home-tab-target="wishlist">下一站</a>
       </nav>
       <button class="icon-button" id="site-menu-toggle" type="button" popovertarget="site-menu" aria-label="打开导航菜单" aria-expanded="false"><span class="ui-icon icon-menu" aria-hidden="true"></span></button>
     </div>
   </header>
   <nav id="site-menu" class="site-menu" popover aria-label="更多导航">
+    <a href="#hundred-cities" data-hundred-link>百城计划</a>
     <a href="#map-section" data-home-tab-target="journeys" data-scroll-target="#map-section">地图与城市</a>
     <a href="#journey-archive">全部旅程</a><a href="#photo-cinema">旅程放映室</a>
     <a href="#memories">城市时间线</a><a href="#memory-rewind">往年今日</a>
@@ -49,6 +52,7 @@
   </nav>
 
   <main id="main">
+    <section id="hundred-cities" hidden aria-label="百城计划"><p role="status">正在读取旅行足迹…</p></section>
     <section class="hero" id="top" aria-label="旅行首页">
       <div class="hero-panel hero-journeys-panel" id="journeys-panel">
         <div class="hero-copy">
@@ -551,6 +555,7 @@
   <script src="./assets/photo-cinema.js?v=20261019.1"></script>
   <script src="./assets/site-bgm-config.js?v=20260925.2"></script>
   <script src="./assets/site-bgm.js?v=20261015.1"></script>
-  <script src="./assets/app.js?v=20261106.1"></script>
+  <script src="./assets/hundred-cities.js"></script>
+  <script src="./assets/app.js?v=20261106.2"></script>
 </body>
 </html>
