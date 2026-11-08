@@ -70,10 +70,10 @@ test('Chuzhou is included in the built-in journey archive', () => {
   const visits = global.window.TRAVEL_DATA.visits;
   global.window = previousWindow;
   const chuzhou = visits.find((visit) => visit.name === '滁州');
-  assert.equal(visits.length, 59);
+  assert.equal(visits.length, 60);
   assert.equal(chuzhou.date, '2023-01-24');
   assert.deepEqual(chuzhou.coord, [118.32, 32.30]);
-  assert.equal(new Set(visits.map(visit=>visit.name)).size,58);
+  assert.equal(new Set(visits.map(visit=>visit.name)).size,59);
   const chongqing = visits.filter((visit) => visit.name === '重庆');
   assert.equal(chongqing.length, 1, 'departure is not a second arrival');
   assert.equal(chongqing[0].date, '2026-10-21');

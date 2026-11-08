@@ -19,7 +19,7 @@ function loadFixtures() {
 test('built-in journeys become complete ordered archives', () => {
   const { data, photos } = loadFixtures();
   const journeys = engine.mergeJourneys(data.journeys, [], [], [], [], photos);
-  assert.equal(journeys.length, 8);
+  assert.equal(journeys.length, 9);
   const japan = journeys.find((journey) => journey.slug === '2026-japan-kansai-kanto');
   assert.equal(japan.days, 10);
   assert.deepEqual(japan.stops.map((stop) => stop.cityName), ['大阪', '京都', '东京', '镰仓']);
@@ -120,14 +120,14 @@ test('database journey overrides the fallback and can be unpublished', () => {
   assert.equal(overridden.distanceEstimated, false);
   assert.equal(overridden.stops.length, 1);
   assert.equal(overridden.guides.length, 1);
-  assert.equal(engine.mergeJourneys(data.journeys, [{ ...row, is_published: false }], [], [], [], photos).length, 7);
+  assert.equal(engine.mergeJourneys(data.journeys, [{ ...row, is_published: false }], [], [], [], photos).length, 8);
 });
 
 test('Chongqing records the supplied two-day stay without inventing trip details', () => {
   const { data, photos } = loadFixtures();
   const all = engine.mergeJourneys(data.journeys, [], [], [], [], photos);
   const journey = all.find((item) => item.slug === '2026-chongqing');
-  assert.equal(all[0].slug, journey.slug);
+  assert.equal(all[0].slug, '2026-xuancheng');
   assert.equal(journey.days, 2);
   assert.equal(journey.startDate, '2026-10-21');
   assert.equal(journey.endDate, '2026-10-22');
@@ -143,6 +143,27 @@ test('Chongqing records the supplied two-day stay without inventing trip details
   const replay = require('../assets/route-replay-engine.js').buildReplay(journey, data.visits, photos);
   assert.deepEqual(replay.stops[0].coord, [106.55, 29.56]);
   assert.equal(replay.segments.length, 0);
+});
+
+test('Xuancheng records Ningguo and the route as one city with the supplied stay', () => {
+  const { data, photos } = loadFixtures();
+  const visits = require('../assets/visit-engine.js').uniqueCities(data.visits);
+  const city = visits.find((visit) => visit.name === '宣城');
+  assert.equal(city.date, '2026-11-07');
+  assert.equal(city.admin1, '安徽');
+  assert.equal(city.region, '中国 · 华东');
+  assert(!visits.some((visit) => visit.name === '宁国'));
+  const all = engine.mergeJourneys(data.journeys, [], [], [], [], photos);
+  const journey = all.find((item) => item.slug === '2026-xuancheng');
+  assert.equal(journey.days, 2);
+  assert.deepEqual(journey.stops.map((stop) => [stop.cityName, stop.arrivalDate, stop.departureDate]), [
+    ['宣城', '2026-11-07', '2026-11-08']
+  ]);
+  assert.equal(engine.validateJourneyStops(journey.startDate, journey.endDate, journey.stops), '');
+  assert.match(journey.summary, /宁国.*皖南川藏线/);
+  assert.equal(engine.journeysForCity(all, city.name).length, 1);
+  assert.equal(journey.budgetAmount, null);
+  assert.deepEqual(journey.photos, []);
 });
 
 test('journey migration protects owner writes and expands guide types', () => {

@@ -58,9 +58,33 @@ window.TRAVEL_DATA = {
     { name:"泗水", country:"印度尼西亚", region:"印度尼西亚 · 东爪哇", admin1:"东爪哇", date:"2026-10-03", coord:[112.7871,-7.3798], desc:"10 月 3 日抵达朱安达机场，作为布罗莫火山日出行程的接驳点；10 月 4 日返回机场，再飞往雅加达。地图标记采用行程书中的到达机场坐标。" },
     { name:"雅加达", country:"印度尼西亚", region:"印度尼西亚 · 雅加达", admin1:"雅加达", date:"2026-10-04", coord:[106.8272,-6.1754], desc:"10 月 2 日首次抵达，10 月 4 日从泗水返回；行程串联国家纪念塔、Kota Tua 老城、独立广场周边与 Thamrin 商圈。" },
     { name:"广州", country:"中国", region:"中国 · 华南", date:"2026-10-06", coord:[113.2644,23.1291], desc:"10 月 6 日从雅加达抵达广州，次日以陈家祠、永庆坊、西关与沙面串联城市停留，晚间返回南京。" },
-    { name:"重庆", country:"中国", region:"中国 · 西南", admin1:"重庆", date:"2026-10-21", coord:[106.55,29.56], desc:"2026 年 10 月 21 日抵达重庆，10 月 22 日离开。" }
+    { name:"重庆", country:"中国", region:"中国 · 西南", admin1:"重庆", date:"2026-10-21", coord:[106.55,29.56], desc:"2026 年 10 月 21 日抵达重庆，10 月 22 日离开。" },
+    { name:"宣城", country:"中国", region:"中国 · 华东", admin1:"安徽", date:"2026-11-07", coord:[118.76,30.94], desc:"2026 年 11 月 7 日到达宣城，11 月 8 日离开，主要游玩宁国及皖南川藏线沿途景点。" }
   ],
   journeys: [
+    {
+      id: "base-xuancheng-2026",
+      slug: "2026-xuancheng",
+      title: "2026 宣城·宁国与皖南川藏线之旅",
+      startDate: "2026-11-07",
+      endDate: "2026-11-08",
+      coverUrl: "",
+      summary: "11 月 7 日到达宣城，主要游玩宁国及皖南川藏线沿途景点，11 月 8 日离开。",
+      distanceKm: 0,
+      distanceEstimated: true,
+      accommodation: "",
+      budgetAmount: null,
+      budgetCurrency: "CNY",
+      companions: "",
+      planningNotes: "",
+      travelNotes: "2026 年 11 月 7 日到达，11 月 8 日离开。主要游玩宁国和皖南川藏线沿途景点。",
+      reflection: "",
+      sortOrder: 0,
+      photoCities: ["宣城"],
+      stops: [
+        { cityName:"宣城", stopOrder:0, arrivalDate:"2026-11-07", departureDate:"2026-11-08", transportToNext:"", distanceToNextKm:0, notes:"游玩宁国及皖南川藏线沿途景点，11 月 8 日离开。" }
+      ]
+    },
     {
       id: "base-chongqing-2026",
       slug: "2026-chongqing",

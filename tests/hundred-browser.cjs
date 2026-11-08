@@ -5,6 +5,7 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 
 const root = path.resolve(__dirname, '..');
+const qaDir = process.env.TRAVEL_QA_DIR || 'docs/qa/2026-11-06';
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.jpg': 'image/jpeg' };
 
 (async () => {
@@ -94,7 +95,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     await page.goto(`${base}/index.html#hundred-cities`, {waitUntil:'networkidle'});
     await page.waitForSelector('.hundred-cell');
     assert.equal(await page.locator('.hundred-cell').count(),100);
-    assert.equal(await page.locator('.hundred-cell.is-lit').count(),58);
+    assert.equal(await page.locator('.hundred-cell.is-lit').count(),59);
     await page.locator('.hundred-cell.is-lit').last().click();
     await page.keyboard.press('Escape');
     assert.equal(await page.locator('.hundred-cell.is-lit').last().evaluate(el=>el===document.activeElement),true);
@@ -103,29 +104,29 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
       await page.evaluate(()=>{document.activeElement.blur();window.scrollTo({top:0,behavior:'instant'});});
       await page.waitForTimeout(400);
-      await page.screenshot({path:`docs/qa/2026-11-06/hundred-${width}.png`,fullPage:true});
+      await page.screenshot({path:`${qaDir}/hundred-${width}.png`,fullPage:true});
     }
     await page.locator('.hundred-cell.is-lit').last().click();
-    assert.equal(await page.locator('#hundred-city-title').textContent(),'重庆');
-    await page.screenshot({path:'docs/qa/2026-11-06/hundred-drawer.png'});
+    assert.equal(await page.locator('#hundred-city-title').textContent(),'宣城');
+    await page.screenshot({path:`${qaDir}/hundred-drawer.png`});
     await page.getByRole('button',{name:'查看城市完整记录',exact:true}).click();
     assert(await page.locator('.hundred-drawer').isHidden());
-    assert.equal(await page.locator('#dialog-title').textContent(),'重庆');
+    assert.equal(await page.locator('#dialog-title').textContent(),'宣城');
     await page.locator('#dialog-close').click();
     await page.locator('.desktop-nav a').first().click();
     await page.locator('#city-search').fill('东京');
     await page.locator('.desktop-nav [data-hundred-link]').click();
-    assert.equal(await page.locator('.hundred-cell.is-lit').count(),58);
+    assert.equal(await page.locator('.hundred-cell.is-lit').count(),59);
     await page.locator('.desktop-nav a').first().click();
     assert.equal(await page.locator('#city-search').inputValue(),'东京');
     await page.locator('.desktop-nav [data-hundred-link]').click();
     await page.locator('.hundred-filters button').nth(2).click();
-    assert.equal(await page.locator('.hundred-cell').count(),42);
+    assert.equal(await page.locator('.hundred-cell').count(),41);
     await page.locator('.desktop-nav a').first().click();
     assert(await page.locator('#hundred-cities').isHidden());
     await page.goBack();
     assert(await page.locator('#hundred-cities').isVisible());
-    assert.equal(await page.locator('.hundred-cell').count(),42);
+    assert.equal(await page.locator('.hundred-cell').count(),41);
     for (const total of [0,100,103]) {
       await page.route('**/assets/data.js*', async route => {
         const original = await fs.readFile(path.join(root,'assets/data.js'),'utf8');

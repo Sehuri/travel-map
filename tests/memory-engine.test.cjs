@@ -78,6 +78,19 @@ test('an evening transfer may overlap both stops but the newer arrival takes pri
   assert.equal(exact.onThisDay[0].journeySlug, undefined);
 });
 
+test('Xuancheng departure remains part of the stay without creating another city arrival', () => {
+  const context = { window: {} };
+  vm.runInNewContext(fs.readFileSync(require.resolve('../assets/data.js'), 'utf8'), context);
+  const data = context.window.TRAVEL_DATA;
+  const archive = journeys.mergeJourneys(data.journeys, [], [], [], [], {});
+  assert.equal(data.visits.filter((visit) => visit.name === '宣城').length, 1);
+  const departure = engine.buildMemorySnapshot(data.visits, archive, '2027-11-08').onThisDay;
+  assert.equal(departure[0].name, '宣城');
+  assert.equal(departure[0].journeySlug, '2026-xuancheng');
+  assert.equal(departure[0].departureDate, '2026-11-08');
+  assert(!engine.buildMemorySnapshot(data.visits, archive, '2027-11-09').onThisDay.some((visit) => visit.name === '宣城'));
+});
+
 test('Chongqing arrival and departure anniversaries remember the same single visit', () => {
   const context = { window: {} };
   vm.runInNewContext(fs.readFileSync(require.resolve('../assets/data.js'), 'utf8'), context);

@@ -81,7 +81,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('.journey-photo-grid figure').count(), 32);
     assert.match(await page.locator('.journey-stop a').first().getAttribute('href'), /index\.html\?city=%E5%A4%A7%E9%98%AA&visit=2026-02-03/);
 
-    assert.equal(await page.locator('#route-replay-journey option').count(), 8);
+    assert.equal(await page.locator('#route-replay-journey option').count(), 9);
     assert.equal(await page.locator('#route-replay-map').getAttribute('data-map-provider'), 'amap');
     assert.equal(await page.locator('#route-replay-map').getAttribute('data-segment-count'), '3');
     assert.equal(await page.locator('.route-map-stop').count(), 4);
@@ -162,6 +162,16 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('#journey-distance').innerText(), '待补充');
     assert.equal(await page.locator('#journey-budget').innerText(), '待补充');
     assert.match(await page.locator('.journey-stop a').first().getAttribute('href'), /city=%E9%87%8D%E5%BA%86&visit=2026-10-21/);
+
+    await page.goto(`${base}/journey.html?slug=2026-xuancheng&replay=1`, { waitUntil: 'networkidle' });
+    assert.equal(await page.locator('#journey-title').innerText(), '2026 宣城·宁国与皖南川藏线之旅');
+    assert.equal(await page.locator('#journey-days').innerText(), '2 天');
+    assert.equal(await page.locator('#journey-city-count').innerText(), '1 座');
+    assert.equal(await page.locator('.route-map-stop').count(), 1);
+    assert.match(await page.locator('#route-replay-stay').innerText(), /2026年11月7日.*2026年11月8日 · 停留 2 天/);
+    assert.match(await page.locator('.journey-stop').innerText(), /宁国.*皖南川藏线/);
+    assert.equal(await page.locator('#journey-budget').innerText(), '待补充');
+    assert.equal(await page.locator('#journey-distance').innerText(), '待补充');
 
     await page.setViewportSize({ width: 390, height: 844 });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
