@@ -3,3 +3,7 @@ verify_jwt = false
 
 [functions.amap-js-proxy]
 verify_jwt = false
+
+# Read-only gateway; caller permissions are checked by Postgres/Storage RLS.
+[functions.journal-media]
+verify_jwt = false
