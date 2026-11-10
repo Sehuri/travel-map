@@ -41,7 +41,15 @@ window.initializeJournalEditor=async function({E,S,node,link,btn,modal,status,fa
  const actions=node('div','','journal-editor-buttons');
  const save=btn('保存草稿',()=>operation(()=>saveDraft())),preview=btn('预览',()=>operation(previewDraft)),publish=btn('发布手记',()=>operation(confirmPublish),'journal-primary');save.id='save-journal';preview.id='preview-journal';publish.id='publish-journal';
  const withdraw=btn('撤下公开，设为仅自己',()=>operation(()=>transition('withdraw'))),archive=btn('归档手记',()=>operation(()=>transition('archive'))),restore=btn('恢复为草稿',()=>operation(()=>transition('restore')));withdraw.id='withdraw-journal';archive.id='archive-journal';restore.id='restore-journal';actions.append(save,preview,publish,withdraw,archive,restore);aside.append(actions);
- function change(){dirty=true;status('有未保存更改');}
+ const actionStatus=node('p');actionStatus.id='journal-action-status';actionStatus.setAttribute('role','status');actionStatus.hidden=true;aside.append(actionStatus);
+ function actionFeedback(text,error=false){actionStatus.textContent=text;actionStatus.hidden=!text;actionStatus.classList.toggle('journal-error',error);actionStatus.setAttribute('role',error?'alert':'status');}
+ function reportError(error,target=null){
+  failure(error);document.querySelector('#journal-retry').hidden=true;
+  const message=error.message||'操作未完成，请检查网络后重试。';actionFeedback(message,true);
+  const visible=target||actionStatus;if(target){target.textContent=message;target.classList.add('journal-error');target.setAttribute('role','alert');}
+  visible.scrollIntoView({block:'nearest',behavior:'instant'});
+ }
+ function change(){dirty=true;status('有未保存更改');actionFeedback('');}
  function labels(){stateLabel.textContent=`${E.statuses[j.status]} · ${j.published_version_id?'已保存版本仍保留':'尚未发布'}${j.draft&&j.version?' · 有私有修订草稿':''}`;publish.textContent=j.published_version_id?'更新发布':'发布手记';publish.disabled=busy||j.status==='archived';withdraw.hidden=!(j.status==='published'&&(j.publishedVisibility||j.visibility)==='public');archive.hidden=j.revision===0||j.status==='archived';restore.hidden=j.status!=='archived';visibilityNote.textContent=visibility.value==='public'?'发布后将公开本篇正文、个人评分及所选照片。保存草稿仍不公开。':'发布后作为仅自己可查看的完成记录。保存草稿仍不会发布。';}
  function setPlace(){for(const [k,input]of Object.entries(placeInputs)){input.value=j.place[k]??'';input.disabled=!creating||busy;}picker.value=creating?'new':j.place.id;copyPlace.hidden=creating&&j.revision===0;placeHelp.textContent=creating?'正在填写本篇地点资料；尚未被其他手记或发布版本引用前，可继续补充地点资料并保留同一 ID。':'现有地点档案只读；本篇编辑不会覆盖其他到访。需要调整时可复制为新档案。';}
  picker.onchange=()=>{creating=picker.value==='new';j.place=creating?{id:crypto.randomUUID(),name:'',country:'',location:'',kind:'other',longitude:null,latitude:null,city_name:null,attraction_id:null}:available.find(p=>p.id===picker.value);setPlace();change();};
@@ -56,9 +64,14 @@ window.initializeJournalEditor=async function({E,S,node,link,btn,modal,status,fa
   if(!j.content.photos.some(p=>p.id===j.content.cover_id))j.content.cover_id=j.content.photos[0]?.id||null;
   return j;
  }
- async function saveDraft(){collect();const error=E.validate(j.place,j.content);if(error)throw new Error(error);status('正在保存私有草稿…');const result=await S.save(j);j={...j,...result,publishedVisibility:result.visibility,visibility:visibility.value};dirty=false;history.replaceState(null,'',`./journal-edit.html?id=${encodeURIComponent(j.id)}`);labels();status(`草稿已保存 · ${new Date().toLocaleTimeString('zh-CN')}。${j.published_version_id?'已发布版本保持原样。':''}`);return result;}
- function setBusy(v){busy=v;form.setAttribute('aria-busy',String(v));form.querySelectorAll('input,select,textarea,button').forEach(n=>n.disabled=v||queueArea.contains(n));if(!v){setPlace();labels();void renderQueue();}}
- async function operation(fn){if(busy)return;setBusy(true);try{await fn();}catch(error){failure(error);document.querySelector('#journal-retry').hidden=true;}finally{setBusy(false);}}
+ async function saveDraft(){collect();const error=E.validate(j.place,j.content);if(error)throw new Error(error);status('正在保存私有草稿…');actionFeedback('正在保存草稿…');const result=await S.save(j);j={...j,...result,publishedVisibility:result.visibility,visibility:visibility.value};dirty=false;history.replaceState(null,'',`./journal-edit.html?id=${encodeURIComponent(j.id)}`);labels();status(`草稿已保存 · ${new Date().toLocaleTimeString('zh-CN')}。${j.published_version_id?'已发布版本保持原样。':''}`);actionFeedback(j.published_version_id?'修订草稿已保存，当前发布版本保持原样。':'已保存为草稿，尚未发布。');return result;}
+ function setBusy(v){
+  busy=v;form.setAttribute('aria-busy',String(v));form.querySelectorAll('input,select,textarea,button').forEach(n=>n.disabled=v||queueArea.contains(n));
+  // Unlock controls without re-rendering their values: opening a dialog must preserve unsaved input.
+  Object.values(placeInputs).forEach(input=>input.disabled=v||!creating);copyPlace.hidden=creating&&j.revision===0;
+  if(!v){labels();void renderQueue();}
+ }
+ async function operation(fn,errorTarget=null){if(busy)return;setBusy(true);try{await fn();}catch(error){reportError(error,errorTarget);}finally{setBusy(false);}}
  async function renderQueue(){const version=++queueRender;queueArea.replaceChildren();for(const [i,q]of queue.entries()){
    const item=node('div','','journal-photo-item');const img=node('img');img.alt=q.file?.name||'手记照片';try{img.src=q.localURL||q.previewURL||(q.previewURL=await S.mediaURL(q.media));}catch{img.alt='照片暂时无法预览';}if(version!==queueRender)return;item.append(img,node('p',q.state==='ready'?q.id===j.content.cover_id?'封面 · 已上传':'已上传':q.error||'待上传'));
    const caption=field(item,`caption_${i}`,'照片说明');caption.value=q.caption||'';caption.maxLength=500;caption.oninput=()=>{q.caption=caption.value;change();};
@@ -70,12 +83,40 @@ window.initializeJournalEditor=async function({E,S,node,link,btn,modal,status,fa
  fileInput.onchange=()=>{const errors=[];for(const file of Array.from(fileInput.files||[])){const v=window.TRAVEL_PHOTO_UPLOAD.validate(file);if(v.error){errors.push(`${file.name}：${v.error}`);continue;}if(queue.length>=100){errors.push('每篇最多 100 张照片');break;}queue.push({file,localURL:URL.createObjectURL(file),caption:'',state:'pending'});}fileInput.value='';uploadStatus.textContent=errors.join('；');change();void renderQueue();};
  async function uploadOne(q){q.error='';try{uploadStatus.textContent=`正在转换并上传 ${q.file.name}…`;q.media=await S.upload(j.id,q.file);q.id=q.media.id;q.state='ready';}catch(e){q.error=`上传失败：${e.message}，可以单张重试`;q.state='error';}dirty=true;}
  async function uploadPending(){if(!queue.some(q=>q.state!=='ready')){uploadStatus.textContent='没有待上传照片';return;}await saveDraft();for(const q of queue.filter(q=>q.state!=='ready'))await uploadOne(q);await saveDraft();await renderQueue();uploadStatus.textContent=queue.some(q=>q.state==='error')?'部分照片失败，其他照片已保存；可单张重试或移除失败项。':'照片已上传并保存到私有草稿。';}
- async function chooseAlbum(){const d=modal('从现有公开相册选择');d.append(node('p','这些原图已经公开，引用到私密手记也不会改变原图的公开状态。每次选择会先保存本篇草稿。'));const search=node('input');search.type='search';search.placeholder='筛选城市';search.setAttribute('aria-label','筛选相册城市');d.append(search);const grid=node('div','','journal-album-grid');d.append(grid);d.showModal();let all;try{all=await S.album();}catch(error){d.append(node('p',`相册读取失败：${error.message}`,'journal-error'),btn('重试相册',()=>{d.close();void operation(chooseAlbum);}));return;}let chosen=false;
-   function render(){grid.replaceChildren();all.filter(p=>p.city.includes(search.value)).forEach(p=>{const b=btn('',async()=>{if(chosen)return;chosen=true;b.disabled=true;try{if(queue.length>=100)throw new Error('每篇最多 100 张照片');await saveDraft();const m=await S.reference(j.id,p.url);queue.push({id:m.id,media:m,caption:'',state:'ready'});dirty=true;await saveDraft();await renderQueue();d.close();}catch(e){status(e.message,true);chosen=false;b.disabled=false;}});const img=node('img');window.TRAVEL_PHOTOS.setImage(img,p.url);img.alt=`${p.city} · 公开相册照片`;b.append(img,node('span',p.city));grid.append(b);});}search.oninput=render;render();}
+ async function chooseAlbum(){
+  const d=modal('从现有公开相册选择');d.append(node('p','这些原图已经公开，引用到私密手记也不会改变原图的公开状态。每次选择会先保存本篇草稿。'));
+  const search=node('input');search.type='search';search.placeholder='筛选城市';search.setAttribute('aria-label','筛选相册城市');d.append(search);
+  const message=node('p','正在读取相册…','journal-album-feedback');message.setAttribute('role','status');d.append(message);
+  const grid=node('div','','journal-album-grid');d.append(grid);d.showModal();let all;
+  try{all=await S.album();}catch(error){reportError(error,message);d.append(btn('重试相册',()=>{d.close();void operation(chooseAlbum);}));return;}
+  function render(){
+   grid.replaceChildren();const photos=all.filter(p=>p.city.includes(search.value));message.textContent=photos.length?'点击一张照片即可添加到草稿；添加成功后会关闭相册。':'没有匹配的照片，请调整城市名称。';message.classList.remove('journal-error');message.setAttribute('role','status');
+   photos.forEach((p,index)=>{
+    const b=btn('',async()=>{
+     if(busy)return;
+     search.disabled=true;grid.querySelectorAll('button').forEach(button=>button.disabled=true);
+     message.textContent='正在保存草稿并添加照片…';message.classList.remove('journal-error');message.setAttribute('role','status');
+     try{await operation(async()=>{
+      const existing=queue.find(q=>q.state==='ready'&&q.media?.source==='public_album'&&q.media.public_url===p.url);
+      if(!existing&&queue.length>=100)throw new Error('每篇最多 100 张照片');
+      await saveDraft();
+      if(!existing){const m=await S.reference(j.id,p.url);queue.push({id:m.id,media:m,caption:'',state:'ready'});dirty=true;}
+      await saveDraft();await renderQueue();uploadStatus.textContent='已从公开相册添加照片，并保存到草稿。';d.close();
+     },message);}finally{search.disabled=false;grid.querySelectorAll('button').forEach(button=>button.disabled=false);}
+    });
+    b.setAttribute('aria-label',`添加${p.city}第 ${index+1} 张照片`);const img=node('img');window.TRAVEL_PHOTOS.setImage(img,p.url);img.alt=`${p.city} · 公开相册照片`;b.append(img,node('span',p.city),node('span','点击添加','journal-album-pick'));grid.append(b);
+   });
+  }
+  search.oninput=render;render();
+ }
  async function previewDraft(){collect();const d=modal('手记预览');const article=node('article');d.append(article);d.showModal();try{await readArticle(article,j,{preview:true});}catch(error){article.append(node('p',`预览读取失败：${error.message}。关闭后可重试，输入仍保留。`,'journal-error'));}for(const q of queue.filter(q=>q.state!=='ready')){const img=node('img');img.src=q.localURL;img.alt='未上传的本地照片';img.style.maxWidth='100%';article.append(img,node('p','本地照片尚未上传，不会随当前草稿公开。'));}}
  async function confirmPublish(){collect();if(queue.some(q=>q.state!=='ready'))throw new Error('有照片尚未上传成功，请先上传、重试或移除失败项');const error=E.validate(j.place,j.content,true);if(error)throw new Error(error);if(!j.content.title){j.content.title=E.title(j.content,j.place);form.elements.title.value=j.content.title;dirty=true;}
   const d=modal(j.published_version_id?'确认更新发布':'确认发布');d.append(node('p',`标题：${j.content.title}`),node('p',`位置：${j.place.location}`),node('p',`照片：${j.content.photos.length} 张`),node('p',j.visibility==='public'?'公开：正文、评分和所选照片将对访客开放。':'仅自己：保存为已完成的私人记录。'));
-  const confirm=btn(j.published_version_id?'更新发布':'确认发布',async()=>{confirm.disabled=true;try{await saveDraft();const result=await S.publish(j);j={...j,...result};dirty=false;leaving=true;d.close();location.assign(`./journal.html?id=${encodeURIComponent(j.id)}`);}catch(e){failure(e);document.querySelector('#journal-retry').hidden=true;confirm.disabled=false;}},'journal-primary');d.append(confirm);d.showModal();
+  const message=node('p');message.className='journal-publish-feedback';message.setAttribute('role','status');d.append(message);
+  const confirm=btn(j.published_version_id?'更新发布':'确认发布',async()=>{
+   if(busy||confirm.disabled)return;confirm.disabled=true;message.textContent='正在保存并发布，请稍候…';message.classList.remove('journal-error');message.setAttribute('role','status');
+   try{await operation(async()=>{await saveDraft();const result=await S.publish(j);j={...j,...result};dirty=false;leaving=true;d.close();location.assign(`./journal.html?id=${encodeURIComponent(j.id)}`);},message);}finally{confirm.disabled=false;}
+  },'journal-primary');d.append(confirm);d.showModal();
  }
  async function transition(action){if(!confirm(({withdraw:'确认撤下公开内容？后续照片请求也将受私有权限保护。',archive:'确认归档？手记和共享原图会保留，可恢复为草稿。',restore:'将归档记录恢复为私有编辑草稿？'})[action]))return;const result=await S.state(j,action);j={...j,...result};if(action==='withdraw')visibility.value='private';labels();status(action==='archive'?'手记已归档，可恢复。':action==='restore'?'已恢复为草稿；发布前请确认可见性。':'已撤下公开，当前完成记录仅自己可见。');}
  form.onsubmit=e=>e.preventDefault();form.addEventListener('input',e=>{if(e.target!==searchPlace&&e.target!==picker)change();});visibility.addEventListener('change',labels);

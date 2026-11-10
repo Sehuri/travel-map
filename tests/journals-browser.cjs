@@ -11,7 +11,7 @@ const sdk=`(()=>{
  storage:{from:bucket=>({upload:async(name,blob)=>call('upload',{bucket,name,body:btoa(String.fromCharCode(...new Uint8Array(await blob.arrayBuffer())))}),download:async(name)=>{const r=await call('download',{bucket,name});return r.error?r:{data:new Blob([Uint8Array.from(atob(r.data),c=>c.charCodeAt(0))],{type:'image/webp'}),error:null};}})}
  })};})();`;
 (async()=>{
- const db=new PGlite(),blobs=new Map();let serial=Promise.resolve(),failNext=false,offline=false,browser;
+ const db=new PGlite(),blobs=new Map();let serial=Promise.resolve(),failNext=false,offline=false,failAfterReference=false,rejectNextDraft=false,browser;
  await fs.mkdir(out,{recursive:true});
  await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to anon,authenticated;
@@ -28,7 +28,10 @@ const sdk=`(()=>{
     await db.exec(`reset role;set request.jwt.claim.sub='${who==='owner'?owner:who==='other'?other:''}';set role ${who==='anon'?'anon':'authenticated'};`);
     let result;
     if(data.kind==='rpc'){
-     assert(/^(journal_|is_current_user_owner$)/.test(data.name));const values=Object.values(data.args);result=(await db.query(`select to_jsonb(public.${data.name}(${values.map((_,i)=>'$'+(i+1)).join(',')})) as v`,values)).rows[0].v;
+     assert(/^(journal_|is_current_user_owner$)/.test(data.name));
+     if(data.name==='journal_save_draft'&&rejectNextDraft){rejectNextDraft=false;throw new Error('模拟照片引用后保存失败');}
+     const values=Object.values(data.args);result=(await db.query(`select to_jsonb(public.${data.name}(${values.map((_,i)=>'$'+(i+1)).join(',')})) as v`,values)).rows[0].v;
+     if(data.name==='journal_register_media'&&data.args.p_public_url&&failAfterReference){failAfterReference=false;rejectNextDraft=true;}
     }else if(data.kind==='select'){
      assert(/^(journal_|travel_|city_photos)/.test(data.table));assert(/^[a-z_,*]+$/.test(data.columns));const values=[],conditions=(data.filters||[]).map(f=>{assert(/^[a-z_]+$/.test(f.k));values.push(f.v);return `${f.k} ${f.in?'= any':'='}($${values.length})`;});const sql=`select ${data.columns} from ${data.table}${conditions.length?' where '+conditions.join(' and '):''}${data.order?' order by '+data.order:''}`;const rows=(await db.query(sql,values)).rows;result=data.single?rows[0]||null:rows;
     }else if(data.kind==='upload'){
@@ -61,7 +64,18 @@ const sdk=`(()=>{
 page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{if(d.type()==='beforeunload')unloadWarnings++;void d.accept();});
   await page.goto(`${base}/journals.html`);await page.getByText('没有符合条件的手记',{exact:false}).waitFor();assert.equal(await page.locator('.journal-card').count(),0);
   await page.goto(`${base}/journal-edit.html`);await page.locator('#journal-editor-form').waitFor({state:'visible'});
-  assert.equal(await page.locator('[name=visibility]').inputValue(),'private');await page.locator('[name=name]').fill('本地验证地点');await page.locator('#save-journal').click();await page.getByText('草稿已保存',{exact:false}).waitFor();
+  assert.equal(await page.locator('[name=visibility]').inputValue(),'private');await page.locator('[name=name]').fill('本地验证地点');
+  // Opening/cancelling an album must not replace unsaved place fields with the initial model.
+  await page.locator('[name=country]').fill('尚未保存的国家');await page.locator('[name=location]').fill('尚未保存的位置');
+  await page.locator('#choose-album').click();await page.locator('dialog .journal-album-grid button').first().waitFor();
+  assert.equal(await page.locator('[name=name]').inputValue(),'本地验证地点','opening the album must preserve the unsaved place name');
+  assert.equal(await page.locator('[name=country]').inputValue(),'尚未保存的国家');assert.equal(await page.locator('[name=location]').inputValue(),'尚未保存的位置');
+  await page.locator('dialog').getByRole('button',{name:'关闭',exact:true}).click();
+  await page.locator('[name=location]').fill('');await page.locator('#publish-journal').click();
+  await page.locator('#journal-action-status').getByText('发布前请填写可读的位置文字',{exact:true}).waitFor();assert.equal(await page.locator('[name=name]').inputValue(),'本地验证地点');
+  const validationBox=await page.locator('#journal-action-status').boundingBox();assert(validationBox&&validationBox.y>=0&&validationBox.y+validationBox.height<=1000,'validation feedback must be visible beside the action');
+  await page.locator('[name=location]').fill('尚未保存的位置');
+  await page.locator('#save-journal').click();await page.locator('#journal-status').filter({hasText:'草稿已保存'}).waitFor();
   const id=new URL(page.url()).searchParams.get('id');assert(id);
   // Preview is read-only and does not save changed content.
   await page.locator('[name=body]').fill('仅用于本地验证的段落。\n\n第二段感受。');await page.locator('#preview-journal').click();await page.locator('dialog').waitFor();assert.match(await page.locator('dialog').innerText(),/尚未保存或发布/);await page.locator('dialog button').first().click();
@@ -70,12 +84,19 @@ page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{if(d.type()=
   const sharp=require('sharp');const png=await sharp({create:{width:80,height:60,channels:3,background:'#a3c5f0'}}).png().toBuffer();failNext=true;
   await page.locator('#journal-files').setInputFiles([{name:'one.png',mimeType:'image/png',buffer:png},{name:'two.png',mimeType:'image/png',buffer:png}]);await page.locator('#upload-journal-files').click();await page.getByText('部分照片失败',{exact:false}).waitFor();assert.equal(await page.locator('.journal-photo-item').count(),2);await page.getByRole('button',{name:'重试这张'}).click();await page.getByRole('button',{name:'重试这张'}).waitFor({state:'hidden'});
   await page.locator('.journal-photo-item').last().getByRole('button',{name:'前移',exact:true}).click();await page.locator('.journal-photo-item').first().getByRole('button',{name:'设为封面'}).click();
-  await page.locator('#choose-album').click();await page.locator('.journal-album-grid button').first().waitFor();await page.locator('.journal-album-grid button').first().click();await page.locator('dialog').waitFor({state:'hidden'});assert.equal(await page.locator('.journal-photo-item').count(),3);await page.locator('.journal-photo-item').last().getByRole('button',{name:'设为封面'}).click();assert(await page.locator('.journal-photo-item').first().getByRole('button',{name:'前移',exact:true}).isDisabled());assert(await page.locator('.journal-photo-item').last().getByRole('button',{name:'后移',exact:true}).isDisabled());
+  await page.locator('#choose-album').click();await page.locator('.journal-album-grid button').first().waitFor();
+  offline=true;await page.locator('.journal-album-grid button').first().click();await page.locator('dialog .journal-album-feedback').getByText('本地模拟网络不可用',{exact:true}).waitFor();assert(await page.locator('.journal-album-grid button').first().isEnabled());assert.equal(await page.locator('[name=name]').inputValue(),'本地验证地点');await capture('album-error-desktop.png');
+  await page.setViewportSize({width:390,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await capture('album-error-mobile.png');await page.setViewportSize({width:1440,height:1000});
+  offline=false;failAfterReference=true;await page.locator('.journal-album-grid button').first().click();await page.locator('dialog .journal-album-feedback').getByText('模拟照片引用后保存失败',{exact:true}).waitFor();
+  await page.locator('.journal-album-grid button').first().click();await page.locator('dialog').waitFor({state:'hidden'});assert.equal(await page.locator('.journal-photo-item').count(),3);
+  await serial;await db.exec('reset role');assert.equal(Number((await db.query("select count(*) as n from journal_media where entry_id=$1 and source='public_album'",[id])).rows[0].n),1,'retry after a reference is created must reuse that reference');
+  await page.locator('.journal-photo-item').last().getByRole('button',{name:'设为封面'}).click();assert(await page.locator('.journal-photo-item').first().getByRole('button',{name:'前移',exact:true}).isDisabled());assert(await page.locator('.journal-photo-item').last().getByRole('button',{name:'后移',exact:true}).isDisabled());
   await serial;await db.exec('reset role');assert.equal((await db.query('select place_id from journal_drafts where entry_id=$1',[id])).rows[0].place_id,stablePlace);
   await capture('03-editor-desktop.png');
-  await page.locator('#publish-journal').click();await page.locator('dialog').getByRole('button',{name:'确认发布',exact:true}).click();await page.waitForURL('**/journal.html?id=*');await page.locator('#journal-article h1').waitFor();assert.match(await page.locator('#journal-article').innerText(),/我的评分 7/);await page.locator('#journal-article .journal-cover img').evaluate(img=>img.decode());assert(await page.locator('#journal-article .journal-cover img').evaluate(img=>img.naturalWidth>=800));await capture('02-detail-desktop.png');
+  await page.locator('#publish-journal').click();offline=true;await page.locator('dialog').getByRole('button',{name:'确认发布',exact:true}).click();await page.locator('dialog .journal-publish-feedback').getByText('本地模拟网络不可用',{exact:true}).waitFor();assert(await page.locator('dialog').getByRole('button',{name:'确认发布',exact:true}).isEnabled());await capture('publish-error-desktop.png');
+  offline=false;await page.locator('dialog').getByRole('button',{name:'确认发布',exact:true}).click();await page.waitForURL('**/journal.html?id=*');await page.locator('#journal-article h1').waitFor();assert.match(await page.locator('#journal-article').innerText(),/我的评分 7/);await page.locator('#journal-article .journal-cover img').evaluate(img=>img.decode());assert(await page.locator('#journal-article .journal-cover img').evaluate(img=>img.naturalWidth>=800));await capture('02-detail-desktop.png');
   await page.goto(`${base}/journals.html`);await page.locator('.journal-card').first().waitFor();await capture('01-public-list-desktop.png');await page.locator('.journal-card h3 a').first().click();await page.locator('#journal-article h1').waitFor();
-  await page.locator('#journal-article .journal-cover button').click();await page.keyboard.press('Escape');await page.waitForFunction(()=>document.activeElement===document.querySelector('#journal-article .journal-cover button'));await page.locator('#journal-edit-link').click();await page.locator('#journal-editor-form').waitFor({state:'visible'});await page.locator('[name=body]').fill('私有修订文字，不应提前泄露');await page.locator('[name=visibility]').selectOption('private');await page.locator('#save-journal').click();await page.getByText('草稿已保存',{exact:false}).waitFor();
+  await page.locator('#journal-article .journal-cover button').click();await page.keyboard.press('Escape');await page.waitForFunction(()=>document.activeElement===document.querySelector('#journal-article .journal-cover button'));await page.locator('#journal-edit-link').click();await page.locator('#journal-editor-form').waitFor({state:'visible'});await page.locator('[name=body]').fill('私有修订文字，不应提前泄露');await page.locator('[name=visibility]').selectOption('private');await page.locator('#save-journal').click();await page.locator('#journal-status').filter({hasText:'草稿已保存'}).waitFor();
   const publicContext=await browser.newContext();await publicContext.route('https://cdn.jsdelivr.net/**',r=>r.fulfill({contentType:'text/javascript',body:sdk}));await mockMedia(publicContext,'anon');const visitor=await publicContext.newPage();
   await visitor.goto(`${base}/journal.html?id=${id}`);await visitor.locator('#journal-article h1').waitFor();assert(!await visitor.locator('#journal-article').innerText().then(s=>s.includes('私有修订')));assert(await visitor.locator('#journal-edit-link').isHidden());
   // Publish update then withdraw. Previously authorized object paths lose read access.
@@ -85,7 +106,7 @@ page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{if(d.type()=
   // Same place -> new entry. No city reference is needed; date/rating remain null.
   await page.goto(`${base}/journals.html?view=mine`);await page.locator('.journal-card').first().waitFor();await capture('01-list-desktop.png');
   const existingPlace=await page.evaluate(()=>document.querySelector('.journal-card h3').textContent);
-  await page.goto(`${base}/journal-edit.html`);await page.locator('#journal-editor-form').waitFor({state:'visible'});await page.locator('#journal-editor-form [name=place_picker]').selectOption({label:'本地验证地点 · 本地验证地区 · 独立区域 · 不关联城市'});await page.locator('[name=body]').fill('另一篇独立的到访');await page.locator('#save-journal').click();await page.getByText('草稿已保存',{exact:false}).waitFor();const second=new URL(page.url()).searchParams.get('id');assert.notEqual(second,id);
+  await page.goto(`${base}/journal-edit.html`);await page.locator('#journal-editor-form').waitFor({state:'visible'});await page.locator('#journal-editor-form [name=place_picker]').selectOption({label:'本地验证地点 · 本地验证地区 · 独立区域 · 不关联城市'});await page.locator('[name=body]').fill('另一篇独立的到访');await page.locator('#save-journal').click();await page.locator('#journal-status').filter({hasText:'草稿已保存'}).waitFor();const second=new URL(page.url()).searchParams.get('id');assert.notEqual(second,id);
   await page.locator('#publish-journal').click();await page.locator('dialog').getByRole('button',{name:'确认发布',exact:true}).click();await page.waitForURL('**/journal.html?id=*');await page.locator('#journal-article h1').waitFor();assert.match(await page.locator('#journal-article').innerText(),/日期待补充/);assert.match(await page.locator('#journal-article').innerText(),/未评分/);
   await visitor.goto(`${base}/journal.html?id=${second}`);await visitor.getByText('这篇手记暂时不可用。',{exact:true}).waitFor();
   await page.setViewportSize({width:390,height:844});await page.goto(`${base}/journals.html?view=mine`);await page.locator('.journal-card').first().waitFor();

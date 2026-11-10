@@ -7,3 +7,4 @@
 
 .journal-page .site-menu a[aria-current]{color:#245bd2;background:#edf3ff}
 .journal-page summary{cursor:pointer;min-height:44px;padding:10px 0;color:#245bd2}
+.journal-page #journal-action-status{padding:10px 12px;border-radius:8px;background:#fff;overflow-wrap:anywhere}.journal-page .journal-album-feedback{position:sticky;top:0;z-index:1;padding:10px 12px;border-radius:8px;background:#eef4ff;overflow-wrap:anywhere}.journal-page .journal-album-grid button{display:flex;flex-direction:column;align-items:center;gap:8px}.journal-page .journal-album-pick{color:#245bd2;font-size:13px}.journal-page button:disabled{cursor:not-allowed;opacity:.65}.journal-page [aria-busy=true] button:disabled{cursor:wait}.journal-page .journal-publish-feedback{overflow-wrap:anywhere}
