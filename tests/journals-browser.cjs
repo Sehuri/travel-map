@@ -99,6 +99,7 @@ page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{if(d.type()=
   await page.setViewportSize({width:390,height:844});await page.goto(`${base}/journal-edit.html?id=${second}`);await page.locator('#journal-editor-form').waitFor({state:'visible'});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await capture('editor-mobile.png');
   await page.locator('[name=body]').fill('触发未保存离开提醒的本地测试');await page.goto(`${base}/journals.html?view=mine`);assert(unloadWarnings>0,'unsaved editor navigation must warn');
   await visitor.goto(`${base}/journals.html`);await visitor.getByText('没有符合条件的手记',{exact:false}).waitFor();assert.equal(await visitor.locator('.journal-owner:visible').count(),0);
+  await visitor.goto(`${base}/journal-edit.html`);await visitor.getByText('编辑仅向站主开放。',{exact:true}).waitFor();assert.equal(await visitor.getByRole('link',{name:'← 返回我的记录',exact:true}).count(),0);await visitor.getByRole('link',{name:'← 返回公开手记',exact:true}).click();await visitor.getByText('没有符合条件的手记',{exact:false}).waitFor();
   offline=true;await visitor.reload();await visitor.locator('#journal-retry').waitFor({state:'visible'});offline=false;await visitor.locator('#journal-retry').click();await visitor.getByText('没有符合条件的手记',{exact:false}).waitFor();
   assert.deepEqual(errors,[]);console.log('Journal browser workflow passed with real local PostgreSQL RLS and isolated storage adapter. Screenshots: '+out);
  }finally{await browser?.close();await new Promise(r=>server.close(r));await db.close();}

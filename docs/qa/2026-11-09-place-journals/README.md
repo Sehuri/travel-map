@@ -59,3 +59,5 @@
 - GitHub Actions 的 Website tests 第 54 次运行通过：<https://github.com/Sehuri/travel-map/actions/runs/42734849385>。
 - 第一次 Pages 构建成功，但部署在 `syncing_files` 阶段超时并取消：<https://github.com/Sehuri/travel-map/actions/runs/42734848904>。当时正式手记地址仍返回 404，不能视为上线成功。
 - 此次验证记录更新会触发新一轮部署。站主登录后的草稿、公开发布、撤下公开及真实私有媒体读取仍需在线复核；目前未向生产数据库写入任何验证手记。
+- 第二次 Website tests 和 Pages 部署均成功：<https://github.com/Sehuri/travel-map/actions/runs/42737696163>。正式 `journals.html` 已打开并连接真实 Supabase，游客看到 0 篇公开手记的空态；直接进入编辑页要求站主登录。
+- 游客编辑入口检查发现返回链接仍指向“我的记录”，已改为默认返回公开列表，仅站主登录后显示“我的记录”，并加入原浏览器流程复核。

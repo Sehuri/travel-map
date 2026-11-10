@@ -1,6 +1,7 @@
 window.initializeJournalEditor=async function({E,S,node,link,btn,modal,status,failure,readArticle}){
  const form=document.querySelector('#journal-editor-form'),params=new URLSearchParams(location.search);
  if(!S.owner){const login=document.querySelector('#journal-login');login.hidden=false;status('编辑仅向站主开放。');login.onsubmit=async e=>{e.preventDefault();const b=login.querySelector('button');b.disabled=true;try{await S.login(login.elements.email.value.trim());document.querySelector('#login-status').textContent='登录链接已发送，请从邮箱打开后继续。';}catch(error){document.querySelector('#login-status').textContent=`发送失败：${error.message}`;}finally{b.disabled=false;}};return;}
+ const back=document.querySelector('#journal-editor-back');back.href='./journals.html?view=mine';back.textContent='← 返回我的记录';
  let j={id:crypto.randomUUID(),revision:0,status:'draft',visibility:'private',place:{id:crypto.randomUUID(),name:'',country:'',location:'',kind:'other',longitude:null,latitude:null,city_name:null,attraction_id:null},content:{title:'',visit_date:null,rating:null,body:'',tags:[],photos:[],cover_id:null,revisit:null,journey_slug:null}};
  const id=params.get('id');if(id){const found=await S.detail(id,true);if(!found){status('这篇手记暂时不可用。');return;}j=found;document.querySelector('#editor-title').textContent='编辑景点手记';}
  const [available,choices]=await Promise.all([S.places(),S.choices()]);
