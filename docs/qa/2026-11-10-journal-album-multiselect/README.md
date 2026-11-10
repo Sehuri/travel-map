@@ -20,3 +20,13 @@
 - 功能提交 `34fd482` 已推送；Website tests 第 58 次运行通过（包括完整 `npm test`）：<https://github.com/Sehuri/travel-map/actions/runs/42769624832>。
 - 第 197 次 Pages 构建成功，但文件同步 `syncing_files` 达到默认部署时限后取消：<https://github.com/Sehuri/travel-map/actions/runs/42769624447>。当时线上编辑页仍引用 `20261110.2`，不能声称多选已上线。
 - 此检查记录提交重新触发部署；多选编辑脚本及样式版本号为 `20261110.3`。
+
+## 发布流程修复与实际结果
+
+- 原自动 Jekyll 发布与重试均在文件同步阶段超时；代码推送和 Website tests 成功，不能据此认定已经上线。
+- 改用仓库内 `Publish website` 工作流，并将 Pages 来源切换为 GitHub Actions。发布包只包含网站页面、资产与全部原图/预览；设计与 QA 文档继续保留在仓库。2397 个资产/照片文件逐一比对一致，10 个 HTML 页面一致。
+- 本地 94 项单元测试通过；新增打包验证覆盖原图、预览、嵌套资产、可选域名、排除开发资料及避免覆盖旧产物。
+- 提交 `7b59c04` 的 [Publish website #2](https://github.com/Sehuri/travel-map/actions/runs/42787770420) 成功：总计 58 秒，构建 33 秒、部署 16 秒。[Website tests #61](https://github.com/Sehuri/travel-map/actions/runs/42787770246) 完整 `npm test` 成功。
+- 浏览器实际访问线上编辑页，确认编辑脚本与样式均为 `20261110.3`。此次未进行生产批量写入，也未发布用户手记。
+- GitHub 明确将超过 10 分钟的部署等待值限制为 600000ms；随后清理无效的 30 分钟设置，保留平台默认值。首次修复成功并非延长超时生效，不能将文件同步问题确定归因于单一平台内部原因。
+- 发布成功截图：`github-publish-success.jpg`。
