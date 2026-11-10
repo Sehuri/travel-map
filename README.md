@@ -367,7 +367,11 @@ git commit -m "说明本次修改"
 git push origin main
 ```
 
-推送到 `main` 后，GitHub Pages 会自动更新；提交前应确认没有夹带与本次功能无关的文件。
+推送到 `main` 后，`Publish website` 工作流会自动发布；提交前应确认没有夹带与本次功能无关的文件。Git 推送成功与网站上线是两个步骤，请确认 Actions 的发布任务成功后再检查线上页面。
+
+发布使用 `.github/workflows/pages.yml`：`scripts/build-pages.cjs` 只打包根目录网页、`assets/` 和完整 `photos/`（原图及预览图均保留），不把设计稿、验收截图、测试工具与数据库源码放进网站发布包。可选的 `CNAME`、`robots.txt`、`sitemap.xml` 也会保留。开发资料仍正常保存在 GitHub 仓库，不影响 README 图片和源码浏览。
+
+仓库 Settings → Pages → Build and deployment → Source 需选择 **GitHub Actions**。构建和发布拆开显示，发布可在 Actions 手动运行；同步异常时先查任务日志，不要用无关提交反复触发。发布客户端等待时间设为 30 分钟，但这不能保证绕过 GitHub Pages 服务自身限制；网站成功状态及线上资源版本才是上线依据。
 
 ## 📍 关于这个项目
 
