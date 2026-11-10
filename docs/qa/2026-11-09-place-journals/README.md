@@ -52,3 +52,10 @@
 - 重新执行 93 项单元测试，全部通过；完整 `npm run test:browser` 的 10 个浏览器流程全部通过，使用已安装的 Chrome。手记浏览器流程已加入现有持续集成入口。
 - 新增脚本语法、SQL 两份文件一致性、`git diff --check` 均通过。
 - 上面的“尚未执行”记录为初次本地交付边界；本轮线上站主和游客全流程仍待实际登录验证，不能用接口连通或本地结果代替。
+
+### GitHub 发布记录
+
+- 前端及说明已推送至 `main`，功能提交 `5bab1c6`。
+- GitHub Actions 的 Website tests 第 54 次运行通过：<https://github.com/Sehuri/travel-map/actions/runs/42734849385>。
+- 第一次 Pages 构建成功，但部署在 `syncing_files` 阶段超时并取消：<https://github.com/Sehuri/travel-map/actions/runs/42734848904>。当时正式手记地址仍返回 404，不能视为上线成功。
+- 此次验证记录更新会触发新一轮部署。站主登录后的草稿、公开发布、撤下公开及真实私有媒体读取仍需在线复核；目前未向生产数据库写入任何验证手记。
