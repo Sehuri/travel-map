@@ -4,6 +4,7 @@
 @media(prefers-reduced-motion:reduce){.journal-page *{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 
 .journal-page .journal-card h3 a{color:#233244}
+.journal-page .journal-cover .journal-image-error{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px;padding:16px;text-align:center}.journal-page .journal-cover .journal-image-error button{width:auto;height:auto;padding:10px 16px;border:1px solid #ccd8e9;background:white;min-height:44px}
 
 .journal-page .site-menu a[aria-current]{color:#245bd2;background:#edf3ff}
 .journal-page summary{cursor:pointer;min-height:44px;padding:10px 0;color:#245bd2}

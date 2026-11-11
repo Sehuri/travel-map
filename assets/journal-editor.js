@@ -79,7 +79,12 @@ window.initializeJournalEditor=async function({E,S,node,link,btn,modal,status,fa
  }
  async function operation(fn,errorTarget=null){if(busy)return;setBusy(true);try{await fn();}catch(error){reportError(error,errorTarget);}finally{setBusy(false);}}
  async function renderQueue(){const version=++queueRender;queueArea.replaceChildren();for(const [i,q]of queue.entries()){
-   const item=node('div','','journal-photo-item');const img=node('img');img.alt=q.file?.name||'手记照片';try{img.src=q.localURL||q.previewURL||(q.previewURL=await S.mediaURL(q.media));}catch{img.alt='照片暂时无法预览';}if(version!==queueRender)return;item.append(img,node('p',q.state==='ready'?q.id===j.content.cover_id?'封面 · 已上传':'已上传':q.error||'待上传'));
+   const item=node('div','','journal-photo-item'),img=node('img');img.alt=q.file?.name||'手记照片';
+   const photoState=node('p',q.state==='ready'?q.id===j.content.cover_id?'封面 · 已上传':'已上传':q.error||'待上传'),readStatus=node('p','','journal-error');readStatus.setAttribute('role','status');readStatus.hidden=true;
+   const retryRead=btn('重新加载照片',async()=>{retryRead.disabled=true;retryRead.textContent='正在读取…';q.previewURL=null;try{img.src=q.previewURL=await S.mediaURL(q.media);img.hidden=false;}catch{readFailed();}finally{retryRead.disabled=false;retryRead.textContent='重新加载照片';}});retryRead.hidden=true;
+   function readFailed(){img.hidden=true;readStatus.textContent=q.state==='ready'?'照片已上传，暂时无法读取。可重新加载，无需重复上传。':'本地照片暂时无法预览。';readStatus.hidden=false;retryRead.hidden=q.state!=='ready';}
+   img.onload=()=>{img.hidden=false;readStatus.hidden=retryRead.hidden=true;};img.onerror=readFailed;
+   try{img.src=q.localURL||q.previewURL||(q.previewURL=await S.mediaURL(q.media));}catch{readFailed();}if(version!==queueRender)return;item.append(img,photoState,readStatus,retryRead);
    const caption=field(item,`caption_${i}`,'照片说明');caption.value=q.caption||'';caption.maxLength=500;caption.oninput=()=>{q.caption=caption.value;change();};
    const controls=node('div','','journal-photo-actions');const move=delta=>{[queue[i],queue[i+delta]]=[queue[i+delta],queue[i]];change();void renderQueue();};const prev=btn('前移',()=>move(-1)),next=btn('后移',()=>move(1));prev.disabled=busy||i===0;next.disabled=busy||i===queue.length-1;controls.append(prev,next);
    if(q.state==='ready')controls.append(btn('设为封面',()=>{j.content.cover_id=q.id;change();void renderQueue();}));

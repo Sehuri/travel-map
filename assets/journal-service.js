@@ -7,7 +7,9 @@
  async function init(){
   const c=window.SUPABASE_CONFIG;
   if(!window.supabase?.createClient||!c?.url||!c.publishableKey)throw new Error('手记服务暂时无法连接，请检查网络后重试。');
-  client=window.supabase.createClient(c.url,c.publishableKey);
+  // Private media must be checked against current RLS on every read, including
+  // after a published entry is withdrawn. Do not reuse a cached storage response.
+  client=window.supabase.createClient(c.url,c.publishableKey,{global:{fetch:(input,options)=>fetch(input,{...options,cache:'no-store'})}});
   const session=check(await client.auth.getSession())?.session;
   if(session?.user&&!session.user.is_anonymous){const r=await client.rpc('is_current_user_owner');owner=!r.error&&r.data===true;}
   client.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT')location.reload();});
@@ -46,12 +48,13 @@
  async function media(ids){return ids.length?check(await client.from('journal_media').select('*').in('id',ids)):[];}
  async function mediaURL(m,large=false){
   if(m.source==='public_album')return large?m.public_url:window.TRAVEL_PHOTOS.urlFor(m.public_url,'grid');
-  const session=check(await client.auth.getSession())?.session;
-  const headers={apikey:window.SUPABASE_CONFIG.publishableKey};
-  if(session?.access_token)headers.Authorization=`Bearer ${session.access_token}`;
-  const endpoint=new URL(`${window.SUPABASE_CONFIG.url}/functions/v1/journal-media`);endpoint.searchParams.set('id',m.id);endpoint.searchParams.set('size',large?'image':'thumb');
-  const response=await fetch(endpoint,{headers,cache:'no-store'});if(!response.ok)throw new Error('照片暂时不可用');
-  const blob=await response.blob();
+  const path=large?m.object_path:m.thumb_path;
+  if(m.source!=='private'||!/^([0-9a-f-]{36})\/([0-9a-f-]{36})\/(image|thumb)\.webp$/i.test(path||''))throw new Error('照片暂时不可用');
+  // The SDK uses the same publishable key and current session as uploads.
+  // Both journal_media SELECT and storage.objects SELECT still enforce parent
+  // entry RLS. No public bucket, signed URL or server/admin credential is used.
+  const blob=check(await client.storage.from('place-journal-media').download(path));
+  if(!blob?.size)throw new Error('照片暂时不可用');
   const url=URL.createObjectURL(blob);urls.add(url);return url;
  }
  async function decoded(file){

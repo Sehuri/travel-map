@@ -47,7 +47,7 @@
 
 ## 景点手记
 
-新增独立的[公开手记列表](https://sehuri.github.io/travel-map/journals.html)、阅读与主人编辑页，支持同地点多次到访、个人评分、私有草稿和已发布修订。新媒体使用专用私有桶及受行级权限约束的只读函数，城市足迹与百城计数不变。新环境需配置 SQL、私有桶和图片读取函数，详见 [配置与权限说明](docs/implementation/place-journals.md)。
+新增独立的[公开手记列表](https://sehuri.github.io/travel-map/journals.html)、阅读与主人编辑页，支持同地点多次到访、个人评分、私有草稿和已发布修订。新媒体使用专用私有桶，由现有 Supabase SDK 在父手记权限约束下读取；城市足迹与百城计数不变。新环境需配置 SQL 与私有桶，旧图片读取函数保留兼容源码，新前端不再依赖它，详见 [配置与权限说明](docs/implementation/place-journals.md)。
 
 ## ✨ 项目亮点
 

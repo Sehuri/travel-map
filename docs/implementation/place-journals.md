@@ -12,8 +12,8 @@
 2. 审查并执行 `supabase/place_journals.sql`（与 `supabase/migrations/20261109000000_place_journals.sql` 一致），按项目现有迁移方式运行其一，不重复创建另一套表。
 3. 确认 `place-journal-media` 桶为 **private**。迁移只为本模块新增桶及受限策略；若同名桶已是公开，迁移会失败并回滚，避免把旧资料意外改成其他权限。
 4. 审查 `storage.objects` 上是否有其他不限定桶、允许所有用户读取的宽泛策略。PostgreSQL 的宽松策略会相互 OR；新增限制策略无法抵消其他宽泛授权。本仓库已有城市相册策略限定在原桶，不需要修改。
-5. 部署只读 `journal-media` Edge Function，按 `supabase/config.toml` 的 `verify_jwt = false` 配置。参考命令（本次未执行）：`supabase functions deploy journal-media --no-verify-jwt`。
-6. 函数读取服务器环境 `SUPABASE_URL` 与 **普通 anon JWT** `SUPABASE_ANON_KEY`，不使用 service_role。主人请求转发其用户 JWT，游客使用 anon 身份，数据库及存储 RLS 在每次读取时重新检查。若项目禁用了 legacy anon JWT，应先确认函数可用的普通匿名凭据；不要换成管理员密钥绕过 RLS。
+5. 自 `20261111.1` 起，照片通过现有 Supabase SDK `storage.download()` 读取，使用与上传相同的 publishable key 和当前登录身份。对象必须通过父手记关联的存储 RLS；请求禁用缓存，浏览器仅保留当前页的 Blob URL。新前端不再依赖 `journal-media` 函数或服务器 legacy anon JWT，已有配置不需要改动。
+6. **旧前端兼容说明**：仓库保留只读 `journal-media` Edge Function，旧版本需按 `supabase/config.toml` 的 `verify_jwt = false` 部署。它读取 `SUPABASE_URL` 与普通 anon JWT `SUPABASE_ANON_KEY`；若旧环境没有可用的 legacy anon JWT，图片网关会统一返回 404。不要换成管理员密钥或公开桶绕过权限。新前端不调用此函数。
 7. 在 Supabase Auth 的允许跳转地址中加入实际编辑页，例如 `https://sehuri.github.io/travel-map/journal-edit.html`。本地邮箱登录测试需另允许具体 localhost 地址。本次未修改 Auth 配置。
 8. 用真实站主、匿名、登录非主人执行部署后的端到端复核，再决定发布前端。
 
@@ -39,11 +39,12 @@
 - 支持 JPEG/PNG/WebP/GIF/AVIF，输入每张 15 MB，单篇最多 100 张。浏览器不能解码时保留队列、显示失败并允许重试。HEIC/HEIF 未支持转换，会立即提示先导出 JPEG。
 - 手记新媒体存储最大宽度 1600px 的 WebP 和 480px 缩略图，不保存新原文件；重绘去除 EXIF，包括 GPS。动画格式变为静态图。现有城市相册原图和上传流程不改变。
 - 新资源先注册在父手记下，上传成功且两个对象均存在才标记 ready。只有 ready 且被当前公开版本引用的图片可被访客读取。失败对象/未引用资源留在私有桶，不会因猜到地址而公开。
-- `journal-media` 只读代理不生成签名 URL，返回 `Cache-Control: private, no-store`。撤下公开后，后续读取按新的权限拒绝；曾被公开查看或下载的内容无法追溯收回。
+- SDK 私有下载不生成签名 URL；读取经过 `storage.objects` 现有父手记权限策略，网络请求使用 `cache: no-store`。撤下公开后，后续读取按新的权限拒绝；曾被公开查看或下载的内容无法追溯收回。旧图片代理仅保留兼容源码，不作为新前端读取依赖。
 - 不允许覆盖或删除已上传对象。更换图片会创建新资源，移除仅删除本篇引用；不会删除共享原图。失败资源暂不自动清理，可在后续授权下审查清理。
 - 已有公开相册引用保持原公开属性，选择器与发布侧栏明确提示。不能承诺“把原本公开的照片变私密”。
 - 公开相册支持多选勾选和统一“添加所选照片”。切换城市筛选保留选择，已添加照片标记并禁止重复选择；只有点击批量添加才保存草稿并创建引用。部分失败保留失败项勾选，成功项保存后标记已添加；草稿保存失败时暂存已创建的引用用于重试，不把未保存的批次混入现有照片队列。单篇 100 张上限同时计算待上传照片。
 - 单张失败可单独重试，其他已上传照片不会重传或清空。保存失败保留文字和队列；有未保存修改/未上传文件时离开会触发浏览器提醒。没有自动保存。
+- 编辑照片区区分“上传失败”和“已上传但读取失败”；后者提供“重新加载照片”，不创建新媒体、不重复上传。列表封面、阅读详情和查看器读取失败也提供重试；公开相册缩略图加载失败可回退到原图。
 
 ## 发布规则
 
