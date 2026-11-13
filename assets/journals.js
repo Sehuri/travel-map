@@ -48,11 +48,81 @@
   $('#journal-list-title').textContent=mine?'我的记录':'公开手记';
   document.querySelectorAll('#journal-filters .journal-owner').forEach(n=>n.hidden=!mine);
   const all=await S.records(mine),form=$('#journal-filters'),grid=$('#journal-grid');
-  for(const [field,values]of [['region',[...new Set(all.map(j=>j.place.country).filter(Boolean))]],['year',[...new Set(all.map(j=>j.content.visit_date?.slice(0,4)).filter(Boolean))].sort().reverse()]]){const select=form.elements[field];values.forEach(v=>select.add(new Option(v,v)));}
+  const citySelect=form.elements.city,cityHelp=$('#journal-city-help'),cityRetry=$('#journal-city-retry'),empty=$('#journal-empty');
+  let cities=[],cityState='loading',token=0,resetting=false;
+  function regionOptions(){
+   const select=form.elements.region,current=select.value;
+   const countries=[...new Set([...all.map(j=>j.place.country),...cities.map(c=>c.country)].filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh-CN'));
+   select.replaceChildren(new Option('全部国家 / 地区',''));
+   countries.forEach(v=>select.add(new Option(v,v)));
+   // Keep a direct-link filter even if its country has no visible journals.
+   if(current&&!countries.includes(current))select.add(new Option(current,current));
+   select.value=current;
+  }
+  regionOptions();
+  [...new Set(all.map(j=>j.content.visit_date?.slice(0,4)).filter(Boolean))].sort().reverse().forEach(v=>form.elements.year.add(new Option(v,v)));
+  if(params.get('region')&&![...form.elements.region.options].some(o=>o.value===params.get('region')))form.elements.region.add(new Option(params.get('region'),params.get('region')));
+  if(params.get('city'))citySelect.add(new Option(params.get('city'),params.get('city')));
   for(const input of form.elements)if(input.name&&params.has(input.name))input.value=params.get(input.name);
-  let token=0;
-  async function render(){const version=++token,f=Object.fromEntries(new FormData(form));if(!mine){delete f.status;delete f.visibility;}const items=E.filter(all,f);const u=new URL('./journals.html',location.href);if(mine)u.searchParams.set('view','mine');for(const [k,v]of Object.entries(f))if(v&&!(k==='sort'&&v==='visit'))u.searchParams.set(k,v);history.replaceState(null,'',u);
-   grid.replaceChildren();$('#journal-count').textContent=`${items.length} 篇${mine?'':'公开'}手记 · ${new Set(items.map(j=>j.place.id)).size} 个地点`;status(items.length?'':'没有符合条件的手记，可清除筛选或稍后再来。');
+  function cityOptions(){
+   const selected=citySelect.value;
+   citySelect.replaceChildren(new Option(`全部已到访城市（${cities.length}）`,''));
+   const countries=[...new Set(cities.map(c=>c.country))].sort((a,b)=>a.localeCompare(b,'zh-CN'));
+   for(const country of countries){const group=node('optgroup');group.label=country;cities.filter(c=>c.country===country).forEach(c=>group.append(new Option(c.name,c.name)));citySelect.append(group);}
+   if(selected&&!cities.some(c=>c.name===selected)){const option=new Option('所选城市已不在当前足迹中',selected);option.disabled=true;citySelect.add(option);}
+   citySelect.value=selected;
+  }
+  function resetFilters(keepCity=false){
+   const selected=keepCity?citySelect.value:'';
+   resetting=true;form.reset();resetting=false;citySelect.value=selected;
+   void render().catch(failure);(keepCity?form.elements.q:citySelect.disabled?form.elements.q:citySelect).focus({preventScroll:true});
+  }
+  function showEmpty(f){
+   empty.replaceChildren();empty.hidden=false;
+   let title='暂时没有符合条件的手记',description='试试调整搜索、年份或类型，也可以清除筛选，看看其他旅行记忆。';
+   const selected=cities.find(c=>c.name===f.city),actions=node('div','','journal-empty-actions');
+   if(f.city&&cityState==='loading'){
+    title='正在核对所选城市…';description='城市列表读取完成后，会显示这座城市的手记。';
+   }else if(f.city&&cityState==='error'){
+    title='城市列表暂时无法读取';description='请在筛选区重试加载城市；也可以清除筛选，继续浏览已有手记。';
+   }else if(f.city&&!selected){
+    title='所选城市不在当前已到访列表中';description='这座城市可能已被隐藏或调整。请重新选择城市，或浏览全部手记。';
+   }else if(selected){
+    const hasCityJournals=E.filter(all,{city:selected.name}).length>0;
+    if(hasCityJournals){
+     title=`没有符合条件的「${selected.name}」手记`;
+     description='这座城市有可查看的手记，但没有匹配当前的其他条件。可以保留城市，清除搜索、年份、类型等筛选。';
+     actions.append(btn('仅看这座城市',()=>resetFilters(true),'journal-primary'));
+    }else{
+     title=`还没有「${selected.name}」的${mine?'':'公开'}手记`;
+     description=mine?'这座城市已计入旅行足迹，还没有关联到它的手记。以后写作时可在“关联城市”中选择它。':'这座城市已在旅行足迹中点亮，公开的景点手记还在慢慢补充。可以先看看城市足迹，或浏览其他手记。';
+    }
+    actions.append(link('查看城市足迹',`./index.html?city=${encodeURIComponent(selected.name)}`,'journal-empty-link'));
+   }
+   if(Object.entries(f).some(([k,v])=>v&&!(k==='sort'&&v==='visit')))actions.append(btn('浏览全部手记',()=>resetFilters()));
+   empty.append(node('span','','ui-icon icon-list'),node('h3',title),node('p',description),actions);
+   empty.querySelector('.ui-icon').setAttribute('aria-hidden','true');
+  }
+  async function loadCities(){
+   if(cityRetry.disabled)return;
+   const restoreFocus=document.activeElement===cityRetry;
+   cityState='loading';citySelect.disabled=true;cityRetry.disabled=true;cityRetry.hidden=true;
+   cityHelp.textContent='正在读取已到访城市…';cityHelp.classList.remove('journal-error');citySelect.setAttribute('aria-busy','true');
+   try{
+    cities=await S.visitedCities();cityState='ready';regionOptions();cityOptions();citySelect.disabled=false;
+    cityHelp.textContent=`共 ${cities.length} 座已到访城市，含暂无手记的城市。城市与国家 / 地区可切换筛选，其他条件可叠加；城市仅按手记的“关联城市”匹配。`;
+   }catch{
+    cityState='error';cityHelp.textContent='已到访城市暂时无法读取，请重试。其他手记筛选仍可使用。';cityHelp.classList.add('journal-error');cityRetry.hidden=false;
+   }finally{cityRetry.disabled=false;citySelect.removeAttribute('aria-busy');}
+   if(restoreFocus&&cityState==='ready')citySelect.focus({preventScroll:true});
+   // Catalogue metadata alone must not re-download the unfiltered photo list.
+   if(citySelect.value)await render();
+  }
+  async function render(){const version=++token,f=Object.fromEntries(new FormData(form));f.city=citySelect.value;if(!mine){delete f.status;delete f.visibility;}
+   const pending=cityState==='loading'&&f.city,unavailable=cityState==='ready'&&f.city&&!cities.some(c=>c.name===f.city),items=pending||unavailable?[]:E.filter(all,f);
+   const u=new URL('./journals.html',location.href);if(mine)u.searchParams.set('view','mine');for(const [k,v]of Object.entries(f))if(v&&!(k==='sort'&&v==='visit'))u.searchParams.set(k,v);history.replaceState(null,'',u);
+   grid.replaceChildren();$('#journal-count').textContent=pending?'正在读取城市手记…':`${items.length} 篇${mine?'':'公开'}手记 · ${new Set(items.map(j=>j.place.id)).size} 个地点`;status(pending?'正在核对所选城市…':'');
+   empty.hidden=true;if(!items.length)showEmpty(f);
    // Fetch only media referenced by this authorized result set; no global private index.
    const media=await S.media([...new Set(items.flatMap(j=>(j.content.photos||[]).map(p=>p.id)))]);if(version!==token)return;
    for(const j of items){const card=node('article','','journal-card'),href=new URL('./journal.html',location.href);href.searchParams.set('id',j.id);href.searchParams.set('return',location.pathname+location.search);const c=j.content,coverId=c.cover_id||c.photos?.[0]?.id,coverLink=link('',href);coverLink.setAttribute('aria-label',`翻开${E.title(c,j.place)}`);coverLink.append(await cover(media.find(m=>m.id===coverId)));if(version!==token)return;const title=node('h3');title.append(link(E.title(c,j.place),href));card.append(coverLink,node('p',[j.place.name,j.place.country,j.place.location].filter(Boolean).join(' · ')),title,meta(j),node('p',c.body||'暂无感受文字','journal-excerpt'));
@@ -60,7 +130,16 @@
     const bottom=node('div','','journal-card-bottom');bottom.append(tags(c),link('翻开这篇 →',href));card.append(bottom);card.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{try{sessionStorage.setItem(`journal-scroll:${location.pathname+location.search}`,String(window.scrollY));}catch{}}));grid.append(card);
    }
   }
-  form.addEventListener('submit',e=>e.preventDefault());form.addEventListener('input',()=>{void render().catch(failure);});form.addEventListener('reset',()=>setTimeout(()=>void render().catch(failure),0));await render();
+  form.addEventListener('submit',e=>e.preventDefault());
+  form.addEventListener('input',event=>{
+   // A city reference is optional and country text is free-form in old journals.
+   // Switch geographic scopes instead of hiding linked journals behind stale text.
+   if(event.target===citySelect)form.elements.region.value='';
+   if(event.target===form.elements.region)citySelect.value='';
+   void render().catch(failure);
+  });
+  form.addEventListener('reset',()=>{if(!resetting)setTimeout(()=>void render().catch(failure),0);});cityRetry.onclick=()=>void loadCities().catch(failure);
+  await Promise.all([render(),loadCities()]);
   try{const y=Number(sessionStorage.getItem(`journal-scroll:${location.pathname+location.search}`));if(y)window.scrollTo({top:y,behavior:'instant'});}catch{}
  }
  async function detail(){const id=params.get('id');if(!id||!/^[0-9a-f-]{36}$/i.test(id)){status('这篇手记暂时不可用。');return;}const j=await S.detail(id);if(!j){status('这篇手记暂时不可用。');return;}

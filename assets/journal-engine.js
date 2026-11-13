@@ -15,7 +15,7 @@
  function filter(items,f={}){
   const q=(f.q||'').trim().toLocaleLowerCase();
   const date=(a,b)=>(b.content.visit_date||'').localeCompare(a.content.visit_date||'');
-  return items.filter(j=>(!q||[j.place.name,j.place.country,j.place.location,j.content.title,j.content.body].join(' ').toLocaleLowerCase().includes(q))&&(!f.region||j.place.country===f.region)&&(!f.year||(j.content.visit_date||'').slice(0,4)===f.year)&&(!f.kind||j.place.kind===f.kind)&&(!f.status||j.status===f.status)&&(!f.visibility||j.visibility===f.visibility))
+  return items.filter(j=>(!q||[j.place.name,j.place.country,j.place.location,j.content.title,j.content.body].join(' ').toLocaleLowerCase().includes(q))&&(!f.region||j.place.country===f.region)&&(!f.city||j.place.city_name===f.city)&&(!f.year||(j.content.visit_date||'').slice(0,4)===f.year)&&(!f.kind||j.place.kind===f.kind)&&(!f.status||j.status===f.status)&&(!f.visibility||j.visibility===f.visibility))
    .sort((a,b)=> (f.sort==='rating'? (b.content.rating??-1)-(a.content.rating??-1)||date(a,b):f.sort==='updated'? (b.updated_at||'').localeCompare(a.updated_at||''):date(a,b))||a.id.localeCompare(b.id));
  }
  return {kinds,statuses,title,validate,filter};

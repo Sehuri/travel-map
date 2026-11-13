@@ -16,3 +16,11 @@ test('journal filters search content; unknown dates and scores sort last',()=>{
  assert.deepEqual(engine.filter(all,{q:'云海',kind:'nature',year:'2026'}).map(x=>x.id),['b']);assert.equal(engine.filter(all,{region:'中国'}).length,0);
  assert.equal(engine.filter(all,{status:'draft'}).length,0);
 });
+
+test('city requires an exact place association and combines with other filters',()=>{
+ const item=(id,city,body,country='中国')=>({id,place:{...p,id,country,city_name:city,kind:'nature'},content:{...c,body,visit_date:'2026-01-02'},status:'published',visibility:'public',updated_at:'2026-01-02'});
+ const records=[item('a','宣城','山水'),item('b','宣城','云海',''),item('c',null,'宣城云海'),item('d','宣城市','云海')];
+ assert.deepEqual(engine.filter(records,{city:'宣城'}).map(x=>x.id),['a','b']);
+ assert.deepEqual(engine.filter(records,{city:'宣城',q:'云海',year:'2026',kind:'nature'}).map(x=>x.id),['b']);
+ assert.deepEqual(engine.filter(records,{city:'宣城',region:'中国'}).map(x=>x.id),['a']);
+});

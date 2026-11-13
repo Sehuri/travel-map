@@ -12,14 +12,14 @@ const sdk=`(()=>{
  storage:{from:bucket=>({upload:async(name,blob)=>call('upload',{bucket,name,body:base64(new Uint8Array(await blob.arrayBuffer()))}),download:async(name)=>{const r=await call('download',{bucket,name});return r.error?r:{data:new Blob([Uint8Array.from(atob(r.data),c=>c.charCodeAt(0))],{type:'image/webp'}),error:null};}})}
  })};})();`;
 (async()=>{
- const db=new PGlite(),blobs=new Map();let serial=Promise.resolve(),failNext=false,offline=false,failDownloads=false,mediaGatewayRequests=0,failAfterReference=false,rejectNextDraft=false,failReferenceURL=null,referenceFailures=0,browser;
+ const db=new PGlite(),blobs=new Map();let serial=Promise.resolve(),failNext=false,offline=false,failDownloads=false,mediaGatewayRequests=0,failAfterReference=false,rejectNextDraft=false,failReferenceURL=null,referenceFailures=0,failCities=false,browser;
  await fs.mkdir(out,{recursive:true});
  await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to anon,authenticated;
  create function public.is_current_user_owner() returns boolean language sql stable as $$select coalesce(auth.uid()='${owner}'::uuid,false)$$;insert into auth.users values('${owner}'),('${other}');
  create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text,unique(bucket_id,name));alter table storage.objects enable row level security;grant usage on schema storage to anon,authenticated;grant select,insert,update,delete on storage.objects to anon,authenticated;
  create table public.travel_attractions(id text primary key);create table public.travel_journeys(id uuid primary key,slug text,title text,is_published boolean);
- create table public.city_photos(city_name text,image_url text,is_hidden boolean);create table public.travel_cities(name text,is_hidden boolean);grant select on travel_cities,travel_journeys,city_photos to anon,authenticated;`);
+ create table public.city_photos(city_name text,image_url text,is_hidden boolean);create table public.travel_cities(name text,country text,region text,visit_date text,longitude numeric,latitude numeric,description text,cover_url text,is_hidden boolean);grant select on travel_cities,travel_journeys,city_photos to anon,authenticated;`);
  await db.exec(await fs.readFile(path.join(root,'supabase/place_journals.sql'),'utf8'));
  const server=http.createServer(async(req,res)=>{
   if(req.url==='/test-api'){
@@ -35,6 +35,7 @@ const sdk=`(()=>{
      const values=Object.values(data.args);result=(await db.query(`select to_jsonb(public.${data.name}(${values.map((_,i)=>'$'+(i+1)).join(',')})) as v`,values)).rows[0].v;
      if(data.name==='journal_register_media'&&data.args.p_public_url&&failAfterReference){failAfterReference=false;rejectNextDraft=true;}
     }else if(data.kind==='select'){
+     if(data.table==='travel_cities'&&failCities)throw new Error('模拟城市目录不可用');
      assert(/^(journal_|travel_|city_photos)/.test(data.table));assert(/^[a-z_,*]+$/.test(data.columns));const values=[],conditions=(data.filters||[]).map(f=>{assert(/^[a-z_]+$/.test(f.k));values.push(f.v);return `${f.k} ${f.in?'= any':'='}($${values.length})`;});const sql=`select ${data.columns} from ${data.table}${conditions.length?' where '+conditions.join(' and '):''}${data.order?' order by '+data.order:''}`;const rows=(await db.query(sql,values)).rows;result=data.single?rows[0]||null:rows;
     }else if(data.kind==='upload'){
      if(failNext&&data.name.endsWith('/image.webp')){failNext=false;throw new Error('模拟单张上传失败');}
@@ -60,6 +61,21 @@ const sdk=`(()=>{
   async function capture(name){await page.evaluate(()=>{document.activeElement.blur();window.scrollTo({top:0,behavior:'instant'});});await page.waitForTimeout(200);await page.screenshot({path:path.join(out,name),fullPage:true});}
 page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{if(d.type()==='beforeunload')unloadWarnings++;void d.accept();});
   await page.goto(`${base}/journals.html`);await page.getByText('没有符合条件的手记',{exact:false}).waitFor();assert.equal(await page.locator('.journal-card').count(),0);
+  await page.locator('[name=city]:not([disabled])').waitFor();
+  const names=await page.locator('[name=city] optgroup option').evaluateAll(els=>els.map(e=>e.value));
+  const expected=await page.evaluate(()=>TRAVEL_VISIT_ENGINE.uniqueCities(TRAVEL_VISIT_ENGINE.mergeCityVisits(TRAVEL_DATA.visits,[],[])).map(c=>c.name));
+  assert.deepEqual([...names].sort(),[...expected].sort());assert(names.includes('宣城'));assert(names.includes('重庆'));
+  await serial;await db.exec('reset role');await db.exec("insert into travel_cities values ('测试新增城','中国','测试省','2025-01-01',110,30,'','',false),('重庆',null,null,null,null,null,null,null,true),('无效城市','中国','测试省',null,110,30,'','',false)");
+  await page.reload();await page.locator('[name=city]:not([disabled])').waitFor();const updated=await page.locator('[name=city] optgroup option').evaluateAll(els=>els.map(e=>e.value));assert(updated.includes('测试新增城'));assert(!updated.includes('重庆'));assert(!updated.includes('无效城市'));assert.equal(new Set(updated).size,updated.length);
+  await serial;await db.exec('reset role');await db.exec('delete from travel_cities');await page.reload();await page.locator('[name=city]:not([disabled])').waitFor();
+  await page.locator('[name=city]').selectOption('宣城');await page.getByText('还没有「宣城」的公开手记').waitFor();assert.equal(new URL(page.url()).searchParams.get('city'),'宣城');
+  await page.screenshot({path:path.join(out,'city-empty-desktop.png'),fullPage:true});
+  for(const width of [390,768,1024,1440]){await page.setViewportSize({width,height:900});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`overflow at ${width}`);for(const selector of ['[name=city]','[type=reset]'])assert((await page.locator(selector).boundingBox()).height>=44,`${selector} too short at ${width}`);}
+  await page.setViewportSize({width:390,height:844});await page.locator('#journal-empty').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(out,'city-empty-mobile-viewport.png')});await page.setViewportSize({width:1440,height:1000});
+  await page.goto(`${base}/journals.html?city=不存在的城市`);await page.getByText('所选城市不在当前已到访列表中',{exact:true}).waitFor();assert.equal(await page.locator('.journal-card').count(),0);
+  failCities=true;await page.goto(`${base}/journals.html?city=宣城&q=测试`);await page.getByText('城市列表暂时无法读取',{exact:true}).waitFor();assert(await page.locator('[name=city]').isDisabled());await page.screenshot({path:path.join(out,'city-error.png'),fullPage:true});
+  failCities=false;await page.getByRole('button',{name:'重试加载城市'}).click();await page.locator('[name=city]:not([disabled])').waitFor();assert.equal(await page.locator('[name=q]').inputValue(),'测试');assert.equal(await page.locator('[name=city]').inputValue(),'宣城');
+  await page.goto(`${base}/journals.html`);
   await page.goto(`${base}/journal-edit.html`);await page.locator('#journal-editor-form').waitFor({state:'visible'});
   assert.equal(await page.locator('[name=visibility]').inputValue(),'private');await page.locator('[name=name]').fill('本地验证地点');
   // Opening/cancelling an album must not replace unsaved place fields with the initial model.
@@ -109,6 +125,13 @@ page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{if(d.type()=
   await capture('03-editor-desktop.png');
   await page.locator('#publish-journal').click();offline=true;await page.locator('dialog').getByRole('button',{name:'确认发布',exact:true}).click();await page.locator('dialog .journal-publish-feedback').getByText('本地模拟网络不可用',{exact:true}).waitFor();assert(await page.locator('dialog').getByRole('button',{name:'确认发布',exact:true}).isEnabled());await capture('publish-error-desktop.png');
   offline=false;await page.locator('dialog').getByRole('button',{name:'确认发布',exact:true}).click();await page.waitForURL('**/journal.html?id=*');await page.locator('#journal-article h1').waitFor();assert.match(await page.locator('#journal-article').innerText(),/我的评分 7/);await page.locator('#journal-article .journal-cover img').evaluate(img=>img.decode());assert(await page.locator('#journal-article .journal-cover img').evaluate(img=>img.naturalWidth>=800));await capture('02-detail-desktop.png');
+  // Exercise a published city association and ensure free-form country does not hide it.
+  await serial;await db.exec('reset role');await db.query("update journal_places set city_name='宣城' where id=$1",[stablePlace]);
+  await page.goto(`${base}/journals.html?city=宣城`);await page.locator('.journal-card').first().waitFor();assert.equal(await page.locator('.journal-card').count(),1);await page.screenshot({path:path.join(out,'city-result-desktop.png'),fullPage:true});
+  await page.locator('[name=q]').fill('无匹配词');await page.getByText('没有符合条件的「宣城」手记').waitFor();await page.getByRole('button',{name:'仅看这座城市'}).click();await page.locator('.journal-card').first().waitFor();assert.equal(await page.locator('[name=city]').inputValue(),'宣城');assert.equal(await page.locator('[name=q]').inputValue(),'');
+  await page.locator('[name=region]').selectOption({label:'本地验证地区'});assert.equal(await page.locator('[name=city]').inputValue(),'');await page.locator('[name=city]').selectOption('宣城');assert.equal(await page.locator('[name=region]').inputValue(),'');
+  await page.locator('.journal-card h3 a').click();await page.locator('#journal-back').click();await page.locator('.journal-card').first().waitFor();assert.equal(await page.locator('[name=city]').inputValue(),'宣城');
+  await serial;await db.exec('reset role');await db.query('update journal_places set city_name=null where id=$1',[stablePlace]);
   await page.goto(`${base}/journals.html`);await page.locator('.journal-card').first().waitFor();await capture('01-public-list-desktop.png');await page.locator('.journal-card h3 a').first().click();await page.locator('#journal-article h1').waitFor();
   await page.locator('#journal-article .journal-cover button').click();await page.keyboard.press('Escape');await page.waitForFunction(()=>document.activeElement===document.querySelector('#journal-article .journal-cover button'));await page.locator('#journal-edit-link').click();await page.locator('#journal-editor-form').waitFor({state:'visible'});await page.locator('[name=body]').fill('私有修订文字，不应提前泄露');await page.locator('[name=visibility]').selectOption('private');await page.locator('#save-journal').click();await page.locator('#journal-status').filter({hasText:'草稿已保存'}).waitFor();
   const publicContext=await browser.newContext();await publicContext.route('https://cdn.jsdelivr.net/**',r=>r.fulfill({contentType:'text/javascript',body:sdk}));await mockMedia(publicContext,'anon');const visitor=await publicContext.newPage();

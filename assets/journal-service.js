@@ -90,8 +90,18 @@
   const trips=new Map((window.TRAVEL_DATA?.journeys||[]).map(j=>[j.slug,{slug:j.slug,title:j.title}]));check(journeys).forEach(j=>trips.set(j.slug,j));
   return {cities:[...citySet].sort((a,b)=>a.localeCompare(b,'zh-CN')),journeys:[...trips.values()]};
  }
+ async function visitedCities(){
+  // Use the homepage's profile merge and identity rules, not journal coverage.
+  // Additional visit dates cannot add a city, so only city profiles are needed.
+  const rows=check(await client.from('travel_cities').select('name,country,region,visit_date,longitude,latitude,description,cover_url,is_hidden'));
+  const engine=window.TRAVEL_VISIT_ENGINE;
+  if(!engine)throw new Error('城市筛选暂时不可用，请刷新页面后重试。');
+  return engine.uniqueCities(engine.mergeCityVisits(window.TRAVEL_DATA?.visits||[],rows,[]))
+   .map(c=>({name:c.name,country:c.country,region:c.region}))
+   .sort((a,b)=>a.name.localeCompare(b.name,'zh-CN'));
+ }
  async function linked(id){const j=check(await client.rpc('journal_linked_journey',{p_id:id}));if(!j)return null;if(j.builtin){const base=window.TRAVEL_DATA?.journeys?.find(b=>b.slug===j.slug);return base?{slug:base.slug,title:base.title}:null;}return j;}
  function revoke(){urls.forEach(url=>URL.revokeObjectURL(url));urls.clear();}
  window.addEventListener('pagehide',revoke);
- window.JOURNAL_SERVICE={init,records,detail,places,save,publish,state,media,mediaURL,upload,reference,login,album,choices,linked,revoke,get owner(){return owner;}};
+ window.JOURNAL_SERVICE={init,records,detail,places,save,publish,state,media,mediaURL,upload,reference,login,album,choices,visitedCities,linked,revoke,get owner(){return owner;}};
 })();
