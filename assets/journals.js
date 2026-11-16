@@ -6,7 +6,8 @@
  const link=(text,url,cls)=>{const a=node('a',text,cls);a.href=url;return a;};
  const btn=(text,fn,cls)=>{const b=node('button',text,cls);b.type='button';b.onclick=fn;return b;};
  const params=new URLSearchParams(location.search);
- const returnURL=()=>{const u=new URL('./journals.html',location.href),raw=params.get('return');if(raw){const saved=new URL(raw,location.href);if(saved.origin===u.origin&&saved.pathname===u.pathname)return saved.href;}return u.href;};
+ let updates=null,retryList=async()=>{await S.init();document.querySelectorAll('.journal-owner').forEach(n=>n.hidden=!S.owner);await list();};
+ const returnURL=()=>{const u=new URL('./journals.html',location.href),raw=params.get('return');try{if(raw){const saved=new URL(raw,location.href);if(saved.origin===u.origin&&saved.pathname===u.pathname&&!(params.get('context')==='public'&&saved.searchParams.get('view')==='mine'))return saved.href;}}catch{}return u.href;};
  function status(text,error=false){$('#journal-status').textContent=text;$('#journal-status').classList.toggle('journal-error',error);}
  function failure(e){const message=['42P01','PGRST205'].includes(e.code)?'手记服务尚未配置完成，请稍后再来。':`暂时无法读取或保存手记。${e.message||''} 可稍后重试。`;status(message,true);$('#journal-retry').hidden=false;}
  function navigation(){
@@ -47,9 +48,11 @@
   const mine=params.get('view')==='mine';if(mine&&!S.owner){status('此页面不可用，请返回公开手记。');$('#journal-count').textContent='';return;}
   $('#journal-list-title').textContent=mine?'我的记录':'公开手记';
   document.querySelectorAll('#journal-filters .journal-owner').forEach(n=>n.hidden=!mine);
-  const all=await S.records(mine),form=$('#journal-filters'),grid=$('#journal-grid');
+  const form=$('#journal-filters'),grid=$('#journal-grid');
   const citySelect=form.elements.city,cityHelp=$('#journal-city-help'),cityRetry=$('#journal-city-retry'),empty=$('#journal-empty');
-  let cities=[],cityState='loading',token=0,resetting=false;
+  let all=[],phase='loading',cities=[],cityState='loading',token=0,resetting=false,recordRequest=0;
+  function filters(){const f=Object.fromEntries(new FormData(form));f.city=citySelect.value;if(!mine){delete f.status;delete f.visibility;}return f;}
+  function syncUpdates(){const f=filters();updates?.setSnapshot({phase,records:all,filters:f,cityState,cityUnavailable:cityState==='ready'&&Boolean(f.city)&&!cities.some(c=>c.name===f.city)});}
   function regionOptions(){
    const select=form.elements.region,current=select.value;
    const countries=[...new Set([...all.map(j=>j.place.country),...cities.map(c=>c.country)].filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh-CN'));
@@ -60,10 +63,20 @@
    select.value=current;
   }
   regionOptions();
-  [...new Set(all.map(j=>j.content.visit_date?.slice(0,4)).filter(Boolean))].sort().reverse().forEach(v=>form.elements.year.add(new Option(v,v)));
-  if(params.get('region')&&![...form.elements.region.options].some(o=>o.value===params.get('region')))form.elements.region.add(new Option(params.get('region'),params.get('region')));
-  if(params.get('city'))citySelect.add(new Option(params.get('city'),params.get('city')));
-  for(const input of form.elements)if(input.name&&params.has(input.name))input.value=params.get(input.name);
+  function yearOptions(){const select=form.elements.year,current=select.value,years=[...new Set(all.map(j=>j.content.visit_date?.slice(0,4)).filter(Boolean))].sort().reverse();select.replaceChildren(new Option('全部年份',''));if(current&&!years.includes(current))years.push(current);years.forEach(v=>select.add(new Option(v,v)));select.value=current;}
+  function applyParams(source){
+   for(const input of form.elements){if(!input.name)continue;const value=source.get(input.name)||(input.name==='sort'?'visit':'');if(['region','city','year'].includes(input.name)&&value&&![...input.options].some(o=>o.value===value))input.add(new Option(value,value));input.value=value;}
+  }
+  applyParams(params);
+  async function loadRecords(){
+   const request=++recordRequest;phase='loading';syncUpdates();status('正在读取手记…');$('#journal-retry').hidden=true;
+   try{
+    const records=await S.records(mine);if(request!==recordRequest)return;
+    all=records;phase='ready';regionOptions();yearOptions();syncUpdates();await render().catch(failure);
+   }catch(error){if(request!==recordRequest)return;phase='error';syncUpdates();failure(error);}
+  }
+  retryList=kind=>kind==='city'?loadCities():loadRecords();
+  if(!mine)$('#journal-retry').onclick=()=>void loadRecords();
   function cityOptions(){
    const selected=citySelect.value;
    citySelect.replaceChildren(new Option(`全部已到访城市（${cities.length}）`,''));
@@ -108,6 +121,7 @@
    const restoreFocus=document.activeElement===cityRetry;
    cityState='loading';citySelect.disabled=true;cityRetry.disabled=true;cityRetry.hidden=true;
    cityHelp.textContent='正在读取已到访城市…';cityHelp.classList.remove('journal-error');citySelect.setAttribute('aria-busy','true');
+   syncUpdates();
    try{
     cities=await S.visitedCities();cityState='ready';regionOptions();cityOptions();citySelect.disabled=false;
     cityHelp.textContent=`共 ${cities.length} 座已到访城市，含暂无手记的城市。城市与国家 / 地区可切换筛选，其他条件可叠加；城市仅按手记的“关联城市”匹配。`;
@@ -115,12 +129,15 @@
     cityState='error';cityHelp.textContent='已到访城市暂时无法读取，请重试。其他手记筛选仍可使用。';cityHelp.classList.add('journal-error');cityRetry.hidden=false;
    }finally{cityRetry.disabled=false;citySelect.removeAttribute('aria-busy');}
    if(restoreFocus&&cityState==='ready')citySelect.focus({preventScroll:true});
+   syncUpdates();
    // Catalogue metadata alone must not re-download the unfiltered photo list.
-   if(citySelect.value)await render();
+   if(citySelect.value)await render().catch(failure);
   }
-  async function render(){const version=++token,f=Object.fromEntries(new FormData(form));f.city=citySelect.value;if(!mine){delete f.status;delete f.visibility;}
+  async function render(){const version=++token,f=filters();
    const pending=cityState==='loading'&&f.city,unavailable=cityState==='ready'&&f.city&&!cities.some(c=>c.name===f.city),items=pending||unavailable?[]:E.filter(all,f);
-   const u=new URL('./journals.html',location.href);if(mine)u.searchParams.set('view','mine');for(const [k,v]of Object.entries(f))if(v&&!(k==='sort'&&v==='visit'))u.searchParams.set(k,v);history.replaceState(null,'',u);
+   const u=new URL('./journals.html',location.href);if(mine)u.searchParams.set('view','mine');for(const [k,v]of Object.entries(f))if(v&&!(k==='sort'&&v==='visit'))u.searchParams.set(k,v);if(updates?.isOpen())u.searchParams.set('updates','1');history.replaceState(history.state,'',u);
+   syncUpdates();
+   if(phase==='loading'){status('正在读取手记…');return;}if(phase==='error')return;
    grid.replaceChildren();$('#journal-count').textContent=pending?'正在读取城市手记…':`${items.length} 篇${mine?'':'公开'}手记 · ${new Set(items.map(j=>j.place.id)).size} 个地点`;status(pending?'正在核对所选城市…':'');
    empty.hidden=true;if(!items.length)showEmpty(f);
    // Fetch only media referenced by this authorized result set; no global private index.
@@ -129,6 +146,7 @@
     if(mine)card.append(node('p',`${E.statuses[j.status]} · ${j.visibility==='public'?'公开':'仅自己'}${j.draft&&j.version?' · 有私有修订草稿':''}`,'status-muted'));
     const bottom=node('div','','journal-card-bottom');bottom.append(tags(c),link('翻开这篇 →',href));card.append(bottom);card.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{try{sessionStorage.setItem(`journal-scroll:${location.pathname+location.search}`,String(window.scrollY));}catch{}}));grid.append(card);
    }
+   updates?.listRendered();
   }
   form.addEventListener('submit',e=>e.preventDefault());
   form.addEventListener('input',event=>{
@@ -139,15 +157,21 @@
    void render().catch(failure);
   });
   form.addEventListener('reset',()=>{if(!resetting)setTimeout(()=>void render().catch(failure),0);});cityRetry.onclick=()=>void loadCities().catch(failure);
-  await Promise.all([render(),loadCities()]);
-  try{const y=Number(sessionStorage.getItem(`journal-scroll:${location.pathname+location.search}`));if(y)window.scrollTo({top:y,behavior:'instant'});}catch{}
+  if(!mine){
+   window.addEventListener('journal-updates-clear',()=>{for(const name of ['q','region','city','year','kind'])form.elements[name].value='';void render().catch(failure);});
+   window.addEventListener('journal-updates-history',()=>{const before=JSON.stringify(filters());applyParams(new URLSearchParams(location.search));if(before===JSON.stringify(filters()))syncUpdates();else void render().catch(failure);});
+  }
+  await Promise.all([loadRecords(),loadCities()]);
+  try{const y=Number(sessionStorage.getItem(`journal-scroll:${location.pathname+location.search}`));if(y&&!updates?.isOpen())window.scrollTo({top:y,behavior:'instant'});}catch{}
  }
- async function detail(){const id=params.get('id');if(!id||!/^[0-9a-f-]{36}$/i.test(id)){status('这篇手记暂时不可用。');return;}const j=await S.detail(id);if(!j){status('这篇手记暂时不可用。');return;}
-  $('#journal-back').href=returnURL();const article=$('#journal-article');article.hidden=false;status('');await readArticle(article,j);document.title=`${E.title(j.content,j.place)}｜景点手记`;
+ async function detail(){const id=params.get('id'),publicOnly=params.get('context')==='public';$('#journal-back').href=returnURL();if(!id||!/^[0-9a-f-]{36}$/i.test(id)){status('这篇手记暂时不可用。');return;}const j=await S.detail(id,false,{publicOnly});if(!j){status('这篇手记暂时不可用。');return;}
+  const article=$('#journal-article');article.hidden=false;status('');await readArticle(article,j);document.title=`${E.title(j.content,j.place)}｜景点手记`;
   if(S.owner){const a=$('#journal-edit-link');a.hidden=false;a.href=`./journal-edit.html?id=${encodeURIComponent(id)}`;const again=link('为这个地点再写一篇',`./journal-edit.html?place=${encodeURIComponent(j.place.id)}`);article.append(again);}
-  const related=(await S.records(S.owner)).filter(other=>other.id!==j.id&&other.place.id===j.place.id);const section=node('section','','journal-related');section.append(node('h2','同一地点的其他手记'));if(!related.length)section.append(node('p','暂时没有其他可查看的到访手记。'));for(const other of related){const row=node('p');row.append(link(E.title(other.content,other.place),`./journal.html?id=${encodeURIComponent(other.id)}`));section.append(row);}article.append(section);
+  const related=(await S.records(publicOnly?false:S.owner)).filter(other=>other.id!==j.id&&other.place.id===j.place.id);const section=node('section','','journal-related');section.append(node('h2','同一地点的其他手记'));if(!related.length)section.append(node('p','暂时没有其他可查看的到访手记。'));for(const other of related){const row=node('p'),url=new URL('./journal.html',location.href);url.searchParams.set('id',other.id);if(publicOnly){url.searchParams.set('context','public');url.searchParams.set('return',new URL(returnURL()).pathname+new URL(returnURL()).search);}row.append(link(E.title(other.content,other.place),url));section.append(row);}article.append(section);
  }
- async function start(){navigation();$('#journal-retry').onclick=()=>location.reload();try{await S.init();document.querySelectorAll('.journal-owner').forEach(n=>n.hidden=!S.owner);const mode=$('#journal-main').dataset.page;if(mode==='list')await list();if(mode==='detail')await detail();if(mode==='edit')await window.initializeJournalEditor({E,S,node,link,btn,modal,status,failure,readArticle});}catch(e){failure(e);}}
+ async function start(){navigation();$('#journal-retry').onclick=()=>location.reload();const mode=$('#journal-main').dataset.page;
+  if(mode==='list'&&params.get('view')!=='mine')updates=window.createJournalUpdates({E,node,link,btn,retry:kind=>retryList(kind),clearFilters:()=>window.dispatchEvent(new Event('journal-updates-clear'))});
+  try{await S.init();document.querySelectorAll('.journal-owner').forEach(n=>n.hidden=!S.owner);if(mode==='list')await list();if(mode==='detail')await detail();if(mode==='edit')await window.initializeJournalEditor({E,S,node,link,btn,modal,status,failure,readArticle});}catch(e){failure(e);updates?.setSnapshot({phase:'error'});}}
  window.addEventListener('pageshow',event=>{if(event.persisted)location.reload();});
  void start();
 })();

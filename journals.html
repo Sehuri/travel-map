@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#ffffff"><link rel="icon" href="./assets/favicon-fuji.png"><link rel="stylesheet" href="./assets/styles.css?v=20261012.1"><link rel="stylesheet" href="./assets/editorial.css?v=20261015.2"><link rel="stylesheet" href="./assets/journals.css?v=20261113.1"><title>景点手记｜Sehuri 的旅行足迹</title></head>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#ffffff"><link rel="icon" href="./assets/favicon-fuji.png"><link rel="stylesheet" href="./assets/styles.css?v=20261012.1"><link rel="stylesheet" href="./assets/editorial.css?v=20261015.2"><link rel="stylesheet" href="./assets/journals.css?v=20261113.1"><link rel="stylesheet" href="./assets/journal-updates.css?v=20261116.1"><title>景点手记｜Sehuri 的旅行足迹</title></head>
 <body class="editorial-home journal-page"><a class="skip-link" href="#journal-main">跳到手记内容</a><div id="journal-navigation"></div>
 <main id="journal-main" data-page="list"><section class="journal-intro"><div class="journal-width journal-intro-row"><div><p class="eyebrow">PLACES &amp; MOMENTS</p><h1>景点手记</h1><p>城市记下足迹，手记留下当时的心情。</p></div><div class="journal-owner" hidden><a href="./journals.html?view=mine">我的记录</a><a class="journal-primary" href="./journal-edit.html">写一篇手记</a></div></div></section>
 <section class="journal-width journal-list-area">
@@ -15,9 +15,19 @@
  <button type="reset">清除筛选</button>
 </form>
 <div class="journal-filter-help"><p id="journal-city-help" role="status">正在读取已到访城市…</p><button id="journal-city-retry" type="button" hidden>重试加载城市</button></div>
-<div class="journal-list-meta"><h2 id="journal-list-title">公开手记</h2><p id="journal-count" aria-live="polite"></p></div><p id="journal-status" role="status">正在读取手记…</p><button id="journal-retry" hidden>重新加载</button>
+<div class="journal-list-meta"><div class="journal-list-heading"><h2 id="journal-list-title">公开手记</h2><button id="journal-updates-open" type="button" aria-haspopup="dialog" aria-controls="journal-updates" aria-expanded="false" hidden><span class="ui-icon icon-clock" aria-hidden="true"></span>手记更新</button></div><p id="journal-count" aria-live="polite"></p></div><p id="journal-status" role="status">正在读取手记…</p><button id="journal-retry" hidden>重新加载</button>
 <section id="journal-empty" class="journal-empty" aria-label="手记筛选提示" hidden></section>
 <div id="journal-grid" class="journal-grid"></div></section></main>
+<dialog id="journal-updates" class="journal-updates-dialog" aria-modal="true" aria-labelledby="journal-updates-title" aria-describedby="journal-updates-description">
+ <header class="journal-updates-header">
+  <div class="journal-updates-heading"><h2 id="journal-updates-title">最近的手记更新</h2><button id="journal-updates-close" type="button" aria-label="关闭手记更新" autofocus><span class="ui-icon icon-close" aria-hidden="true"></span></button></div>
+  <p id="journal-updates-description">按公开版本的更新时间，看看最近补充的旅行记忆。每篇手记展示最近一次更新。</p>
+  <div class="journal-updates-scope"><p id="journal-updates-range">当前范围：全部公开手记</p><button id="journal-updates-range-toggle" type="button" aria-controls="journal-updates-range" aria-expanded="false" hidden>展开当前范围</button></div>
+ </header>
+ <div class="journal-updates-summary"><p id="journal-updates-count" role="status"></p><p>按公开更新倒序</p></div>
+ <div id="journal-updates-content" class="journal-updates-content" tabindex="-1"></div>
+ <footer class="journal-updates-footer">北京时间（UTC+8） · 每篇仅展示最近一次更新</footer>
+</dialog>
 <footer class="journal-footer">SEHURI · 景点手记，留下每次到访的感受。</footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="./assets/supabase-config.js"></script><script src="./assets/data.js?v=20261108.1"></script><script src="./assets/photos.js"></script><script src="./assets/photo-previews.js?v=20261019.1"></script><script src="./assets/photo-preview.js?v=20261019.1"></script><script src="./assets/photo-upload.js?v=20261020.1"></script><script src="./assets/visit-engine.js?v=20261113.1"></script><script src="./assets/journal-engine.js?v=20261113.1"></script><script src="./assets/journal-service.js?v=20261113.1"></script><script src="./assets/journals.js?v=20261113.1"></script></body></html>
+<script src="./assets/supabase-config.js"></script><script src="./assets/data.js?v=20261108.1"></script><script src="./assets/photos.js"></script><script src="./assets/photo-previews.js?v=20261019.1"></script><script src="./assets/photo-preview.js?v=20261019.1"></script><script src="./assets/photo-upload.js?v=20261020.1"></script><script src="./assets/visit-engine.js?v=20261113.1"></script><script src="./assets/journal-engine.js?v=20261113.1"></script><script src="./assets/journal-service.js?v=20261116.1"></script><script src="./assets/journal-updates-engine.js?v=20261116.1"></script><script src="./assets/journal-updates.js?v=20261116.1"></script><script src="./assets/journals.js?v=20261116.1"></script></body></html>

@@ -28,11 +28,12 @@
    return visible?{...e,place:places.find(p=>p.id===visible.place_id),content:visible.content,draft,version:v}:null;
   }).filter(j=>j?.place);
  }
- async function detail(id,editing=false){
+ async function detail(id,editing=false,{publicOnly=false}={}){
   if(editing&&!owner)throw new Error('请先使用站主账号登录');
   const entry=one(await client.from(editing?'journal_entries':'journal_public_entries').select('*').eq('id',id).maybeSingle());
   // Owner reading a private completed record is allowed only after owner authorization.
-  if(!entry&&!editing&&owner)return detail(id,true);
+  // A public update link keeps its public scope even for the signed-in owner.
+  if(!entry&&!editing&&owner&&!publicOnly)return detail(id,true);
   if(!entry)return null;
   const d=editing?one(await client.from('journal_drafts').select('*').eq('entry_id',id).maybeSingle()):null;
   const v=entry.published_version_id?one(await client.from('journal_versions').select('*').eq('id',entry.published_version_id).maybeSingle()):null;
