@@ -60,7 +60,8 @@ test('pin migration preserves published content and enforces permissions and und
   const m=await call('journal_register_media',[entry,mediaId,null]);
   await db.query('insert into storage.objects(bucket_id,name) values($1,$2),($1,$3)',['place-journal-media',m.object_path,m.thumb_path]);
   await call('journal_complete_media',[mediaId]);
-  e=await save(entry,place,content({body:'私有修订秘密',tags:['私有标签'],photos:[{id:mediaId}]}),e.revision,'public');
+  e=await save(entry,place,content({body:'私有修订秘密',tags:['私有标签'],photos:[{id:mediaId}]}),e.revision,'private');
+  assert.equal((await call('journal_pin_status',[entry])).pinned_at,pin.pinned_at,'private revision must preserve published pin');
   await role('anon');
   assert.equal((await db.query('select * from journal_public_entries')).rows.length,1);
   assert.equal((await db.query('select * from journal_public_entries')).rows[0].revision,undefined);
@@ -73,18 +74,31 @@ test('pin migration preserves published content and enforces permissions and und
   assert.equal((await db.query('select * from journal_places')).rows[0].city_name,null);
   await role('authenticated',other);assert.equal((await db.query('select * from storage.objects')).rows.length,0);
   await assert.rejects(db.query('insert into journal_versions(entry_id,place_id,content) values($1,$2,$3)',[entry,place,content()]),e=>e.code==='42501');
-  await role('authenticated',owner);e=await call('journal_publish',[entry,e.revision,'public']);
+  await role('authenticated',owner);e=await save(entry,place,content({body:'私有修订秘密',tags:['私有标签'],photos:[{id:mediaId}]}),e.revision,'public');e=await call('journal_publish',[entry,e.revision,'public']);
+  assert.equal((await call('journal_pin_status',[entry])).pinned_at,pin.pinned_at,'public republish preserves original pinned time');
+  await db.exec('begin');await call('journal_set_state',[entry,e.revision,'withdraw']);await db.exec('rollback');assert.equal((await call('journal_pin_status',[entry])).pinned_at,pin.pinned_at,'rollback preserves the pin');
   await role('anon');assert.equal((await db.query('select * from journal_versions')).rows.length,1);assert.equal((await db.query('select * from journal_versions')).rows[0].content.body,'私有修订秘密');assert.equal((await db.query('select * from storage.objects')).rows.length,2);
   await role('authenticated',owner);e=await call('journal_set_state',[entry,e.revision,'withdraw']);
   assert.equal(e.pinned_at,null);await assert.rejects(call('journal_restore_pin',[entry,2,unpin.undo_token,'ffffffff-ffff-4fff-8fff-ffffffffffff']),e=>e.code==='40001');
   await role('anon');for(const table of ['journal_public_entries','journal_places','journal_versions','journal_media','storage.objects'])assert.equal((await db.query(`select * from ${table}`)).rows.length,0,table);
+  // An entry belonging to another account is not manageable even by the site owner.
+  await db.exec('reset role');await db.query('insert into journal_entries(id,owner_id) values($1,$2)',['99999999-9999-4999-8999-999999999999',other]);await role('authenticated',owner);
+  await assert.rejects(call('journal_pin_status',['99999999-9999-4999-8999-999999999999']),e=>e.code==='40001');
+  await assert.rejects(call('journal_set_pin',['99999999-9999-4999-8999-999999999999',true,0,'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee']),e=>e.code==='40001');
+  await db.exec('reset role');await db.query('delete from journal_entries where id=$1',['99999999-9999-4999-8999-999999999999']);
   // Same place, independent visit; minimal draft requires only a name.
   await role('authenticated',owner);
   const second='66666666-6666-4666-8666-666666666666';let two=await save(second,place,content({body:'另一次到访'}));two=await call('journal_publish',[second,two.revision,'private']);assert.equal(two.status,'published');
   assert.equal((await db.query('select * from journal_entries')).rows.length,2);
   await assert.rejects(save(second,place,content({rating:0}),two.revision),/评分/);
   await assert.rejects(save(second,place,content(),0),/已更新/);
+  await assert.rejects(call('journal_set_pin',[second,true,0,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa']),e=>e.code==='40001');
   two=await call('journal_set_state',[second,two.revision,'archive']);assert.equal(two.status,'archived');two=await call('journal_set_state',[second,two.revision,'restore']);assert.equal(two.status,'draft');
+  const lifecycle='aaaaaaaa-1111-4111-8111-111111111111',loc='aaaaaaaa-2222-4222-8222-222222222222';let life=await save(lifecycle,loc,content({body:'状态切换测试'}),0,'public');life=await call('journal_publish',[lifecycle,life.revision,'public']);
+  let ps=await call('journal_set_pin',[lifecycle,true,0,'aaaaaaaa-3333-4333-8333-333333333333']);assert(ps.pinned_at);
+  life=await call('journal_set_state',[lifecycle,life.revision,'archive']);assert.equal(life.pinned_at,null);await assert.rejects(call('journal_restore_pin',[lifecycle,ps.presentation_revision,ps.undo_token,'aaaaaaaa-4444-4444-8444-444444444444']),e=>e.code==='40001');
+  life=await call('journal_set_state',[lifecycle,life.revision,'restore']);life=await save(lifecycle,loc,content({body:'状态切换测试'}),life.revision,'public');life=await call('journal_publish',[lifecycle,life.revision,'public']);ps=await call('journal_pin_status',[lifecycle]);assert.equal(ps.pinned_at,null,'restored public entry must not regain pin');
+  ps=await call('journal_set_pin',[lifecycle,true,ps.presentation_revision,'aaaaaaaa-5555-4555-8555-555555555555']);life=await save(lifecycle,loc,content({body:'状态切换测试'}),life.revision,'private');life=await call('journal_publish',[lifecycle,life.revision,'private']);assert.equal(life.pinned_at,null,'publishing privately clears pin');
   const third='77777777-7777-4777-8777-777777777777',minimal='88888888-8888-4888-8888-888888888888';let min=await save(third,minimal,content({title:'',body:''}),0,'private',{name:'最小草稿'});
   await assert.rejects(call('journal_publish',[third,min.revision,'private']),/位置文字/);
   await role('anon');assert.equal((await db.query('select * from journal_places')).rows.length,0);
