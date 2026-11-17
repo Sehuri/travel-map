@@ -12,7 +12,7 @@ const sdk=`(()=>{
  storage:{from:bucket=>({upload:async(name,blob)=>call('upload',{bucket,name,body:base64(new Uint8Array(await blob.arrayBuffer()))}),download:async(name)=>{const r=await call('download',{bucket,name});return r.error?r:{data:new Blob([Uint8Array.from(atob(r.data),c=>c.charCodeAt(0))],{type:'image/webp'}),error:null};}})}
  })};})();`;
 (async()=>{
- const db=new PGlite(),blobs=new Map();let serial=Promise.resolve(),failNext=false,offline=false,failDownloads=false,mediaGatewayRequests=0,failAfterReference=false,rejectNextDraft=false,failReferenceURL=null,referenceFailures=0,failCities=false,browser;
+ const db=new PGlite(),blobs=new Map();let serial=Promise.resolve(),failNext=false,offline=false,failDownloads=false,mediaGatewayRequests=0,failAfterReference=false,rejectNextDraft=false,failReferenceURL=null,referenceFailures=0,failCities=false,failPin=false,browser;
  await fs.mkdir(out,{recursive:true});
  await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to anon,authenticated;
@@ -21,6 +21,7 @@ const sdk=`(()=>{
  create table public.travel_attractions(id text primary key);create table public.travel_journeys(id uuid primary key,slug text,title text,is_published boolean);
  create table public.city_photos(city_name text,image_url text,is_hidden boolean);create table public.travel_cities(name text,country text,region text,visit_date text,longitude numeric,latitude numeric,description text,cover_url text,is_hidden boolean);grant select on travel_cities,travel_journeys,city_photos to anon,authenticated;`);
  await db.exec(await fs.readFile(path.join(root,'supabase/place_journals.sql'),'utf8'));
+ await db.exec(await fs.readFile(path.join(root,'supabase/journal_pinning.sql'),'utf8'));
  const server=http.createServer(async(req,res)=>{
   if(req.url==='/test-api'){
    const chunks=[];for await(const c of req)chunks.push(c);const data=JSON.parse(Buffer.concat(chunks)),who=req.headers['x-test-role'];
@@ -30,6 +31,7 @@ const sdk=`(()=>{
     let result;
     if(data.kind==='rpc'){
      assert(/^(journal_|is_current_user_owner$)/.test(data.name));
+     if(data.name==='journal_set_pin'&&failPin){const error=new Error('模拟无权操作');error.code='42501';throw error;}
      if(data.name==='journal_save_draft'&&rejectNextDraft){rejectNextDraft=false;throw new Error('模拟照片引用后保存失败');}
      if(data.name==='journal_register_media'&&data.args.p_public_url===failReferenceURL&&referenceFailures>0){referenceFailures--;throw new Error('模拟单张相册照片添加失败');}
      const values=Object.values(data.args);result=(await db.query(`select to_jsonb(public.${data.name}(${values.map((_,i)=>'$'+(i+1)).join(',')})) as v`,values)).rows[0].v;
@@ -94,6 +96,8 @@ page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{if(d.type()=
   await page.locator('[name=location]').fill('尚未保存的位置');
   await page.locator('#save-journal').click();await page.locator('#journal-status').filter({hasText:'草稿已保存'}).waitFor();
   const id=new URL(page.url()).searchParams.get('id');assert(id);
+  const privateList=await context.newPage();await privateList.goto(`${base}/journals.html?view=mine`);await privateList.locator('.journal-card').first().waitFor();await privateList.locator('.journal-pin-more').first().click();const disabledPin=privateList.getByRole('button',{name:'公开后可置顶'});await disabledPin.waitFor();assert(await disabledPin.isDisabled());await privateList.screenshot({path:path.join(out,'pin-private-disabled.png'),animations:'disabled'});await privateList.close();
+
   // Preview is read-only and does not save changed content.
   await page.locator('[name=body]').fill('仅用于本地验证的段落。\n\n第二段感受。');await page.locator('#preview-journal').click();await page.locator('dialog').waitFor();assert.match(await page.locator('dialog').innerText(),/尚未保存或发布/);await page.locator('dialog button').first().click();
   await serial;await db.exec('reset role');assert.equal((await db.query('select content from journal_drafts where entry_id=$1',[id])).rows[0].content.body,'');const stablePlace=(await db.query('select place_id from journal_drafts where entry_id=$1',[id])).rows[0].place_id;
@@ -131,6 +135,10 @@ page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{if(d.type()=
   offline=false;await page.locator('dialog').getByRole('button',{name:'确认发布',exact:true}).click();await page.waitForURL('**/journal.html?id=*');await page.locator('#journal-article h1').waitFor();assert.match(await page.locator('#journal-article').innerText(),/我的评分 7/);await page.locator('#journal-article .journal-cover img').evaluate(img=>img.decode());assert(await page.locator('#journal-article .journal-cover img').evaluate(img=>img.naturalWidth>=800));await capture('02-detail-desktop.png');
   // Exercise a published city association and ensure free-form country does not hide it.
   await serial;await db.exec('reset role');await db.query("update journal_places set city_name='宣城' where id=$1",[stablePlace]);
+  await page.goto(`${base}/journals.html`);await page.locator('.journal-card').first().waitFor();const menu=page.locator('.journal-pin-more').first();await menu.click();await page.getByRole('button',{name:'置顶手记',exact:true}).waitFor();await page.screenshot({path:path.join(out,'pin-menu-desktop.png'),animations:'disabled'});failPin=true;await page.getByRole('button',{name:'置顶手记',exact:true}).click();await page.getByRole('alert').getByText('当前会话无权管理置顶，请重新登录站主账号。').waitFor();assert(await page.locator('.journal-pin-badge').first().isHidden());await page.screenshot({path:path.join(out,'pin-failure.png'),animations:'disabled'});failPin=false;await page.getByRole('button',{name:'重新读取状态'}).click();await page.getByRole('button',{name:'置顶手记',exact:true}).click();await page.getByText('已置顶，将优先展示在公开列表。').waitFor();assert(await page.locator('.journal-pin-badge').first().isVisible());await page.screenshot({path:path.join(out,'pin-success-desktop.png'),animations:'disabled'});
+  const anonContext=await browser.newContext();await anonContext.route('https://cdn.jsdelivr.net/**',r=>r.fulfill({contentType:'text/javascript',body:sdk}));const anonPage=await anonContext.newPage();await anonPage.goto(`${base}/journals.html`);await anonPage.locator('.journal-card').first().waitFor();assert(await anonPage.locator('.journal-pin-badge').first().isVisible());assert.equal(await anonPage.locator('.journal-pin-more').count(),0);await anonContext.close();
+  await page.getByRole('button',{name:'撤销',exact:true}).click();await page.getByText('已撤销本次置顶操作。').waitFor();assert(await page.locator('.journal-pin-badge').first().isHidden());
+  await page.setViewportSize({width:390,height:844});await menu.click();await page.getByRole('button',{name:'置顶手记',exact:true}).waitFor();await page.screenshot({path:path.join(out,'pin-mobile-menu.png'),animations:'disabled'});await page.getByRole('button',{name:'关闭手记操作'}).click();await page.setViewportSize({width:1440,height:1000});
   await page.goto(`${base}/journals.html?city=宣城`);await page.locator('.journal-card').first().waitFor();
   await page.locator('[name=sort]').selectOption('rating');await page.locator('#journal-updates-open').click();await page.locator('.journal-update-row').waitFor();assert.equal(await page.locator('.journal-update-row').count(),1);assert.equal(await page.locator('#journal-updates-count').innerText(),'1 篇手记');assert.match(await page.locator('#journal-updates-range').innerText(),/宣城/);
   await page.screenshot({path:path.join(out,'updates-desktop.png'),animations:'disabled'});for(const width of [1440,1024,834,390,320]){await page.setViewportSize({width,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));const box=await page.locator('#journal-updates').boundingBox();assert(box&&Math.abs(box.width-(width<1024?width:480))<2,`panel width ${width}: ${box?.width}`);if(width===390)await page.screenshot({path:path.join(out,'updates-mobile.png'),animations:'disabled'});}

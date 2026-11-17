@@ -46,6 +46,9 @@
  async function save(j){return one(await client.rpc('journal_save_draft',{p_id:j.id,p_place_id:j.place.id,p_place:j.place,p_content:j.content,p_visibility:j.visibility,p_revision:j.revision}));}
  async function publish(j){return one(await client.rpc('journal_publish',{p_id:j.id,p_revision:j.revision,p_visibility:j.visibility}));}
  async function state(j,action){return one(await client.rpc('journal_set_state',{p_id:j.id,p_revision:j.revision,p_action:action}));}
+ async function pinStatus(id){if(!owner)throw new Error('仅站主可管理置顶');return check(await client.rpc('journal_pin_status',{p_id:id}));}
+ async function setPin(id,pinned,revision,operation){if(!owner)throw new Error('仅站主可管理置顶');return check(await client.rpc('journal_set_pin',{p_id:id,p_pinned:pinned,p_presentation_revision:revision,p_operation_id:operation}));}
+ async function restorePin(id,revision,receipt,operation){if(!owner)throw new Error('仅站主可管理置顶');return check(await client.rpc('journal_restore_pin',{p_id:id,p_presentation_revision:revision,p_undo_token:receipt,p_operation_id:operation}));}
  async function media(ids){return ids.length?check(await client.from('journal_media').select('*').in('id',ids)):[];}
  async function mediaURL(m,large=false){
   if(m.source==='public_album')return large?m.public_url:window.TRAVEL_PHOTOS.urlFor(m.public_url,'grid');
@@ -104,5 +107,5 @@
  async function linked(id){const j=check(await client.rpc('journal_linked_journey',{p_id:id}));if(!j)return null;if(j.builtin){const base=window.TRAVEL_DATA?.journeys?.find(b=>b.slug===j.slug);return base?{slug:base.slug,title:base.title}:null;}return j;}
  function revoke(){urls.forEach(url=>URL.revokeObjectURL(url));urls.clear();}
  window.addEventListener('pagehide',revoke);
- window.JOURNAL_SERVICE={init,records,detail,places,save,publish,state,media,mediaURL,upload,reference,login,album,choices,visitedCities,linked,revoke,get owner(){return owner;}};
+ window.JOURNAL_SERVICE={init,records,detail,places,save,publish,state,pinStatus,setPin,restorePin,media,mediaURL,upload,reference,login,album,choices,visitedCities,linked,revoke,get owner(){return owner;}};
 })();

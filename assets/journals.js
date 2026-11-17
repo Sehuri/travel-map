@@ -51,6 +51,15 @@
   const form=$('#journal-filters'),grid=$('#journal-grid');
   const citySelect=form.elements.city,cityHelp=$('#journal-city-help'),cityRetry=$('#journal-city-retry'),empty=$('#journal-empty');
   let all=[],phase='loading',cities=[],cityState='loading',token=0,resetting=false,recordRequest=0;
+  const P=window.JOURNAL_PINNING_ENGINE,cardCache=new Map(),mediaCache=new Map();
+  const pinning=window.createJournalPinning({E,S,node,link,btn,mine,refresh:()=>loadRecords(),onChange:async(state,id)=>{
+   const previous=all.find(j=>j.id===id);
+   if(previous&&P.eligible(state)&&previous.published_version_id!==state.published_version_id){await loadRecords();return;}
+   all=all.map(j=>j.id===id?{...j,pinned_at:state.pinned_at,status:state.status,visibility:state.visibility,published_version_id:state.published_version_id}:j);
+   if(!mine)all=all.filter(j=>P.eligible(j));
+   await render({anchor:true,changedId:id}).catch(failure);
+  }});
+  const pinNote=node('p','','journal-pin-sort-note');pinNote.hidden=true;$('#journal-filters').parentElement.insertBefore(pinNote,$('#journal-status'));
   function filters(){const f=Object.fromEntries(new FormData(form));f.city=citySelect.value;if(!mine){delete f.status;delete f.visibility;}return f;}
   function syncUpdates(){const f=filters();updates?.setSnapshot({phase,records:all,filters:f,cityState,cityUnavailable:cityState==='ready'&&Boolean(f.city)&&!cities.some(c=>c.name===f.city)});}
   function regionOptions(){
@@ -133,19 +142,36 @@
    // Catalogue metadata alone must not re-download the unfiltered photo list.
    if(citySelect.value)await render().catch(failure);
   }
-  async function render(){const version=++token,f=filters();
-   const pending=cityState==='loading'&&f.city,unavailable=cityState==='ready'&&f.city&&!cities.some(c=>c.name===f.city),items=pending||unavailable?[]:E.filter(all,f);
+  async function cardFor(j){
+   const signature=JSON.stringify([j.content,j.place,j.status,j.visibility,Boolean(j.draft&&j.version)]),cached=cardCache.get(j.id);
+   if(cached?.signature===signature)return cached.promise;
+   const promise=(async()=>{
+    const card=node('article','','journal-card');card.dataset.journalId=j.id;
+    const c=j.content,coverId=c.cover_id||c.photos?.[0]?.id,coverLink=link('','#');coverLink.setAttribute('aria-label',`翻开${E.title(c,j.place)}`);coverLink.append(await cover(mediaCache.get(coverId)));
+    const title=node('h3');title.append(link(E.title(c,j.place),'#'));card.append(coverLink,node('p',[j.place.name,j.place.country,j.place.location].filter(Boolean).join(' · ')),title,meta(j),node('p',c.body||'暂无感受文字','journal-excerpt'));
+    if(mine)card.append(node('p',`${E.statuses[j.status]} · ${j.visibility==='public'?'公开':'仅自己'}${j.draft&&j.version?' · 有私有修订草稿':''}`,'status-muted'));
+    const bottom=node('div','','journal-card-bottom');bottom.append(tags(c),link('翻开这篇 →','#'));card.append(bottom);
+    card.querySelectorAll('a').forEach(a=>{a.dataset.journalRead='';a.addEventListener('click',()=>{try{const key=location.pathname+location.search;sessionStorage.setItem(`journal-scroll:${key}`,String(window.scrollY));sessionStorage.setItem(`journal-anchor:${key}`,JSON.stringify({id:j.id,offset:card.getBoundingClientRect().top}));}catch{}});});return card;
+   })();cardCache.set(j.id,{signature,promise});return promise;
+  }
+  async function render({anchor=false,changedId=null}={}){const version=++token,f=filters();
+   const pending=cityState==='loading'&&f.city,unavailable=cityState==='ready'&&f.city&&!cities.some(c=>c.name===f.city);
+   const filtered=pending||unavailable?[]:E.filter(all,f),items=mine?filtered:P.gridOrder(filtered);
    const u=new URL('./journals.html',location.href);if(mine)u.searchParams.set('view','mine');for(const [k,v]of Object.entries(f))if(v&&!(k==='sort'&&v==='visit'))u.searchParams.set(k,v);if(updates?.isOpen())u.searchParams.set('updates','1');history.replaceState(history.state,'',u);
    syncUpdates();
    if(phase==='loading'){status('正在读取手记…');return;}if(phase==='error')return;
-   grid.replaceChildren();$('#journal-count').textContent=pending?'正在读取城市手记…':`${items.length} 篇${mine?'':'公开'}手记 · ${new Set(items.map(j=>j.place.id)).size} 个地点`;status(pending?'正在核对所选城市…':'');
+   const anchorNode=anchor?[...grid.children].find(n=>n.dataset.journalId!==changedId&&n.getBoundingClientRect().bottom>0&&n.getBoundingClientRect().top<innerHeight):null;
+   const savedAnchor=anchorNode?{id:anchorNode.dataset.journalId,top:anchorNode.getBoundingClientRect().top}:null;
+   $('#journal-count').textContent=pending?'正在读取城市手记…':`${items.length} 篇${mine?'':'公开'}手记 · ${new Set(items.map(j=>j.place.id)).size} 个地点`;status(pending?'正在核对所选城市…':'');
+   pinNote.hidden=mine||!items.some(j=>P.pinned(j));pinNote.textContent=`置顶优先，其余按${{visit:'最近到访',rating:'评分最高',updated:'最近更新'}[f.sort]||'最近到访'}排序`;
    empty.hidden=true;if(!items.length)showEmpty(f);
    // Fetch only media referenced by this authorized result set; no global private index.
-   const media=await S.media([...new Set(items.flatMap(j=>(j.content.photos||[]).map(p=>p.id)))]);if(version!==token)return;
-   for(const j of items){const card=node('article','','journal-card'),href=new URL('./journal.html',location.href);href.searchParams.set('id',j.id);href.searchParams.set('return',location.pathname+location.search);const c=j.content,coverId=c.cover_id||c.photos?.[0]?.id,coverLink=link('',href);coverLink.setAttribute('aria-label',`翻开${E.title(c,j.place)}`);coverLink.append(await cover(media.find(m=>m.id===coverId)));if(version!==token)return;const title=node('h3');title.append(link(E.title(c,j.place),href));card.append(coverLink,node('p',[j.place.name,j.place.country,j.place.location].filter(Boolean).join(' · ')),title,meta(j),node('p',c.body||'暂无感受文字','journal-excerpt'));
-    if(mine)card.append(node('p',`${E.statuses[j.status]} · ${j.visibility==='public'?'公开':'仅自己'}${j.draft&&j.version?' · 有私有修订草稿':''}`,'status-muted'));
-    const bottom=node('div','','journal-card-bottom');bottom.append(tags(c),link('翻开这篇 →',href));card.append(bottom);card.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{try{sessionStorage.setItem(`journal-scroll:${location.pathname+location.search}`,String(window.scrollY));}catch{}}));grid.append(card);
-   }
+   const ids=[...new Set(items.flatMap(j=>(j.content.photos||[]).map(p=>p.id)))].filter(id=>!mediaCache.has(id));
+   const media=await S.media(ids);media.forEach(m=>mediaCache.set(m.id,m));if(version!==token)return;
+   const cards=await Promise.all(items.map(j=>cardFor(j)));if(version!==token)return;
+   cards.forEach((card,i)=>{const j=items[i],href=new URL('./journal.html',location.href);href.searchParams.set('id',j.id);href.searchParams.set('return',location.pathname+location.search);card.querySelectorAll('[data-journal-read]').forEach(a=>a.href=href);pinning.decorate(card,j);});
+   grid.replaceChildren(...cards);
+   if(savedAnchor){const restored=[...grid.children].find(n=>n.dataset.journalId===savedAnchor.id);if(restored)window.scrollBy({top:restored.getBoundingClientRect().top-savedAnchor.top,behavior:'instant'});}
    updates?.listRendered();
   }
   form.addEventListener('submit',e=>e.preventDefault());
@@ -162,7 +188,7 @@
    window.addEventListener('journal-updates-history',()=>{const before=JSON.stringify(filters());applyParams(new URLSearchParams(location.search));if(before===JSON.stringify(filters()))syncUpdates();else void render().catch(failure);});
   }
   await Promise.all([loadRecords(),loadCities()]);
-  try{const y=Number(sessionStorage.getItem(`journal-scroll:${location.pathname+location.search}`));if(y&&!updates?.isOpen())window.scrollTo({top:y,behavior:'instant'});}catch{}
+  try{if(!updates?.isOpen()){const key=location.pathname+location.search,y=Number(sessionStorage.getItem(`journal-scroll:${key}`));if(y)window.scrollTo({top:y,behavior:'instant'});const saved=JSON.parse(sessionStorage.getItem(`journal-anchor:${key}`)),card=saved&&[...grid.children].find(n=>n.dataset.journalId===saved.id);if(card&&Number.isFinite(saved.offset))window.scrollBy({top:card.getBoundingClientRect().top-saved.offset,behavior:'instant'});}}catch{}
  }
  async function detail(){const id=params.get('id'),publicOnly=params.get('context')==='public';$('#journal-back').href=returnURL();if(!id||!/^[0-9a-f-]{36}$/i.test(id)){status('这篇手记暂时不可用。');return;}const j=await S.detail(id,false,{publicOnly});if(!j){status('这篇手记暂时不可用。');return;}
   const article=$('#journal-article');article.hidden=false;status('');await readArticle(article,j);document.title=`${E.title(j.content,j.place)}｜景点手记`;
