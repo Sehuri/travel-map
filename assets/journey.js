@@ -1,14 +1,18 @@
 (function () {
   "use strict";
   const photoImages = window.TRAVEL_PHOTOS;
+  const data = window.TRAVEL_JOURNEY_DATA;
 
   const byId = (id) => document.getElementById(id);
   const dateFormatter = new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long", day: "numeric" });
   const numberFormatter = new Intl.NumberFormat("zh-CN");
   let lastPhotoButton = null;
-  let allJourneys = [];
   let allVisits = [];
   let activeJourney = null;
+  let galleryPhotos;
+  let cityProfilesRequest;
+  let replayVisible = false;
+  const replayPhotos = new Map();
   let replay = null;
   let replayIndex = 0;
   let replayTimer = null;
@@ -17,6 +21,24 @@
   let amapLoadPromise = null;
   let replayMarkers = [];
   let replaySegmentLines = [];
+
+  function feedback(section, message, retry = false) {
+    byId(`journey-${section}-status`).textContent = message;
+    byId(`journey-${section}-retry`).hidden = !retry;
+  }
+
+  function whenNear(element, callback, rootMargin = "240px") {
+    if (!window.IntersectionObserver) {
+      callback();
+      return;
+    }
+    const observer = new IntersectionObserver(entries => {
+      if (!entries.some(entry => entry.isIntersecting)) return;
+      observer.disconnect();
+      callback();
+    }, { rootMargin });
+    observer.observe(element);
+  }
 
   function formatDate(value) {
     return value ? dateFormatter.format(new Date(`${value}T00:00:00`)) : "日期待补充";
@@ -98,19 +120,24 @@
     window._AMapSecurityConfig = { serviceHost: config.serviceHost.replace(/\/$/, "") };
     amapLoadPromise = new Promise((resolve, reject) => {
       const script = document.createElement("script");
-      const timeout = window.setTimeout(() => reject(new Error("高德地图载入超时。")), 15000);
+      const fail = (message) => {
+        window.clearTimeout(timeout);
+        script.remove();
+        reject(new Error(message));
+      };
+      const timeout = window.setTimeout(() => fail("高德地图载入超时。"), 15000);
       script.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(config.jsApiKey)}&plugin=AMap.ToolBar,AMap.Scale`;
       script.referrerPolicy = "strict-origin-when-cross-origin";
       script.onload = () => {
         window.clearTimeout(timeout);
         if (window.AMap?.Map) resolve(window.AMap);
-        else reject(new Error("高德地图没有正确完成初始化。"));
+        else fail("高德地图没有正确完成初始化。");
       };
-      script.onerror = () => {
-        window.clearTimeout(timeout);
-        reject(new Error("高德地图资源暂时无法载入。"));
-      };
+      script.onerror = () => fail("高德地图资源暂时无法载入。");
       document.head.append(script);
+    }).catch(error => {
+      amapLoadPromise = null;
+      throw error;
     });
     return amapLoadPromise;
   }
@@ -193,17 +220,20 @@
   async function drawReplayMap() {
     const container = byId("route-replay-map");
     const status = byId("route-replay-map-empty");
-    const positions = replay.stops.map(amapPosition);
-    const validPositions = positions.filter(Boolean);
-    const markerOffsets = replayMarkerOffsets(positions);
-    if (!validPositions.length) {
-      status.textContent = "这趟旅程的城市还缺少坐标，暂时无法绘制路线。";
-      status.hidden = false;
-      return;
-    }
-    status.textContent = "正在载入高德地图与旅程路线…";
+    feedback("map", "正在载入高德地图与旅程路线…");
     status.hidden = false;
     try {
+      const profiles = await getCityProfiles();
+      replay = window.TRAVEL_ROUTE_REPLAY_ENGINE.buildReplay(activeJourney, profiles, {});
+      renderReplayLegend();
+      updateReplayView(false);
+      const positions = replay.stops.map(amapPosition);
+      const validPositions = positions.filter(Boolean);
+      if (!validPositions.length) {
+        feedback("map", "这趟旅程的城市还缺少坐标，暂时无法绘制路线。");
+        return;
+      }
+      const markerOffsets = replayMarkerOffsets(positions);
       const AMap = await loadAmap();
       replayMap?.destroy?.();
       container.replaceChildren();
@@ -259,9 +289,8 @@
       container.dataset.segmentCount = String(replaySegmentLines.length);
       updateReplayMapState(false);
       status.hidden = true;
-    } catch (error) {
-      status.textContent = `${error.message || "高德地图暂时无法载入。"} 路线列表与播放控制仍可正常使用。`;
-      status.hidden = false;
+    } catch {
+      feedback("map", "暂时无法绘制地图。可以继续使用路线列表与播放控制。", true);
     }
   }
 
@@ -330,17 +359,8 @@
     byId("route-replay-stay").textContent = stopStayText(stop);
     byId("route-replay-description").textContent = stop.description || "这座城市的停留记录仍在整理。";
 
-    const photo = byId("route-replay-photo");
-    photo.hidden = !stop.photoUrl;
-    if (stop.photoUrl) {
-      photoImages.setImage(photo, stop.photoUrl, { size: "cover", loading: "eager" });
-      photo.alt = replayPhotoAlt(stop);
-    } else {
-      photoImages.clearImage(photo);
-      photo.alt = "";
-    }
     const arrivalCard = byId("route-arrival-card");
-    arrivalCard.classList.toggle("is-text-only", !stop.photoUrl);
+    showReplayPhoto(stop);
     if (announce) {
       arrivalCard.classList.remove("is-arriving");
       window.requestAnimationFrame(() => arrivalCard.classList.add("is-arriving"));
@@ -378,6 +398,48 @@
       ? `${replayIndex / (replay.stops.length - 1) * 100}%`
       : "100%";
     updateReplayUrl();
+  }
+
+  function paintReplayPhoto(stop, url) {
+    const photo = byId("route-replay-photo");
+    const arrivalCard = byId("route-arrival-card");
+    photo.hidden = !url;
+    arrivalCard.classList.toggle("is-text-only", !url);
+    if (!url) photoImages.clearImage(photo);
+    else if (photo.dataset.photoOriginal !== url) {
+      photo.alt = replayPhotoAlt(stop);
+      photoImages.setImage(photo, url, { size: "thumb", loading: "eager" });
+    }
+  }
+
+  function showReplayPhoto(stop) {
+    const city = stop.cityName;
+    const photo = byId("route-replay-photo");
+    if (photo.dataset.city !== city) {
+      photo.dataset.city = city;
+      paintReplayPhoto(stop, "");
+      feedback("stop-photo", "");
+    }
+    if (!replayVisible || replayPhotos.has(city)) {
+      const cached = replayPhotos.get(city);
+      if (typeof cached === "string") paintReplayPhoto(stop, cached);
+      else if (cached) feedback("stop-photo", "正在加载本站照片…");
+      return;
+    }
+
+    const request = data.representativePhoto(activeJourney, city, galleryPhotos);
+    replayPhotos.set(city, request);
+    const isCurrent = () => replay.stops[replayIndex]?.cityName === city;
+    feedback("stop-photo", "正在加载本站照片…");
+    request.then(url => {
+      replayPhotos.set(city, url);
+      if (!isCurrent()) return;
+      paintReplayPhoto(stop, url);
+      feedback("stop-photo", "");
+    }).catch(() => {
+      replayPhotos.delete(city);
+      if (isCurrent()) feedback("stop-photo", "本站照片暂时无法读取。", true);
+    });
   }
 
   function stopReplay() {
@@ -440,19 +502,23 @@
     }
   }
 
-  async function initializeReplay(journey, journeys, visits, photoManifest) {
-    const engine = window.TRAVEL_ROUTE_REPLAY_ENGINE;
-    if (!engine?.buildReplay) return;
-    replay = engine.buildReplay(journey, visits, photoManifest);
+  function renderJourneySelector(journeys) {
     const selector = byId("route-replay-journey");
     selector.replaceChildren();
     journeys.forEach((item) => {
       const option = document.createElement("option");
       option.value = item.slug;
       option.textContent = item.title;
-      option.selected = item.slug === journey.slug;
+      option.selected = item.slug === activeJourney.slug;
       selector.append(option);
     });
+  }
+
+  function initializeReplay(journey, url) {
+    const profiles = journey.source === "base" ? data.baseVisits(journey) : [];
+    replay = window.TRAVEL_ROUTE_REPLAY_ENGINE.buildReplay(journey, profiles, {});
+    const selector = byId("route-replay-journey");
+    renderJourneySelector([journey]);
     selector.addEventListener("change", () => {
       const url = new URL("./journey.html", window.location.href);
       url.searchParams.set("slug", selector.value);
@@ -462,14 +528,13 @@
     });
 
     if (!replay.stops.length) {
-      byId("route-replay-map-empty").hidden = false;
-      byId("route-replay-map-empty").textContent = "这趟旅程还没有城市停留，暂时无法播放路线。";
+      feedback("map", "这趟旅程还没有城市停留，暂时无法播放路线。");
       document.querySelectorAll(".route-replay-controls button, #route-replay-share").forEach((button) => { button.disabled = true; });
       return;
     }
     renderReplayLegend();
     renderReplayStopList();
-    const requestedStop = Number(new URL(window.location.href).searchParams.get("stop")) - 1;
+    const requestedStop = Number(url.searchParams.get("stop")) - 1;
     replayIndex = Number.isInteger(requestedStop) && requestedStop >= 0 ? Math.min(requestedStop, replay.stops.length - 1) : 0;
     updateReplayView(false);
     byId("route-replay-play").addEventListener("click", toggleReplay);
@@ -485,10 +550,17 @@
     document.addEventListener("visibilitychange", () => {
       if (document.hidden && replayPlaying) stopReplay();
     });
-    if (new URL(window.location.href).searchParams.get("replay") === "1") {
-      window.requestAnimationFrame(() => byId("route-replay").scrollIntoView({ block: "start" }));
+    const activate = () => {
+      replayVisible = true;
+      showReplayPhoto(replay.stops[replayIndex]);
+      drawReplayMap();
+    };
+    if (url.searchParams.get("replay") === "1" || url.hash === "#route-replay") {
+      window.requestAnimationFrame(() => byId("route-replay").scrollIntoView({ block: "start", behavior: "instant" }));
+      activate();
+    } else {
+      whenNear(byId("route-replay-map"), activate);
     }
-    await drawReplayMap();
   }
 
   function renderRoute(journey) {
@@ -503,6 +575,7 @@
       const copy = document.createElement("div");
       const city = document.createElement("a");
       city.href = cityHref(stop.cityName, stop.arrivalDate);
+      city.dataset.stopIndex = index;
       city.textContent = stop.cityName;
       const dates = document.createElement("p");
       dates.textContent = stop.departureDate
@@ -547,18 +620,18 @@
     lastPhotoButton?.focus({ preventScroll: true });
   }
 
-  function renderPhotos(journey) {
+  function renderPhotos(photos) {
     const grid = byId("journey-photo-grid");
     grid.replaceChildren();
-    byId("journey-photo-count").textContent = `${journey.photos.length} 张旅程照片`;
-    if (!journey.photos.length) {
+    byId("journey-photo-count").textContent = `${photos.length} 张旅程照片`;
+    if (!photos.length) {
       const empty = document.createElement("p");
       empty.className = "journey-empty";
       empty.textContent = "还没有为这趟旅程关联照片。";
       grid.append(empty);
       return;
     }
-    journey.photos.forEach((photo, index) => {
+    photos.forEach((photo, index) => {
       const figure = document.createElement("figure");
       const button = document.createElement("button");
       button.type = "button";
@@ -576,17 +649,17 @@
     });
   }
 
-  function renderGuides(journey) {
+  function renderGuides(guides) {
     const list = byId("journey-guide-list");
     list.replaceChildren();
-    if (!journey.guides.length) {
+    if (!guides.length) {
       const empty = document.createElement("p");
       empty.className = "journey-empty";
       empty.textContent = "这趟旅程还没有上传攻略或游记文件。";
       list.append(empty);
       return;
     }
-    journey.guides.forEach((guide) => {
+    guides.forEach((guide) => {
       const anchor = document.createElement("a");
       anchor.href = guideHref(guide);
       anchor.target = "_blank";
@@ -620,34 +693,119 @@
     byId("journey-planning").textContent = journey.planningNotes || "行前计划尚未整理。";
     byId("journey-notes").textContent = journey.travelNotes || "旅途中记录尚未整理。";
     byId("journey-reflection").textContent = journey.reflection || "旅行后的感想尚未整理。";
-    const cover = byId("journey-cover");
-    if (journey.coverUrl) {
-      photoImages.setImage(cover, journey.coverUrl, { size: "cover", loading: "eager", sizes: "100vw" });
-      cover.alt = `${journey.title}封面`;
-      cover.hidden = false;
-    }
     renderRoute(journey);
-    renderPhotos(journey);
-    renderGuides(journey);
   }
 
-  async function initialize() {
-    byId("journey-current-year").textContent = new Date().getFullYear();
-    if (window.TRAVEL_CONTENT?.ready) await window.TRAVEL_CONTENT.ready;
-    const content = window.TRAVEL_CONTENT?.getState?.() || {};
-    allVisits = content.visits || [];
-    const journeys = content.journeys || [];
-    allJourneys = journeys;
-    const slug = new URL(window.location.href).searchParams.get("slug") || "";
-    const journey = journeys.find((item) => item.slug === slug);
-    if (!journey) {
-      byId("journey-loading").textContent = "没有找到这份旅程档案，可能尚未发布或链接已经变化。";
+  function loadCover(journey) {
+    const cover = byId("journey-cover");
+    const status = byId("journey-cover-status");
+    if (!journey.coverUrl) {
+      status.textContent = "尚未设置旅程封面";
+      status.hidden = false;
       return;
     }
+    whenNear(byId("journey-hero"), () => {
+      cover.addEventListener("error", () => {
+        cover.hidden = true;
+        status.textContent = "封面暂时无法载入";
+        status.hidden = false;
+      }, { once: true });
+      cover.alt = `${journey.title}封面`;
+      cover.hidden = false;
+      photoImages.setImage(cover, journey.coverUrl, { size: "cover", loading: "eager", sizes: "100vw", priority: "high" });
+    }, "0px");
+  }
+
+  function getCityProfiles() {
+    cityProfilesRequest ||= data.cityProfiles(activeJourney).catch(error => {
+      cityProfilesRequest = null;
+      throw error;
+    });
+    return cityProfilesRequest;
+  }
+
+  function updateCityLinks(visits) {
+    allVisits = visits;
+    byId("journey-route").querySelectorAll("a[data-stop-index]").forEach(anchor => {
+      const stop = activeJourney.stops[Number(anchor.dataset.stopIndex)];
+      anchor.href = cityHref(stop.cityName, stop.arrivalDate);
+    });
+  }
+
+  async function loadCityLinks() {
+    if (!activeJourney.stops.length) return;
+    feedback("city", "");
+    try {
+      const profiles = await getCityProfiles();
+      updateCityLinks(profiles);
+      const dates = await data.visitDates(activeJourney);
+      updateCityLinks(window.TRAVEL_VISIT_ENGINE.mergeCityVisits(profiles, [], dates));
+    } catch {
+      feedback("city", "暂时无法补充到访日期，仍可打开城市记录。", true);
+    }
+  }
+
+  async function loadPhotos() {
+    feedback("photo", "正在加载旅程照片…");
+    try {
+      galleryPhotos = await data.gallery(activeJourney);
+      renderPhotos(galleryPhotos);
+      feedback("photo", "");
+    } catch {
+      feedback("photo", "暂时无法读取旅程照片。", true);
+    }
+  }
+
+  async function loadGuides() {
+    feedback("guide", "正在加载旅程攻略…");
+    try {
+      renderGuides(await data.guides(activeJourney));
+      feedback("guide", "");
+    } catch {
+      feedback("guide", "暂时无法读取旅程攻略。", true);
+    }
+  }
+
+  async function loadJourneySelector() {
+    feedback("switch", "正在加载可切换的旅程…");
+    try {
+      const journeys = await data.list();
+      if (!journeys.some(journey => journey.slug === activeJourney.slug)) journeys.unshift(activeJourney);
+      renderJourneySelector(journeys);
+      feedback("switch", "");
+    } catch {
+      feedback("switch", "暂时无法读取其他旅程。", true);
+    }
+  }
+
+  async function loadJourney() {
+    feedback("load", "正在打开旅程档案…");
+    const url = new URL(window.location.href);
+    let journey;
+    try {
+      journey = await data.core(url.searchParams.get("slug") || "");
+    } catch {
+      feedback("load", "暂时无法载入这份旅程档案。", true);
+      return;
+    }
+    if (!journey) {
+      feedback("load", "这份旅程档案当前不可用，可能尚未发布或链接已经变化。");
+      return;
+    }
+    if (journey.source === "base") allVisits = data.baseVisits(journey);
     renderJourney(journey);
     byId("journey-loading").hidden = true;
     byId("journey-content").hidden = false;
-    await initializeReplay(journey, allJourneys, content.visits || [], content.photoManifest || {});
+    initializeReplay(journey, url);
+    loadCover(journey);
+    loadCityLinks();
+    loadJourneySelector();
+    loadGuides();
+    whenNear(byId("journey-photos"), loadPhotos);
+  }
+
+  function initialize() {
+    byId("journey-current-year").textContent = new Date().getFullYear();
     byId("journey-lightbox-close").addEventListener("click", closePhoto);
     byId("journey-lightbox").addEventListener("click", (event) => {
       if (event.target === byId("journey-lightbox")) closePhoto();
@@ -655,6 +813,20 @@
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && !byId("journey-lightbox").hidden) closePhoto();
     });
+    byId("journey-load-retry").addEventListener("click", loadJourney);
+    byId("journey-switch-retry").addEventListener("click", loadJourneySelector);
+    byId("journey-city-retry").addEventListener("click", loadCityLinks);
+    byId("journey-photo-retry").addEventListener("click", loadPhotos);
+    byId("journey-guide-retry").addEventListener("click", loadGuides);
+    byId("journey-map-retry").addEventListener("click", drawReplayMap);
+    byId("journey-stop-photo-retry").addEventListener("click", () => showReplayPhoto(replay.stops[replayIndex]));
+    byId("route-replay-photo").addEventListener("error", () => {
+      const stop = replay.stops[replayIndex];
+      paintReplayPhoto(stop, "");
+      replayPhotos.delete(stop.cityName);
+      feedback("stop-photo", "本站照片暂时无法显示。", true);
+    });
+    loadJourney();
   }
 
   initialize();

@@ -16,6 +16,7 @@ const root=path.resolve(__dirname,'..');
     const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];
     page.on('pageerror',e=>errors.push(e.message));
     await page.route('https://**/*',route=>route.fulfill({contentType:'text/javascript',body:''}));
+    await page.route('**/assets/vendor/supabase-js/2.57.4/supabase.js', route => route.fulfill({ contentType: 'text/javascript', body: '' }));
     await page.addInitScript(()=>{
       const tables={travel_wishlist:[{name:'瑞士',icon:'瑞',description:'后台瑞士文案',guide:'我的瑞士攻略',planned_time:'2027 国庆',priority_level:3,sort_order:2,is_hidden:false},
         {name:'未定位愿望',icon:'问',description:'尚未设置坐标',guide:'测试',priority_level:1,sort_order:50,is_hidden:false}]};

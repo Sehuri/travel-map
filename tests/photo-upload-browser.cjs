@@ -23,6 +23,7 @@ const root = path.resolve(__dirname, '..');
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.route('https://**/*', route => route.fulfill({ contentType: 'text/javascript', body: '' }));
+    await page.route('**/assets/vendor/supabase-js/2.57.4/supabase.js', route => route.fulfill({ contentType: 'text/javascript', body: '' }));
     await page.addInitScript(() => {
       window.__uploads = [];
       window.__rows = [];
@@ -53,6 +54,10 @@ const root = path.resolve(__dirname, '..');
     const base = `http://127.0.0.1:${server.address().port}`;
     await page.goto(`${base}/admin.html#photos`, { waitUntil: 'networkidle' });
     await page.locator('#admin-app').waitFor({ state: 'visible' });
+    assert.match(await page.locator('#static-journey-note').textContent(), /2025 江南新春之旅.*随网站发布/);
+    assert.equal(await page.locator('#journey-picker option[value="2025-wuxi-shanghai"]').count(), 0);
+    await page.locator('#guide-place-type').selectOption('journey');
+    assert.equal(await page.locator('#guide-place-name option[value="2025-wuxi-shanghai"]').count(), 1);
     await page.locator('#photo-city').selectOption('日照');
     assert(await page.locator('#upload-photos').isDisabled());
     const fixtures = process.env.TRAVEL_PHOTO_FIXTURES ? JSON.parse(process.env.TRAVEL_PHOTO_FIXTURES) : [];

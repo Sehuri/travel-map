@@ -1388,9 +1388,11 @@
     return url.toString();
   }
 
+  let journeyCoverObserver;
   function renderJourneyArchive() {
     const grid = document.querySelector("#journey-card-grid");
     if (!grid) return;
+    journeyCoverObserver?.disconnect();
     grid.replaceChildren();
     const expand = document.querySelector("#journeys-expand");
     expand.hidden = journeys.length <= 1;
@@ -1417,9 +1419,13 @@
       const coverUrl = journey.coverUrl || journey.photos?.[0]?.imageUrl;
       if (coverUrl) {
         const image = document.createElement("img");
-        photoImages.setImage(image, coverUrl, { size: "cover" });
         image.alt = `${journey.title}封面`;
-        image.loading = "lazy";
+        const load = (visible) => photoImages.setImage(image, coverUrl, {
+          size: "cover",
+          sizes: "(max-width: 767px) calc(100vw - 32px), (max-width: 1440px) 45vw, 650px",
+          loading: visible ? "eager" : "lazy",
+          priority: visible ? "high" : "auto"
+        });
         image.addEventListener("error", () => {
           image.remove();
           const empty = document.createElement("span");
@@ -1428,6 +1434,16 @@
           media.prepend(empty);
         }, { once: true });
         media.append(image);
+        if (index === 0 && window.IntersectionObserver) {
+          journeyCoverObserver = new IntersectionObserver((entries, observer) => {
+            if (!entries.some(entry => entry.isIntersecting)) return;
+            observer.disconnect();
+            load(true);
+          });
+          journeyCoverObserver.observe(media);
+        } else {
+          load(false);
+        }
       } else {
         const noPhoto = document.createElement("span");
         noPhoto.className = "journey-no-photo";

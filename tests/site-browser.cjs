@@ -33,9 +33,14 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     const legacyBoundaryRequests = [];
     page.on('request', request => { if(request.url().includes('japan-visited-prefectures')) legacyBoundaryRequests.push(request.url()); });
     page.on('pageerror', (error) => errors.push(error.message));
-    await page.route('https://cdn.jsdelivr.net/**', (route) => route.fulfill({
+    await page.route('**/assets/vendor/supabase-js/2.57.4/supabase.js', (route) => route.fulfill({
       contentType: 'text/javascript',
       body: ''
+    }));
+    const dataSource = await fs.readFile(path.join(root, 'assets/data.js'), 'utf8');
+    await page.route('**/assets/data.js?*', route => route.fulfill({
+      contentType: 'text/javascript',
+      body: `${dataSource}\nwindow.TRAVEL_DATA.journeys.forEach(journey => { journey.staticOnly = true; });`
     }));
     await page.addInitScript(() => {
       class FakeMap {
@@ -395,7 +400,6 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('.wish-card[data-priority="1"]').count(), 7);
     assert.equal(await page.locator('[data-destination="江苏省 · 昆山市"][data-priority="1"]').count(), 1);
 
-    const dataSource = await fs.readFile(path.join(root, 'assets/data.js'), 'utf8');
     await page.route('**/assets/data.js*', (route) => route.fulfill({
       contentType: 'text/javascript',
       body: `${dataSource}\nwindow.TRAVEL_DATA.guideDocuments = [

@@ -6,9 +6,11 @@
   const baseVisits = window.TRAVEL_DATA?.visits || [];
   const baseWishlist = window.TRAVEL_DATA?.wishlist || [];
   const basePhotos = window.PHOTO_MANIFEST || {};
-  const baseJourneys = (window.TRAVEL_DATA?.journeys || []).map((journey) =>
-    window.TRAVEL_JOURNEY_ENGINE.normalizeBaseJourney(journey, basePhotos)
-  );
+  const journeyEngine = window.TRAVEL_JOURNEY_ENGINE;
+  const journeyData = window.TRAVEL_DATA?.journeys || [];
+  const staticJourneys = journeyEngine.staticJourneys(journeyData);
+  const staticJourneySlugs = new Set(staticJourneys.map(journey => journey.slug));
+  const baseJourneys = journeyData.map(journey => journeyEngine.normalizeBaseJourney(journey, basePhotos));
   const wishlistEngine = window.TRAVEL_WISHLIST_ENGINE || {};
   const normalizeWishPriority = wishlistEngine.normalizePriority || ((value) => [1, 2, 3].includes(Number(value)) ? Number(value) : 2);
   const wishPriorityMeta = wishlistEngine.priorityMeta || ((value) => ({ label: ({ 1: "有机会去", 2: "很想去", 3: "最想去" })[normalizeWishPriority(value)] }));
@@ -35,7 +37,7 @@
     "journey-budget", "journey-currency", "journey-cover-input", "journey-summary-input", "journey-accommodation-input",
     "journey-companions-input", "journey-planning-input", "journey-notes-input", "journey-reflection-input",
     "journey-published", "journey-stop-editor", "add-journey-stop", "journey-photo-picker", "new-journey",
-    "remove-journey-override", "journey-status"
+    "remove-journey-override", "journey-status", "static-journey-note"
   ].map((id) => [id.replaceAll("-", "_"), document.getElementById(id)]));
 
   let client = null;
@@ -360,8 +362,9 @@
 
   function effectiveJourney(slug) {
     const base = baseJourneyMap.get(slug);
-    const row = journeyRows.get(slug);
-    if (!row) return base ? { ...base, isPublished: true } : null;
+    const isStatic = staticJourneySlugs.has(slug);
+    const row = isStatic ? null : journeyRows.get(slug);
+    if (!row) return base ? { ...base, isPublished: isStatic } : null;
     return {
       id: row.id,
       slug: row.slug,
@@ -408,8 +411,9 @@
     };
   }
 
-  function journeySlugs() {
+  function journeySlugs({ includeStatic = false } = {}) {
     return [...new Set([...baseJourneyMap.keys(), ...journeyRows.keys()])]
+      .filter(slug => includeStatic || !staticJourneySlugs.has(slug))
       .sort((a, b) => {
         const first = effectiveJourney(a);
         const second = effectiveJourney(b);
@@ -425,6 +429,11 @@
       const journey = effectiveJourney(slug);
       return `${journey?.isPublished === false ? "[未发布] " : ""}${journey?.title || slug}`;
     });
+    if (staticJourneys.length) {
+      const titles = staticJourneys.map(journey => `《${journey.title}》`).join("、");
+      elements.static_journey_note.textContent = `${titles}随网站发布。编辑或撤下档案需更新仓库，也可在攻略区关联文档。`;
+      elements.static_journey_note.hidden = false;
+    }
     populateGuidePlaces();
   }
 
@@ -591,6 +600,7 @@
   }
 
   function renderJourneyForm(slug) {
+    if (staticJourneySlugs.has(slug)) return;
     const journey = effectiveJourney(slug);
     if (!journey) return;
     currentJourneySlug = slug;
@@ -616,12 +626,12 @@
     journeyStopsDraft = journey.stops.map((stop) => ({ ...stop }));
     journeySelectedPhotos = new Set(journey.photos.map((photo) => photo.imageUrl));
     elements.remove_journey_override.hidden = !journeyRows.has(slug);
-    elements.remove_journey_override.textContent = baseJourneyMap.has(slug) ? "恢复代码示例" : "永久删除旅程";
+    elements.remove_journey_override.textContent = baseJourneyMap.has(slug) ? "删除后台版本" : "永久删除旅程";
     updateJourneyDaysPreview();
     renderJourneyStops();
     status(elements.journey_status, journey.source === "database"
       ? "当前显示后台保存的版本。"
-      : "当前使用代码中的示例版本；保存后即可在后台持续维护。"
+      : "当前使用代码中的初始资料。保存时勾选公开展示后，访客才能访问旅程。"
     );
   }
 
@@ -665,6 +675,10 @@
       return;
     }
     const slug = elements.journey_slug.value.trim();
+    if (staticJourneySlugs.has(slug) || staticJourneySlugs.has(currentJourneySlug)) {
+      status(elements.journey_status, "这个链接用于随网站发布的旅程，请更新仓库中的旅程档案。", true);
+      return;
+    }
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
       status(elements.journey_status, "独立链接标识只能使用小写字母、数字和连字符。", true);
       return;
@@ -773,8 +787,8 @@
   async function removeJourneyOverride() {
     const slug = currentJourneySlug;
     const row = journeyRows.get(slug);
-    if (!slug || !row) return;
-    const wording = baseJourneyMap.has(slug) ? "恢复代码中的示例旅程" : "永久删除这份旅程";
+    if (!slug || !row || staticJourneySlugs.has(slug)) return;
+    const wording = baseJourneyMap.has(slug) ? "删除后台版本并撤下公开旅程" : "永久删除这份旅程";
     if (!window.confirm(`确定要${wording}吗？`)) return;
     const removed = await client.from("travel_journeys").delete().eq("id", row.id);
     if (removed.error) {
@@ -997,7 +1011,7 @@
 
   function guidePlaceNames() {
     if (elements.guide_place_type.value === "journey") {
-      return journeyTablesAvailable ? journeySlugs() : [];
+      return journeyTablesAvailable ? journeySlugs({ includeStatic: true }) : [];
     }
     if (elements.guide_place_type.value === "wishlist") {
       return [...new Set([...baseWishMap.keys(), ...wishRows.keys()])]

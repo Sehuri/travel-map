@@ -4,6 +4,8 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const {PGlite} = require('@electric-sql/pglite');
 const map = require('../assets/map-engine.js');
+const journeys = require('../assets/journey-engine.js');
+const photos = require('../assets/photo-preview.js');
 
 async function contentWith(wishes, legacy = false) {
   const queries = [];
@@ -11,8 +13,11 @@ async function contentWith(wishes, legacy = false) {
     TRAVEL_DATA:{visits:[],wishlist:[{name:'法国',priorityLevel:3}]},
     TRAVEL_MAP_ENGINE:map,
     TRAVEL_VISIT_ENGINE:{mergeCityVisits:base=>base},
+    TRAVEL_JOURNEY_ENGINE:journeys,
+    TRAVEL_PHOTOS:photos,
     SUPABASE_CONFIG:{url:'https://example.com',publishableKey:'test'},
-    supabase:{createClient:()=>({from:table=>({select:async fields=>{
+    supabase:{createClient:()=>({from:table=>({select:fields=>{
+      if(table==='travel_journeys') return {eq:async()=>({error:null,data:[]})};
       if(table==='travel_wishlist') {
         queries.push(fields);
         if(legacy && fields.includes('longitude')) return {error:{code:'42703'},data:null};

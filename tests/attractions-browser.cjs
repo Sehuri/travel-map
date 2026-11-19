@@ -10,7 +10,7 @@ const root=path.resolve(__dirname,'..');
   try{
     browser=await chromium.launch({headless:true,...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:{})});
     const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
-    await page.route('https://cdn.jsdelivr.net/**',r=>r.fulfill({contentType:'text/javascript',body:`
+    await page.route('**/assets/vendor/supabase-js/2.57.4/supabase.js',r=>r.fulfill({contentType:'text/javascript',body:`
       window.testWrites=0;window.testOffline=false;
       window.supabase={createClient(){return {auth:{async getSession(){return {data:{session:{user:{id:'visitor'}}}};}},from(table){
         const filters=[];let payload;const query={select(){return query},eq(k,v){filters.push([k,v]);return query},in(){return query},insert(p){payload=p;return query},async then(resolve){

@@ -58,6 +58,7 @@ async function preview(page,name){
       page.on('pageerror',e=>errors.push(e.message));
       page.on('request',r=>{const file=new URL(r.url()).pathname.split('/').pop();if(BACKGROUNDS.some(x=>x.file===file))requests.add(file);});
       await page.route('https://**/*',r=>r.fulfill({contentType:'text/javascript',body:''}));
+      await page.route('**/assets/vendor/supabase-js/2.57.4/supabase.js',r=>r.fulfill({contentType:'text/javascript',body:''}));
       await page.goto(base+'/index.html',{waitUntil:'networkidle'});
       assert.equal(await page.locator('.site-background').count(),0);
       assert.equal(await page.locator('html').getAttribute('data-background-id'),null);

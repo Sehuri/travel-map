@@ -103,6 +103,7 @@
           <aside>
             <label for="journey-picker">选择旅程</label>
             <select id="journey-picker" size="12"></select>
+            <p class="hint" id="static-journey-note" hidden></p>
           </aside>
           <form class="editor-form" id="journey-form">
             <div class="field-grid">
@@ -147,7 +148,7 @@
             <label class="check-row"><input id="journey-published" type="checkbox" checked> 在公开网站展示这份旅程档案</label>
             <div class="form-actions">
               <button type="submit">保存旅程档案</button>
-              <button class="danger-button" id="remove-journey-override" type="button">恢复代码示例</button>
+              <button class="danger-button" id="remove-journey-override" type="button">删除后台版本</button>
             </div>
             <p class="status" id="journey-status" aria-live="polite"></p>
           </form>
@@ -271,17 +272,17 @@
     </div>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-  <script src="./assets/data.js?v=20261108.1"></script>
+  <script src="./assets/vendor/supabase-js/2.57.4/supabase.js"></script>
+  <script src="./assets/data.js?v=20261118.2"></script>
   <script src="./assets/photos.js"></script>
   <script src="./assets/photo-previews.js?v=20261019.1"></script>
   <script src="./assets/photo-preview.js?v=20261019.1"></script>
   <script src="./assets/photo-upload.js?v=20261020.1"></script>
   <script src="./assets/supabase-config.js"></script>
-  <script src="./assets/journey-engine.js?v=20260929.1"></script>
+  <script src="./assets/journey-engine.js?v=20261118.2"></script>
   <script src="./assets/wishlist-engine.js?v=20260915.1"></script>
   <script src="./assets/visit-engine.js?v=20261008.1"></script>
   <script src="./assets/map-engine.js?v=20261010.1"></script>
-  <script src="./assets/admin.js?v=20261020.1"></script>
+  <script src="./assets/admin.js?v=20261118.2"></script>
 </body>
 </html>

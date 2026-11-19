@@ -4,6 +4,7 @@
   const baseData = window.TRAVEL_DATA || { visits: [], wishlist: [] };
   const baseJourneys = baseData.journeys || [];
   const basePhotos = window.PHOTO_MANIFEST || {};
+  const journeyEngine = window.TRAVEL_JOURNEY_ENGINE;
   const config = window.SUPABASE_CONFIG || {};
   const wishlistEngine = window.TRAVEL_WISHLIST_ENGINE || {};
   const normalizePriority = wishlistEngine.normalizePriority || ((value, fallback = 2) => {
@@ -37,7 +38,7 @@
     photoManifest: { ...basePhotos },
     photoDetails: photoDetailsFrom(basePhotos),
     guideDocuments: [...(baseData.guideDocuments || [])],
-    journeys: window.TRAVEL_JOURNEY_ENGINE?.mergeJourneys(baseJourneys, [], [], [], baseData.guideDocuments || [], basePhotos) || baseJourneys,
+    journeys: journeyEngine.mergePublicJourneys(baseJourneys, [], [], [], baseData.guideDocuments, basePhotos),
     connected: false
   };
 
@@ -115,22 +116,6 @@
     return legacy;
   }
 
-  function mergePhotos(rows) {
-    const result = { ...basePhotos };
-    const groups = new Map();
-    (rows || []).forEach((row) => {
-      if (!groups.has(row.city_name)) groups.set(row.city_name, []);
-      groups.get(row.city_name).push(row);
-    });
-    groups.forEach((photos, cityName) => {
-      result[cityName] = photos
-        .filter((photo) => !photo.is_hidden)
-        .sort((a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at))
-        .map((photo) => photo.image_url);
-    });
-    return result;
-  }
-
   function mergeGuides(rows) {
     return (rows || [])
       .filter((row) => !row.is_hidden && ["visited", "wishlist", "journey"].includes(row.place_type))
@@ -158,30 +143,32 @@
         loadWishlistRows(client),
         client.from("city_photos").select("city_name,image_url,storage_path,caption,sort_order,created_at,is_hidden"),
         client.from("travel_guides").select("id,place_type,place_name,title,file_type,file_url,file_size,created_at,is_hidden"),
-        client.from("travel_journeys").select("id,slug,title,start_date,end_date,cover_url,summary,distance_km,distance_is_estimated,accommodation,budget_amount,budget_currency,companions,planning_notes,travel_notes,reflection,sort_order,is_published"),
+        client.from("travel_journeys").select("id,slug,title,start_date,end_date,cover_url,summary,distance_km,distance_is_estimated,accommodation,budget_amount,budget_currency,companions,planning_notes,travel_notes,reflection,sort_order,is_published").eq("is_published", true),
         client.from("travel_journey_stops").select("id,journey_id,city_name,stop_order,arrival_date,departure_date,transport_to_next,notes"),
         client.from("travel_journey_photos").select("id,journey_id,city_name,image_url,caption,sort_order")
       ]);
       const hasError = cities.error || wishes.error || photos.error;
-      if (hasError) return state;
-      const photoManifest = mergePhotos(photos.data);
+      const photoManifest = photos.error ? basePhotos : window.TRAVEL_PHOTOS.mergeCityPhotoManifest(basePhotos, photos.data);
       const guideDocuments = guides.error ? [...(baseData.guideDocuments || [])] : mergeGuides(guides.data);
-      const journeyTablesReady = !journeys.error && !journeyStops.error && !journeyPhotos.error;
+      const publicJourneys = journeyEngine.mergePublicJourneys(
+        baseJourneys,
+        journeys.error ? [] : journeys.data,
+        journeyStops.error ? [] : journeyStops.data,
+        journeyPhotos.error ? [] : journeyPhotos.data,
+        guideDocuments,
+        photoManifest
+      );
+      if (hasError) {
+        state = { ...state, journeys: publicJourneys };
+        return state;
+      }
       state = {
         visits: window.TRAVEL_VISIT_ENGINE.mergeCityVisits(baseData.visits, cities.data, visitDates.error ? [] : visitDates.data),
         wishlist: mergeLocalWishlist(mergeWishlist(wishes.data)),
         photoManifest,
         photoDetails: photoDetailsFrom(photoManifest, photos.data),
         guideDocuments,
-        journeys: window.TRAVEL_JOURNEY_ENGINE?.mergeJourneys(
-          baseJourneys,
-          journeyTablesReady ? journeys.data : [],
-          journeyTablesReady ? journeyStops.data : [],
-          journeyTablesReady ? journeyPhotos.data : [],
-          guideDocuments,
-          photoManifest
-        ) || baseJourneys,
-        journeyTablesReady,
+        journeys: publicJourneys,
         connected: true
       };
       return state;

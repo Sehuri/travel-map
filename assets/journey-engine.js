@@ -125,6 +125,16 @@
     };
   }
 
+  function normalizeJourneyPhotos(photos) {
+    return photos.map((photo) => ({
+      id: photo.id,
+      cityName: photo.city_name || "",
+      imageUrl: photo.image_url,
+      caption: photo.caption || "",
+      sortOrder: Number(photo.sort_order || 0)
+    })).sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+
   function rowJourney(row, fallback, stops, photos) {
     return {
       ...fallback,
@@ -157,13 +167,7 @@
         distanceToNextKm: Number(stop.distance_to_next_km || 0),
         notes: stop.notes || ""
       })), row.end_date),
-      photos: photos.map((photo) => ({
-        id: photo.id,
-        cityName: photo.city_name || "",
-        imageUrl: photo.image_url,
-        caption: photo.caption || "",
-        sortOrder: Number(photo.sort_order || 0)
-      })).sort((a, b) => a.sortOrder - b.sortOrder)
+      photos: normalizeJourneyPhotos(photos)
     };
   }
 
@@ -192,9 +196,23 @@
       || a.title.localeCompare(b.title, "zh-CN"));
   }
 
+  function staticJourneys(journeys = []) {
+    return journeys.filter(journey => journey.staticOnly === true);
+  }
+
+  function mergePublicJourneys(baseJourneys, rows, stopRows, photoRows, guides, photoManifest) {
+    const publishedInCode = staticJourneys(baseJourneys);
+    const reservedSlugs = new Set(publishedInCode.map(journey => journey.slug));
+    return mergeJourneys(publishedInCode, (rows || []).filter(row => !reservedSlugs.has(row.slug)),
+      stopRows, photoRows, guides, photoManifest);
+  }
+
   function journeysForCity(journeys, cityName) {
     return (journeys || []).filter((journey) => journey.stops.some((stop) => stop.cityName === cityName));
   }
 
-  return { dateValue, inclusiveDays, effectiveStopDates, validateJourneyStops, normalizeBaseJourney, mergeJourneys, journeysForCity };
+  return {
+    dateValue, inclusiveDays, effectiveStopDates, validateJourneyStops, normalizeBaseJourney, normalizeJourneyPhotos,
+    staticJourneys, mergePublicJourneys, mergeJourneys, journeysForCity
+  };
 });

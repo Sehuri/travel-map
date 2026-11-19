@@ -172,5 +172,20 @@
     return { path, previewWarning };
   }
 
-  return { widths, variants, urlFor, setImage, clearImage, loadImage, createPreviews, uploadOriginal };
+  function mergeCityPhotoManifest(localManifest, rows) {
+    const result = { ...localManifest };
+    const groups = new Map();
+    for (const row of rows || []) {
+      if (!groups.has(row.city_name)) groups.set(row.city_name, []);
+      groups.get(row.city_name).push(row);
+    }
+    for (const [cityName, photos] of groups) {
+      result[cityName] = photos.filter(photo => !photo.is_hidden)
+        .sort((a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at))
+        .map(photo => photo.image_url);
+    }
+    return result;
+  }
+
+  return { widths, variants, urlFor, setImage, clearImage, loadImage, createPreviews, uploadOriginal, mergeCityPhotoManifest };
 });

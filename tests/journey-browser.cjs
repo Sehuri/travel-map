@@ -29,7 +29,14 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
-    await page.route('https://cdn.jsdelivr.net/**', (route) => route.fulfill({ contentType: 'text/javascript', body: '' }));
+    await page.route('**/assets/vendor/supabase-js/2.57.4/supabase.js', (route) => route.fulfill({ contentType: 'text/javascript', body: '' }));
+    await page.route('**/assets/data.js?*', async route => {
+      const fixture = await fs.readFile(path.join(root, 'assets/data.js'), 'utf8');
+      await route.fulfill({
+        contentType: 'text/javascript',
+        body: `${fixture}\nwindow.TRAVEL_DATA.journeys.forEach(item => { item.staticOnly = true; });`
+      });
+    });
     await page.addInitScript(() => {
       window.__journeyMapLines = [];
       class FakeMap {
@@ -78,9 +85,13 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('#journey-city-count').innerText(), '4 座');
     assert.equal(await page.locator('.journey-stop').count(), 4);
     assert.equal(await page.locator('.journey-transport').count(), 3);
+    await page.locator('#journey-photos-title').scrollIntoViewIfNeeded();
+    await page.locator('.journey-photo-grid figure').first().waitFor();
     assert.equal(await page.locator('.journey-photo-grid figure').count(), 32);
     assert.match(await page.locator('.journey-stop a').first().getAttribute('href'), /index\.html\?city=%E5%A4%A7%E9%98%AA&visit=2026-02-03/);
 
+    await page.locator('#route-replay-map').scrollIntoViewIfNeeded();
+    await page.locator('.route-map-stop').first().waitFor();
     assert.equal(await page.locator('#route-replay-journey option').count(), 9);
     assert.equal(await page.locator('#route-replay-map').getAttribute('data-map-provider'), 'amap');
     assert.equal(await page.locator('#route-replay-map').getAttribute('data-segment-count'), '3');
@@ -105,6 +116,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('#route-replay-panel-city').innerText(), '东京');
 
     const firstPhoto = page.locator('.journey-photo-grid button').first();
+    await page.locator('#journey-photos-title').scrollIntoViewIfNeeded();
     await firstPhoto.click();
     await page.locator('#journey-lightbox').waitFor({ state: 'visible' });
     await page.locator('#journey-lightbox-close').click();

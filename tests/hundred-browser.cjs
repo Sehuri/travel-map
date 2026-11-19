@@ -34,7 +34,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     const legacyBoundaryRequests = [];
     page.on('request', request => { if(request.url().includes('japan-visited-prefectures')) legacyBoundaryRequests.push(request.url()); });
     page.on('pageerror', (error) => errors.push(error.message));
-    await page.route('https://cdn.jsdelivr.net/**', (route) => route.fulfill({
+    await page.route('**/assets/vendor/supabase-js/2.57.4/supabase.js', (route) => route.fulfill({
       contentType: 'text/javascript',
       body: ''
     }));

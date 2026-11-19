@@ -217,6 +217,7 @@ window.TRAVEL_DATA = {
     {
       id: "base-wuxi-shanghai-2025",
       slug: "2025-wuxi-shanghai",
+      staticOnly: true,
       title: "2025 江南新春之旅",
       startDate: "2025-01-30",
       endDate: "2025-02-01",

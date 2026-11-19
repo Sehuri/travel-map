@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#07111f">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-fuji.png?v=20260914.1">
   <link rel="apple-touch-icon" href="./assets/favicon-fuji.png?v=20260914.1">
-  <link rel="stylesheet" href="./assets/journey.css?v=20260914.1">
+  <link rel="stylesheet" href="./assets/journey.css?v=20261118.1">
   <link rel="stylesheet" href="./assets/site-bgm.css?v=20261015.1">
   <title>旅程档案｜Sehuri 的旅行足迹</title>
 </head>
@@ -20,7 +20,10 @@
   </header>
 
   <main id="journey-main">
-    <p class="journey-loading" id="journey-loading" role="status">正在打开旅程档案…</p>
+    <div class="journey-loading" id="journey-loading">
+      <p id="journey-load-status" role="status">正在打开旅程档案…</p>
+      <button class="journey-retry" id="journey-load-retry" type="button" hidden>重新打开旅程</button>
+    </div>
     <article id="journey-content" hidden>
       <header class="journey-hero" id="journey-hero">
         <img id="journey-cover" alt="" hidden>
@@ -31,6 +34,7 @@
           <h1 id="journey-title"></h1>
           <p class="journey-route-inline" id="journey-route-inline"></p>
           <p class="journey-summary" id="journey-summary"></p>
+          <p class="journey-cover-status" id="journey-cover-status" hidden></p>
         </div>
       </header>
 
@@ -54,16 +58,29 @@
           </div>
         </div>
 
+        <div class="journey-section-feedback">
+          <span id="journey-switch-status" role="status"></span>
+          <button class="journey-retry" id="journey-switch-retry" type="button" hidden>重试读取旅程列表</button>
+        </div>
         <div class="route-replay-layout">
           <div class="route-replay-map-wrap">
             <div id="route-replay-map" class="route-replay-map" role="region" aria-label="高德地图旅程路线回放；按真实地理位置展示城市、交通线路与当前到达站"></div>
-            <p class="route-replay-map-empty" id="route-replay-map-empty" hidden>这趟旅程的城市还缺少坐标，暂时无法绘制路线。</p>
+            <div class="route-replay-map-empty" id="route-replay-map-empty">
+              <div>
+                <p id="journey-map-status" role="status">地图将在接近此处时加载。</p>
+                <button class="journey-retry" id="journey-map-retry" type="button" hidden>重试加载地图</button>
+              </div>
+            </div>
             <article class="route-arrival-card" id="route-arrival-card" aria-live="polite">
               <img id="route-replay-photo" alt="" hidden>
               <div>
                 <span id="route-replay-step-label">ARRIVAL 01</span>
                 <h3 id="route-replay-city">—</h3>
                 <p id="route-replay-date">—</p>
+                <p class="journey-stop-photo-feedback">
+                  <span id="journey-stop-photo-status" role="status"></span>
+                  <button class="journey-retry" id="journey-stop-photo-retry" type="button" hidden>重试本站照片</button>
+                </p>
               </div>
             </article>
           </div>
@@ -94,6 +111,10 @@
           <h2 id="journey-route-title">城市与行进顺序</h2>
         </div>
         <div class="journey-route" id="journey-route"></div>
+        <div class="journey-section-feedback">
+          <span id="journey-city-status" role="status"></span>
+          <button class="journey-retry" id="journey-city-retry" type="button" hidden>重试读取到访日期</button>
+        </div>
       </section>
 
       <section class="journey-section journey-practical" aria-labelledby="journey-practical-title">
@@ -119,10 +140,14 @@
         </div>
       </section>
 
-      <section class="journey-section" aria-labelledby="journey-photos-title">
+      <section class="journey-section" id="journey-photos" aria-labelledby="journey-photos-title">
         <div class="journey-section-heading split-heading">
           <div><p class="eyebrow">PHOTO STORY</p><h2 id="journey-photos-title">与这趟旅程关联的照片</h2></div>
           <p id="journey-photo-count"></p>
+        </div>
+        <div class="journey-section-feedback">
+          <span id="journey-photo-status" role="status">照片将在接近此处时加载。</span>
+          <button class="journey-retry" id="journey-photo-retry" type="button" hidden>重试加载照片</button>
         </div>
         <div class="journey-photo-grid" id="journey-photo-grid"></div>
       </section>
@@ -131,6 +156,10 @@
         <div class="journey-section-heading split-heading">
           <div><p class="eyebrow">GUIDES & DOCUMENTS</p><h2 id="journey-guides-title">攻略与旅程游记</h2></div>
           <p>支持 HTML 网页与 PDF 文档</p>
+        </div>
+        <div class="journey-section-feedback">
+          <span id="journey-guide-status" role="status"></span>
+          <button class="journey-retry" id="journey-guide-retry" type="button" hidden>重试加载攻略</button>
         </div>
         <div class="journey-guide-list" id="journey-guide-list"></div>
       </section>
@@ -145,19 +174,19 @@
 
   <footer>© <span id="journey-current-year"></span> Sehuri · 每一趟出发，都值得拥有完整档案</footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-  <script src="./assets/data.js?v=20261108.1"></script>
+  <script src="./assets/vendor/supabase-js/2.57.4/supabase.js"></script>
+  <script src="./assets/data.js?v=20261118.2"></script>
   <script src="./assets/photos.js"></script>
   <script src="./assets/photo-previews.js?v=20261019.1"></script>
-  <script src="./assets/photo-preview.js?v=20261019.1"></script>
+  <script src="./assets/photo-preview.js?v=20261118.2"></script>
   <script src="./assets/supabase-config.js"></script>
   <script src="./assets/visit-engine.js?v=20261008.1"></script>
-  <script src="./assets/journey-engine.js?v=20260929.1"></script>
+  <script src="./assets/journey-engine.js?v=20261118.2"></script>
   <script src="./assets/map-engine.js?v=20261010.1"></script>
   <script src="./assets/amap-map-config.js?v=20260907.1"></script>
   <script src="./assets/route-replay-engine.js?v=20260929.1"></script>
-  <script src="./assets/content.js?v=20261010.1"></script>
-  <script src="./assets/journey.js?v=20261019.1"></script>
+  <script src="./assets/journey-data.js?v=20261118.2"></script>
+  <script src="./assets/journey.js?v=20261118.1"></script>
   <script src="./assets/site-bgm-config.js?v=20260925.2"></script>
   <script src="./assets/site-bgm.js?v=20261015.1"></script>
 </body>
