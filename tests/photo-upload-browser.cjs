@@ -44,7 +44,12 @@ const root = path.resolve(__dirname, '..');
           let filters = [], inserted = null;
           const result = () => {
             if (inserted && table === 'city_photos') window.__rows.push({ id: String(window.__rows.length), ...inserted, created_at: '2026-10-20' });
-            return { data: (table === 'city_photos' ? window.__rows : []).filter(row => filters.every(([key, value]) => row[key] === value)), error: null };
+            const journeys = [{
+              id: 'fixture-wuxi', slug: '2025-wuxi-shanghai', title: '2025 江南新春之旅',
+              start_date: '2025-01-30', end_date: '2025-02-01', is_published: true
+            }];
+            const rows = { city_photos: window.__rows, travel_journeys: journeys }[table] || [];
+            return { data: rows.filter(row => filters.every(([key, value]) => row[key] === value)), error: null };
           };
           const query = { select: () => query, order: () => query, eq: (key, value) => { filters.push([key, value]); return query; }, insert: data => { inserted = data; return query; }, then: (resolve, reject) => Promise.resolve(result()).then(resolve, reject) };
           return query;
@@ -54,8 +59,11 @@ const root = path.resolve(__dirname, '..');
     const base = `http://127.0.0.1:${server.address().port}`;
     await page.goto(`${base}/admin.html#photos`, { waitUntil: 'networkidle' });
     await page.locator('#admin-app').waitFor({ state: 'visible' });
-    assert.match(await page.locator('#static-journey-note').textContent(), /2025 江南新春之旅.*随网站发布/);
-    assert.equal(await page.locator('#journey-picker option[value="2025-wuxi-shanghai"]').count(), 0);
+    assert.equal(await page.locator('#journey-picker option[value="2025-wuxi-shanghai"]').count(), 1);
+    await page.locator('#journey-picker').selectOption('2025-wuxi-shanghai');
+    assert(await page.locator('#journey-title-input').isEditable());
+    assert.equal(await page.locator('#journey-title-input').inputValue(), '2025 江南新春之旅');
+    assert(await page.locator('#journey-published').isChecked());
     await page.locator('#guide-place-type').selectOption('journey');
     assert.equal(await page.locator('#guide-place-name option[value="2025-wuxi-shanghai"]').count(), 1);
     await page.locator('#photo-city').selectOption('日照');

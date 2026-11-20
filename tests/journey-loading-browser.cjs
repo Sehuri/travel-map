@@ -23,7 +23,15 @@ const journey = {
   cover_url: original, is_published: true, summary: '首屏摘要', planning_notes: '先显示行前计划',
   accommodation: '测试住宿', companions: '同行人', budget_amount: 1200, budget_currency: 'CNY'
 };
-const staticSlug = '2025-wuxi-shanghai';
+const wuxiId = '826c8de0-b3c6-4920-9b46-8e6d819cb164';
+const wuxi = {
+  id: wuxiId, slug: '2025-wuxi-shanghai', title: '2025 江南新春之旅',
+  start_date: '2025-01-30', end_date: '2025-02-01', is_published: true,
+  travel_journey_stops: [
+    { journey_id: wuxiId, city_name: '无锡', stop_order: 0, arrival_date: '2025-01-30', departure_date: '2025-01-31', transport_to_next: '高铁' },
+    { journey_id: wuxiId, city_name: '上海', stop_order: 1, arrival_date: '2025-02-01', departure_date: '2025-02-01' }
+  ]
+};
 const chongqing = {
   id: '8202378c-72a8-4413-9e50-033deafa05c1', slug: '2026-chongqing', title: '2026 重庆之行',
   start_date: '2026-10-21', end_date: '2026-10-22', cover_url: original, is_published: true
@@ -69,6 +77,7 @@ const chongqing = {
     let rejectGuide = true;
     let rejectGallery = true;
     let publicationScenario = false;
+    let wuxiPublished = true;
     const requests = [];
     const fail = (route, code = 'test_failure') => route.fulfill({ status: 500, json: { code, message: code } });
     await context.route('**/fixture/rest/v1/**', async route => {
@@ -79,12 +88,10 @@ const chongqing = {
       if (table === 'travel_journeys') {
         if (publicationScenario) {
           assert.equal(q.get('is_published'), 'eq.true');
-          if (!q.has('slug')) {
-            const collision = { ...journey, slug: staticSlug, title: '后台同链接的冲突记录' };
-            return route.fulfill({ json: [chongqing, collision] });
-          }
+          if (!q.has('slug')) return route.fulfill({ json: wuxiPublished ? [chongqing, wuxi] : [chongqing] });
+          if (q.get('slug') === `eq.${wuxi.slug}`) return route.fulfill({ json: wuxiPublished ? [wuxi] : [] });
           if (q.get('slug') !== `eq.${chongqing.slug}`) return route.fulfill({ json: [] });
-          const stops = [{ city_name: '重庆', stop_order: 0, arrival_date: '2026-10-21', departure_date: '2026-10-22' }];
+          const stops = [{ journey_id: chongqing.id, city_name: '重庆', stop_order: 0, arrival_date: '2026-10-21', departure_date: '2026-10-22' }];
           return route.fulfill({ json: [{ ...chongqing, travel_journey_stops: stops }] });
         }
         if (!q.has('slug')) return route.fulfill({ json: [journey] });
@@ -100,9 +107,14 @@ const chongqing = {
         }
         return route.fulfill({ json: [journey] });
       }
-      if (table === 'travel_journey_stops') return route.fulfill({ json: stops });
+      if (table === 'travel_journey_stops') {
+        return route.fulfill({ json: publicationScenario ? wuxi.travel_journey_stops : stops });
+      }
       if (table === 'travel_journey_photos') {
         const record = { id: 'one', city_name: '大阪', image_url: original, caption: '相册里的原图', sort_order: 0 };
+        if (publicationScenario && q.get('journey_id') === `eq.${wuxi.id}`) {
+          return route.fulfill({ json: [{ ...record, journey_id: wuxiId, city_name: '上海', caption: '' }] });
+        }
         if (q.has('city_name') || !q.has('journey_id')) return route.fulfill({ json: [record] });
         if (holdGallery) await holdGallery.promise;
         if (rejectGallery) return fail(route);
@@ -114,12 +126,6 @@ const chongqing = {
         return route.fulfill({ json: [
           { title: '旅程攻略 HTML', file_type: 'html', file_url: `${origin}/fixture/guide.html` },
           { title: '旅程攻略 PDF', file_type: 'pdf', file_url: `${origin}/fixture/guide.pdf` }
-        ] });
-      }
-      if (table === 'city_photos' && publicationScenario) {
-        return route.fulfill({ json: [
-          { city_name: '上海', image_url: original, is_hidden: false, created_at: '2026-11-01', sort_order: 1 },
-          { city_name: '无锡', image_url: original, is_hidden: true, created_at: '2026-11-01', sort_order: 0 }
         ] });
       }
       if (table === 'travel_city_visits') return route.fulfill({ json: [{ id: 'visit', city_name: '大阪', visit_date: '2026-02-04' }] });
@@ -304,21 +310,22 @@ const chongqing = {
     const links = page.locator('#journey-card-grid .journey-card');
     await page.waitForFunction(() => document.querySelectorAll('#journey-card-grid .journey-card').length === 2);
     const urls = await links.evaluateAll(cards => cards.map(card => card.href));
-    assert.deepEqual(urls.map(url => new URL(url).searchParams.get('slug')), [chongqing.slug, staticSlug]);
+    assert.deepEqual(urls.map(url => new URL(url).searchParams.get('slug')), [chongqing.slug, wuxi.slug]);
     assert.match(await links.nth(1).textContent(), /2025 江南新春之旅/);
     await page.goto(urls[0], { waitUntil: 'domcontentloaded' });
     await waitForText('#journey-title', chongqing.title);
     await page.waitForFunction(cover => document.querySelector('#journey-cover')?.dataset.photoOriginal === cover, chongqing.cover_url);
     await page.waitForFunction(() => [...document.querySelector('#route-replay-journey').options].some(option => option.value === '2025-wuxi-shanghai'));
-    await page.locator('#route-replay-journey').selectOption(staticSlug);
+    await page.locator('#route-replay-journey').selectOption(wuxi.slug);
     await waitForText('#journey-title', '2025 江南新春之旅');
     assert.deepEqual(await page.locator('.journey-stop a').allTextContents(), ['无锡', '上海']);
-    assert(!requests.some(({ table, q }) => table === 'travel_journeys' && q.get('slug') === `eq.${staticSlug}`));
+    assert(requests.some(({ table, q }) => table === 'travel_journeys' && q.get('slug') === `eq.${wuxi.slug}`));
     await page.locator('#journey-photos-title').scrollIntoViewIfNeeded();
     await waitForText('#journey-photo-count', '1 张');
     assert.equal(await page.locator('#journey-photo-grid figcaption').textContent(), '上海');
-    assert(requests.some(({ table, q }) => table === 'city_photos' && q.get('city_name') === 'in.(无锡,上海)'));
-    await page.goto(detail, { waitUntil: 'domcontentloaded' });
+    assert(requests.some(({ table, q }) => table === 'travel_journey_photos' && q.get('journey_id') === `eq.${wuxi.id}`));
+    wuxiPublished = false;
+    await page.goto(urls[1], { waitUntil: 'domcontentloaded' });
     await waitForText('#journey-load-status', '当前不可用');
     assert.deepEqual(cdn, []);
     console.log('Built Pages SDK at both paths, scoped journey requests, independent failures, retries, fallback policy, cover fallback and lightbox checks passed.');
