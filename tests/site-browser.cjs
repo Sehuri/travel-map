@@ -233,10 +233,17 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert.equal(await page.locator('.photo-archive-card:visible').first().getAttribute('data-city'), '东京');
     await page.locator('#photo-wall-city').selectOption('');
     assert.match(await page.locator('.photo-archive-card figcaption').first().innerText(), /东京.*到访/s);
-    await page.locator('.photo-archive-card button').first().click();
+    const wallPhoto = page.locator('.photo-archive-card button').first();
+    const wallOriginal = await wallPhoto.locator('img').evaluate(image => new URL(image.dataset.photoOriginal, document.baseURI).href);
+    const rejectWallOriginal = url => url.href === wallOriginal;
+    await page.route(rejectWallOriginal, route => route.fulfill({ status: 404 }));
+    await wallPhoto.click();
     await page.locator('#lightbox').waitFor({ state: 'visible' });
-    assert(!/previews/.test(await page.locator('#lightbox-image').getAttribute('src')), 'zoom still uses the original');
+    const wallLarge = page.locator('#lightbox-image');
+    await wallLarge.evaluate(image => image.decode());
+    assert.match(await wallLarge.evaluate(image => image.currentSrc), /\/photos\/previews\/v1\//);
     await page.locator('#lightbox-close').click();
+    await page.unroute(rejectWallOriginal);
     await page.locator('#stats-dialog').waitFor({ state: 'visible' });
     assert.equal(await page.locator('#stats-dialog-title').innerText(), '全部旅行照片');
     await page.waitForFunction(() => document.querySelector('.photo-archive-card button') === document.activeElement);
@@ -461,9 +468,16 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     assert(await page.locator('#photo-grid .photo-unavailable').isDisabled());
     await page.locator('#dialog-cover').evaluate(img=>{img.hidden=false;window.TRAVEL_PHOTOS.setImage(img,'/qa-missing-cover.jpg',{loading:'eager'});});
     await page.locator('#dialog-cover-status').waitFor({state:'visible'});
-    await page.locator('#photo-grid button:not(:disabled)').first().click();
-    await page.locator('#lightbox-image').evaluate(img=>{img.src='/qa-missing-lightbox.jpg';});
+    const brokenPhoto = page.locator('#photo-grid button:not(:disabled)').first();
+    const lightboxSources = await brokenPhoto.locator('img').evaluate(img => {
+      const original = img.dataset.photoOriginal;
+      return [original, window.TRAVEL_PHOTOS.urlFor(original, 'large')].map(url => new URL(url, document.baseURI).href);
+    });
+    const rejectLightbox = url => lightboxSources.includes(url.href);
+    await page.route(rejectLightbox, route => route.fulfill({ status: 404 }));
+    await brokenPhoto.click();
     await page.locator('#lightbox-status').waitFor({state:'visible'});
+    await page.unroute(rejectLightbox);
     await page.locator('#lightbox-close').click();
     assert(await page.locator('#city-dialog').isVisible());
     assert(await page.locator('#city-dialog').evaluate(el=>el.scrollWidth<=el.clientWidth));

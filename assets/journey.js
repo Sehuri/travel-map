@@ -605,7 +605,12 @@
     lastPhotoButton = button;
     const lightbox = byId("journey-lightbox");
     const image = byId("journey-lightbox-image");
-    image.src = photo.imageUrl;
+    if (window.PHOTO_PREVIEWS?.photos?.[photo.imageUrl]?.useOriginalForJourneyZoom) {
+      // The city album has hidden this source and a published journey still references it.
+      image.src = photo.imageUrl;
+    } else {
+      photoImages.setImage(image, photo.imageUrl, { size: "large", loading: "eager" });
+    }
     image.alt = photo.caption || `${photo.cityName}旅程照片`;
     byId("journey-lightbox-caption").textContent = [photo.cityName, photo.caption].filter(Boolean).join(" · ");
     lightbox.hidden = false;
@@ -615,7 +620,7 @@
 
   function closePhoto() {
     byId("journey-lightbox").hidden = true;
-    byId("journey-lightbox-image").removeAttribute("src");
+    photoImages.clearImage(byId("journey-lightbox-image"));
     document.body.style.overflow = "";
     lastPhotoButton?.focus({ preventScroll: true });
   }

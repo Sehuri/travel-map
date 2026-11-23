@@ -2053,7 +2053,7 @@
     image.hidden = false;
     document.querySelector("#lightbox-status").hidden = true;
     lightboxReturnFocus = document.activeElement;
-    image.src = source;
+    photoImages.setImage(image, source, { size: "large", loading: "eager" });
     image.alt = alt;
     lightbox.showModal();
     document.querySelector("#lightbox-close").focus();
@@ -2066,7 +2066,7 @@
     const focusTarget = lightboxReturnFocus;
     lightboxReturnFocus = null;
     lightbox.close();
-    document.querySelector("#lightbox-image").removeAttribute("src");
+    photoImages.clearImage(document.querySelector("#lightbox-image"));
     if (returnState?.dialog && !returnState.dialog.open) {
       returnState.dialog.showModal();
       requestAnimationFrame(() => {

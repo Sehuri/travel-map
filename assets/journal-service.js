@@ -51,7 +51,7 @@
  async function restorePin(id,revision,receipt,operation){if(!owner)throw new Error('仅站主可管理置顶');return check(await client.rpc('journal_restore_pin',{p_id:id,p_presentation_revision:revision,p_undo_token:receipt,p_operation_id:operation}));}
  async function media(ids){return ids.length?check(await client.from('journal_media').select('*').in('id',ids)):[];}
  async function mediaURL(m,large=false){
-  if(m.source==='public_album')return large?m.public_url:window.TRAVEL_PHOTOS.urlFor(m.public_url,'grid');
+  if(m.source==='public_album')return window.TRAVEL_PHOTOS.urlFor(m.public_url,large?'large':'grid');
   const path=large?m.object_path:m.thumb_path;
   if(m.source!=='private'||!/^([0-9a-f-]{36})\/([0-9a-f-]{36})\/(image|thumb)\.webp$/i.test(path||''))throw new Error('照片暂时不可用');
   // The SDK uses the same publishable key and current session as uploads.

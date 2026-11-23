@@ -117,10 +117,24 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 
     const firstPhoto = page.locator('.journey-photo-grid button').first();
     await page.locator('#journey-photos-title').scrollIntoViewIfNeeded();
+    const original = await firstPhoto.locator('img').evaluate(image => new URL(image.dataset.photoOriginal, document.baseURI).href);
+    const rejectOriginal = url => url.href === original;
+    await page.route(rejectOriginal, route => route.fulfill({ status: 404 }));
     await firstPhoto.click();
     await page.locator('#journey-lightbox').waitFor({ state: 'visible' });
+    const large = page.locator('#journey-lightbox-image');
+    await large.evaluate(image => image.decode());
+    assert.match(await large.evaluate(image => image.currentSrc), /\/photos\/previews\/v1\//);
     await page.locator('#journey-lightbox-close').click();
+    await page.unroute(rejectOriginal);
     await page.waitForFunction(() => document.querySelector('.journey-photo-grid button') === document.activeElement);
+    await firstPhoto.locator('img').evaluate(image => {
+      const entry = window.PHOTO_PREVIEWS.photos[image.dataset.photoOriginal];
+      entry.useOriginalForJourneyZoom = true;
+    });
+    await firstPhoto.click();
+    assert.equal(await large.evaluate(image => image.src), original, 'held journeys keep their existing image URL');
+    await page.locator('#journey-lightbox-close').click();
 
     await page.goto(`${base}/journey.html?slug=2026-ningbo-taizhou&replay=1#route-replay`, { waitUntil: 'networkidle' });
     await page.locator('#journey-content').waitFor({ state: 'visible' });

@@ -155,7 +155,13 @@ page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{if(d.type()=
   await page.goto(`${base}/journals.html`);await page.locator('.journal-card').first().waitFor();await capture('01-public-list-desktop.png');await page.locator('.journal-card h3 a').first().click();await page.locator('#journal-article h1').waitFor();
   await page.locator('#journal-article .journal-cover button').click();await page.keyboard.press('Escape');await page.waitForFunction(()=>document.activeElement===document.querySelector('#journal-article .journal-cover button'));await page.locator('#journal-edit-link').click();await page.locator('#journal-editor-form').waitFor({state:'visible'});await page.locator('[name=body]').fill('私有修订文字，不应提前泄露');await page.locator('[name=visibility]').selectOption('private');await page.locator('#save-journal').click();await page.locator('#journal-status').filter({hasText:'草稿已保存'}).waitFor();
   const publicContext=await browser.newContext();await publicContext.route('**/assets/vendor/supabase-js/2.57.4/supabase.js',r=>r.fulfill({contentType:'text/javascript',body:sdk}));await mockMedia(publicContext,'anon');const visitor=await publicContext.newPage();
+  await publicContext.route(url=>/\/photos\/(?!previews\/).*\.jpe?g$/i.test(url.pathname),route=>route.fulfill({status:404}));
   await visitor.goto(`${base}/journal.html?id=${id}`);await visitor.locator('#journal-article h1').waitFor();assert(!await visitor.locator('#journal-article').innerText().then(s=>s.includes('私有修订')));assert(await visitor.locator('#journal-edit-link').isHidden());
+  await visitor.getByRole('button',{name:'打开照片查看器'}).click();
+  const albumLarge=visitor.locator('.journal-viewer img');
+  await albumLarge.evaluate(img=>img.decode());
+  assert.match(await albumLarge.evaluate(img=>img.currentSrc),/\/photos\/previews\/v1\//);
+  await visitor.keyboard.press('Escape');
   await serial;await db.exec('reset role');const privateMedia=(await db.query("select * from journal_media where entry_id=$1 and source='private' and ready limit 1",[id])).rows[0];
   assert(await visitor.evaluate(async m=>{const img=new Image();img.src=await JOURNAL_SERVICE.mediaURL(m,true);await img.decode();return img.naturalWidth>0;},privateMedia),'published private-storage images remain readable under anonymous RLS');
   // Publish update then withdraw. Previously authorized object paths lose read access.

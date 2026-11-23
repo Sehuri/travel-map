@@ -226,10 +226,16 @@ const chongqing = {
     await page.locator('#journey-photo-retry').click();
     await waitForText('#journey-photo-count', '1 张');
     assert(requests.some(({ table, q }) => table === 'travel_journey_photos' && q.get('journey_id') === `eq.${id}` && !q.has('city_name')));
+    const originalURL = new URL(original, detail).href;
+    const rejectOriginal = url => url.href === originalURL;
+    await page.route(rejectOriginal, route => route.fulfill({ status: 404 }));
     await page.locator('.journey-photo-grid button').click();
     await page.locator('#journey-lightbox-close').waitFor();
-    assert.equal(await page.locator('#journey-lightbox-image').getAttribute('src'), original);
+    const lightbox = page.locator('#journey-lightbox-image');
+    await lightbox.evaluate(img => img.decode());
+    assert.match(await lightbox.evaluate(img => img.currentSrc), /\/photos\/previews\/v1\//);
     await page.keyboard.press('Escape');
+    await page.unroute(rejectOriginal);
     assert(await page.locator('#journey-lightbox').isHidden());
     assert(await page.locator('.journey-photo-grid button').evaluate(button => button === document.activeElement));
 
