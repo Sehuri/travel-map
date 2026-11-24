@@ -76,6 +76,37 @@ const root = path.resolve(__dirname, '..');
     assert.equal(fallback.failures, 0, 'missing preview is intercepted before unavailable UI handlers');
     assert.equal(fallback.src, fallback.original);
     assert(fallback.width > 0);
+
+    await page.route('**/working-preview.webp', route => route.fulfill({
+      status: 200,
+      contentType: 'image/jpeg',
+      body: portrait
+    }));
+    const attempted = [];
+    page.on('request', request => attempted.push(request.url()));
+    const resizedFallback = await page.evaluate(async () => {
+      const original = './missing-original.jpg';
+      window.PHOTO_PREVIEWS = { photos: { [original]: { variants: [
+        { url: './small-preview.webp', width: 480, height: 320 },
+        { url: './working-preview.webp', width: 960, height: 640 },
+        { url: './missing-large.webp', width: 1600, height: 1067 }
+      ] } } };
+      const image = document.createElement('img');
+      let failures = 0;
+      image.addEventListener('error', () => failures++);
+      document.body.append(image);
+      const loaded = new Promise((resolve, reject) => {
+        image.onload = resolve;
+        setTimeout(() => reject(new Error('resized fallback timeout')), 5000);
+      });
+      window.TRAVEL_PHOTOS.setImage(image, original, { size: 'large', loading: 'eager' });
+      await loaded;
+      return { failures, src: image.getAttribute('src'), width: image.naturalWidth };
+    });
+    assert.equal(resizedFallback.failures, 0);
+    assert.equal(resizedFallback.src, './working-preview.webp');
+    assert(resizedFallback.width > 0);
+    assert(!attempted.some(url => url.endsWith('/missing-original.jpg')), 'a working preview avoids requesting the original');
     console.log('Photo browser checks passed: real WebP encoding, EXIF orientation, unchanged originals, unique cached uploads and preview failure fallback. No real backend writes.');
   } finally {
     await browser?.close();
