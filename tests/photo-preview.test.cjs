@@ -37,12 +37,17 @@ test('preview selection is screen-sized, responsive and preserves original ident
   assert.equal(image.srcset, undefined, 'a recycled image must not retain old responsive sources');
 });
 
-test('missing previews fall back once, without triggering the final unavailable state', () => {
+test('failed previews try other sizes before the original without triggering the final unavailable state', () => {
   const { api, image } = fixture({ photos: { './photos/a.jpg': { variants } } });
-  api.setImage(image, './photos/a.jpg');
+  api.setImage(image, './photos/a.jpg', { size: 'large' });
   let stopped = false;
-  image.listeners[0]({ stopImmediatePropagation() { stopped = true; } });
+  const error = { stopImmediatePropagation() { stopped = true; } };
+  image.listeners[0](error);
   assert(stopped);
+  assert.equal(image.src, variants[1].url);
+  image.listeners[0](error);
+  assert.equal(image.src, variants[0].url);
+  image.listeners[0](error);
   assert.equal(image.src, './photos/a.jpg');
   assert.equal(image.srcset, undefined);
   assert.equal(image.listeners.length, 0);
@@ -51,6 +56,28 @@ test('missing previews fall back once, without triggering the final unavailable 
   assert.equal(image.listeners.length, 0);
   assert.equal(image.src, undefined);
   assert.equal(image.width, undefined);
+});
+
+test('responsive failures skip the actual failed srcset image', () => {
+  const { api, image } = fixture({ photos: { './photos/a.jpg': { variants } } });
+  api.setImage(image, './photos/a.jpg');
+  image.currentSrc = 'https://example.com/travel-map/photos/previews/test-960.webp';
+  image.listeners[0]({ stopImmediatePropagation() {} });
+  assert.equal(image.src, variants[0].url);
+});
+
+test('photo cinema uses another preview when the large image fails', async () => {
+  const { api, window } = fixture({ photos: { './photos/a.jpg': { variants } } });
+  const loaded = [];
+  window.Image = class {
+    set src(value) {
+      if (!value) return;
+      loaded.push(value);
+      queueMicrotask(() => value === variants[1].url ? this.onload() : this.onerror());
+    }
+  };
+  assert.equal(await api.loadImage('./photos/a.jpg'), variants[1].url);
+  assert.deepEqual(loaded, [variants[2].url, variants[1].url]);
 });
 
 test('only completed new uploads on the configured bucket can derive preview URLs', () => {

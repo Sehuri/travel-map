@@ -80,13 +80,27 @@
       image.sizes = options.sizes || spec.sizes;
     }
     if (selected && canonical(selected.url) !== canonical(source)) {
+      const attempted = new Set();
+      const alternatives = [...choices].sort((a, b) =>
+        Math.abs(a.width - spec.width) - Math.abs(b.width - spec.width)
+      );
       const fallback = event => {
-        image.removeEventListener("error", fallback, true);
-        states.delete(image);
+        attempted.add(canonical(image.currentSrc || image.src));
+        const next = alternatives.find(item =>
+          !attempted.has(canonical(item.url)) && canonical(item.url) !== canonical(source)
+        );
         event.stopImmediatePropagation();
         image.removeAttribute("srcset");
         image.removeAttribute("sizes");
-        image.src = source;
+        if (next) {
+          image.width = next.width;
+          image.height = next.height;
+          image.src = next.url;
+        } else {
+          image.removeEventListener("error", fallback, true);
+          states.delete(image);
+          image.src = source;
+        }
       };
       states.set(image, fallback);
       image.addEventListener("error", fallback, true);
@@ -104,7 +118,19 @@
       image.onerror = () => { clearTimeout(timer); resolve(null); };
       image.src = url;
     });
-    return await load(preview) || (preview !== source ? await load(source) : null);
+    const target = settings[size]?.width || 480;
+    const alternatives = [...variants(source)].sort((a, b) =>
+      Math.abs(a.width - target) - Math.abs(b.width - target)
+    );
+    const attempted = new Set();
+    for (const url of [preview, ...alternatives.map(item => item.url), source]) {
+      const normalized = canonical(url);
+      if (attempted.has(normalized)) continue;
+      attempted.add(normalized);
+      const loaded = await load(url);
+      if (loaded) return loaded;
+    }
+    return null;
   }
 
   async function createPreviews(file) {

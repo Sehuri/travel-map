@@ -471,7 +471,16 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     const brokenPhoto = page.locator('#photo-grid button:not(:disabled)').first();
     const lightboxSources = await brokenPhoto.locator('img').evaluate(img => {
       const original = img.dataset.photoOriginal;
-      return [original, window.TRAVEL_PHOTOS.urlFor(original, 'large')].map(url => new URL(url, document.baseURI).href);
+      // The grid may already have decoded a preview into the browser's image cache.
+      // Give this failure test fresh URLs so every fallback request reaches the route.
+      const variants = window.TRAVEL_PHOTOS.variants(original);
+      variants.forEach(variant => {
+        const url = new URL(variant.url, document.baseURI);
+        url.searchParams.set('failure-test', '1');
+        variant.url = url.href;
+      });
+      return [original, ...variants.map(variant => variant.url)]
+        .map(url => new URL(url, document.baseURI).href);
     });
     const rejectLightbox = url => lightboxSources.includes(url.href);
     await page.route(rejectLightbox, route => route.fulfill({ status: 404 }));
